@@ -1,0 +1,231 @@
+import 'dart:io';
+
+// import 'package:ff_navigation_bar/ff_navigation_bar.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:ismart_login/page/front/front_screen.dart';
+import 'package:ismart_login/page/history/history_screen.dart';
+import 'package:ismart_login/page/leave/leave_screen.dart';
+import 'package:ismart_login/style/font_style.dart';
+import 'package:ismart_login/system/shared_preferences.dart';
+import 'package:ismart_login/system/widht_device.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'leave/leave_free_screen.dart';
+import 'managements/future/member_manage_future.dart';
+import 'managements/model/itemMemberResultManage.dart';
+
+class MainPage extends StatefulWidget {
+  @override
+  _MainPageState createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  ///--
+  int selectedIndex = 1;
+
+  @override
+  void initState() {
+    onLoadMemberManage();
+    super.initState();
+  }
+
+  List<ItemsMemberResultManage> _itemMember = [];
+  Future<bool> onLoadMemberManage() async {
+    Map map = {
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+    };
+    print("MainPage : ${map}");
+    await MemberManageFuture().apiGetMemberManageList(map).then((onValue) {
+      setState(() {
+        if (onValue[0].STATUS) {
+          _itemMember = onValue[0].RESULT;
+          print("main leave : " + (_itemMember[0].LEAVE ?? ""));
+        }
+      });
+    });
+    setState(() {});
+    return true;
+  }
+  List _widgetOptions = [
+    LeaveScreen(),
+    FrontScreen(),
+    HistoryScreen(),
+  ];
+  List _widgetFreeOptions = [
+    LeaveFreeScreen(),
+    FrontScreen(),
+    HistoryScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: alert_back_system,
+      child: Scaffold(
+        body: _itemMember.isNotEmpty && _itemMember[0].LEAVE == "1"
+            ? _widgetOptions.elementAt(selectedIndex)
+            : _widgetFreeOptions.elementAt(selectedIndex),
+        bottomNavigationBar: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: GNav(
+            gap: 8,
+            backgroundColor: Colors.white,
+            color: const Color(0xFF4EA9FB), // unselected icon/text
+            activeColor: Colors.white, // selected icon/text
+            tabBackgroundColor: const Color(0xFF4EA9FB), // selected background
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            selectedIndex: selectedIndex,
+            onTabChange: (index) async {
+              print("wittawat index : $index");
+
+              if (index == 0) {
+                var org_id = await SharedCashe.getItemsWay(name: 'org_id');
+                print("wittawat org : $org_id");
+                if (org_id == "1564") {
+                  var usr = await SharedCashe.getItemsWay(name: 'username');
+                  var pwd = await SharedCashe.getItemsWay(name: 'password');
+                  var url =
+                      "https://yalacity.go.th/hr/app_api_v1/authenticationIsmarLogin/$usr/$pwd";
+                  print('wit Go to Leave org_id : $url');
+                  _launchInBrowser(url);
+                  return;
+                }
+              }
+
+              setState(() {
+                selectedIndex = index;
+              });
+            },
+            tabs: const [
+              GButton(
+                icon: FontAwesomeIcons.envelope,
+                text: 'ลา',
+              ),
+              GButton(
+                icon: FontAwesomeIcons.clock,
+                text: 'ลงเวลา',
+              ),
+              GButton(
+                icon: FontAwesomeIcons.history,
+                text: 'ประวัติ',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> alert_back_system() async {
+    final result = await showDialog<bool>(
+      barrierDismissible: true,
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(20.0))),
+          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
+          content: Container(
+            width: WidhtDevice().widht(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding:
+                      EdgeInsets.only(top: 10, bottom: 10, left: 3, right: 3),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'คุณต้องการออกจากแอปพลิเคชัน',
+                    style: TextStyle(
+                        fontFamily: FontStyles().FontFamily,
+                        fontSize: 24,
+                        height: 1),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Container(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pop(context, false);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(20.0),
+                              ),
+                            ),
+                            height: 50,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'ไม่',
+                              style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            if (Platform.isAndroid) {
+                              SystemNavigator.pop();
+                            } else {
+                              exit(0);
+                            }
+                            Navigator.pop(context, true);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.red[100],
+                              borderRadius: BorderRadius.only(
+                                bottomRight: Radius.circular(20.0),
+                              ),
+                            ),
+                            height: 50,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'ตกลง',
+                              style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  Future<void> _launchInBrowser(String url) async {
+    if (await canLaunch(url)) {
+      await launch(
+        url,
+        forceSafariVC: false,
+        forceWebView: false,
+        headers: <String, String>{'my_header_key': 'my_header_value'},
+      );
+      exit(0);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+}
