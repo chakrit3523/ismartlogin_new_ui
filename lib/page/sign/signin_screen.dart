@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
@@ -12,7 +14,7 @@ import 'package:ismart_login/page/sign/future/singin_future.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/memberresult.dart';
 import 'package:ismart_login/page/sign/repassword/search_account_screen.dart';
-import 'package:ismart_login/page/sign/signup_screen.dart';
+import 'package:ismart_login/page/sign/request_otp_screen.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -24,6 +26,7 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
+  bool _showPageLogin = false;
   TextEditingController _inputPass = TextEditingController();
 
   bool checkProtect = false;
@@ -50,7 +53,6 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<bool> onLoadGetMember(Map map) async {
     EasyLoading.show();
     await new SigninFuture().apiSelectMember(map).then((onValue) async {
-
       print(onValue[0]['msg']);
       print("wittawat rs");
       print(onValue[0]['result']);
@@ -181,165 +183,278 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: alert_back_system,
-      child: Scaffold(
-        body: Container(
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height,
-          decoration: StylePage().background,
-          child: SafeArea(
-            child: SingleChildScrollView(
-              child: Container(
-                padding: EdgeInsets.only(left: 20, right: 20),
-                width: MediaQuery.of(context).size.width,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'iSmartLogin',
-                        style: TextStyle(
-                            fontFamily: FontStyles().FontFamily,
-                            fontSize: 46,
-                            color: Colors.white,
-                            fontWeight: FontWeight.normal),
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.only(
-                          left: 5, right: 5, top: 10, bottom: 20),
-                      width: WidhtDevice().widht(context),
-                      decoration: StylePage().boxWhite,
-                      child: Column(
-                        children: [
-                          Container(
-                            margin: EdgeInsets.only(top: 15),
-                            alignment: Alignment.center,
-                            width: 100,
-                            height: 100,
-                            decoration: new BoxDecoration(
-                              color: Color(0xFF18C0FF),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 75,
-                            ),
-                          ),
-                          Text(
-                            'เข้าใช้งาน',
-                            style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                fontSize: 46),
-                          ),
-                          Container(
-                            padding:
-                                EdgeInsets.only(top: 40, left: 20, right: 20),
-                            child: formlogin(),
-                          ),
-                          Container(
-                            margin: EdgeInsets.only(top: 10),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              SearchAccountScreen()),
-                                    );
-                                  },
-                                  child: Text('ลืมรหัสผ่าน',
-                                      style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 24)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.only(left: 10, right: 10),
-                                  child: Text(
-                                    '|',
-                                    style: TextStyle(fontSize: 30),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => SignUpScreen()),
-                                    );
-                                  },
-                                  child: Text('ลงทะเบียน',
-                                      style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 24)),
-                                )
-                              ],
-                            ),
-                          ),
-                          // Divider(),
-                          // Container(
-                          //   child: Row(
-                          //     mainAxisAlignment: MainAxisAlignment.center,
-                          //     children: [
-                          //       MaterialButton(
-                          //         onPressed: () {
-                          //           print('facebook');
-                          //         },
-                          //         color: Color(0xFF3B5998),
-                          //         child: FaIcon(
-                          //           FontAwesomeIcons.facebookF,
-                          //           color: Colors.white,
-                          //           size: 26,
-                          //         ),
-                          //         padding: EdgeInsets.all(12),
-                          //         shape: CircleBorder(),
-                          //       ),
-                          //       MaterialButton(
-                          //         onPressed: () {
-                          //           print('line');
-                          //         },
-                          //         color: Color(0xFF00C300),
-                          //         child: Image.asset(
-                          //           'assets/images/social/line.png',
-                          //           width: 26,
-                          //           fit: BoxFit.fill,
-                          //         ),
-                          //         padding: EdgeInsets.all(12),
-                          //         shape: CircleBorder(),
-                          //       ),
-                          //       MaterialButton(
-                          //         onPressed: () {
-                          //           print('apple');
-                          //         },
-                          //         color: Color(0xFFA3AAAE),
-                          //         child: FaIcon(
-                          //           FontAwesomeIcons.apple,
-                          //           color: Colors.white,
-                          //           size: 26,
-                          //         ),
-                          //         padding: EdgeInsets.all(12),
-                          //         shape: CircleBorder(),
-                          //       )
-                          //     ],
-                          //   ),
-                          // )
-                        ],
-                      ),
-                    ),
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: WillPopScope(
+        onWillPop: () async {
+          if (_showPageLogin) {
+            setState(() {
+              _showPageLogin = false;
+            });
+            return false;
+          }
+          return await alert_back_system();
+        },
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          extendBodyBehindAppBar: true,
+          extendBody: true,
+          body: Stack(
+            children: [
+              // Background Image - positioned to fill entire screen
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Image.asset(
+                  'assets/images/other/bg_login.png',
+                  fit: BoxFit.cover,
                 ),
+              ),
+              // Content with SafeArea
+              SafeArea(
+                top: true,
+                bottom: true,
+                child: _showPageLogin ? _buildLoginPage() : _buildLandingPage(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLandingPage() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+      child: Column(
+        children: [
+          SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+          // Logo
+          Image.asset(
+            'assets/images/other/logo_.png',
+            height: 100,
+          ),
+          SizedBox(height: 20),
+          // Tagline
+          Text(
+            "ลงชื่อเข้าออกงานง่ายๆ\nด้วยมือถือของคุณ",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.kanit(
+              fontSize: 25,
+              color: Colors.white,
+              fontWeight: FontWeight.w300,
+              height: 1.5,
+            ),
+          ),
+          Spacer(flex: 2),
+          // Register Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF079CFD),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RequestOtpScreen()),
+                );
+              },
+              child: Text("ลงทะเบียน",
+                  style: TextStyle(
+                      fontSize: 19,
+                      height: 23 / 19,
+                      color: Colors.white,
+                      fontFamily: 'Tahoma',
+                      fontWeight: FontWeight.normal)),
+            ),
+          ),
+          SizedBox(height: 15),
+
+          // Google Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              icon: Image.asset(
+                'assets/images/other/google_icon.png',
+                width: 25,
+                height: 25,
+                errorBuilder: (context, error, stackTrace) {
+                  return FaIcon(FontAwesomeIcons.google,
+                      color: Colors.red, size: 20);
+                },
+              ),
+              label: Text("ดำเนินการต่อด้วย Google",
+                  style: TextStyle(
+                      fontSize: 19,
+                      height: 23 / 19,
+                      fontFamily: 'Tahoma',
+                      fontWeight: FontWeight.normal)),
+              onPressed: () {
+                // TODO: Google Login
+              },
+            ),
+          ),
+          SizedBox(height: 15),
+
+          // Apple Button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              icon: FaIcon(FontAwesomeIcons.apple,
+                  color: Colors.white, size: 24.97),
+              label: Text("ดำเนินการต่อด้วย Apple",
+                  style: TextStyle(
+                      fontSize: 19,
+                      height: 23 / 19,
+                      fontFamily: 'Tahoma',
+                      fontWeight: FontWeight.normal)),
+              onPressed: () {
+                // TODO: Apple Login
+              },
+            ),
+          ),
+          SizedBox(height: 20),
+
+          // Login Link
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _showPageLogin = true;
+              });
+            },
+            child: Text(
+              "เข้าสู่ระบบ",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                height: 23 / 19,
+                fontFamily: 'Tahoma',
+                fontWeight: FontWeight.normal,
+                decoration: TextDecoration.none,
               ),
             ),
           ),
+          SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginPage() {
+    return SingleChildScrollView(
+      child: Container(
+        padding: EdgeInsets.only(left: 20, right: 20),
+        width: MediaQuery.of(context).size.width,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Container(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showPageLogin = false;
+                  });
+                },
+              ),
+            ),
+            Container(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'iSmartLogin',
+                style: TextStyle(
+                    fontFamily: FontStyles().FontFamily,
+                    fontSize: 46,
+                    color: Colors.white,
+                    fontWeight: FontWeight.normal),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.only(left: 5, right: 5, top: 10, bottom: 20),
+              width: WidhtDevice().widht(context),
+              decoration: StylePage().boxWhite,
+              child: Column(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 15),
+                    alignment: Alignment.center,
+                    width: 100,
+                    height: 100,
+                    decoration: new BoxDecoration(
+                      color: Color(0xFF18C0FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 75,
+                    ),
+                  ),
+                  Text(
+                    'เข้าใช้งาน',
+                    style: TextStyle(
+                        fontFamily: FontStyles().FontFamily, fontSize: 46),
+                  ),
+                  Container(
+                    padding: EdgeInsets.only(top: 40, left: 20, right: 20),
+                    child: formlogin(),
+                  ),
+                  Container(
+                    margin: EdgeInsets.only(top: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SearchAccountScreen()),
+                            );
+                          },
+                          child: Text('ลืมรหัสผ่าน',
+                              style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24)),
+                        ),
+                        // Removed Logic for Register since it is on the main page now, but keeping forget password
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

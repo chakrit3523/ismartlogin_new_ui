@@ -8,8 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/checkmemberlist.dart';
+import 'package:ismart_login/page/sign/model/for_post.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/otp_screen.dart';
@@ -19,6 +21,9 @@ import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
 
 class SignUpScreen extends StatefulWidget {
+  final String? verifiedPhoneNumber;
+  SignUpScreen({Key? key, this.verifiedPhoneNumber}) : super(key: key);
+
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
@@ -38,6 +43,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   FocusNode _focusNickname = FocusNode();
   FocusNode _focusName = FocusNode();
   FocusNode _focusLastname = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.verifiedPhoneNumber != null) {
+      _inputPhone.text = widget.verifiedPhoneNumber!;
+    }
+  }
+
   //--- Map get Value
   _postDataInput() {
     Map _map = {
@@ -62,6 +76,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   //--API
+  List<ItemsMemberResultList> _resultRegister = [];
+  Future<bool> _registerMember(Map map) async {
+    EasyLoading.show(status: 'กำลังลงทะเบียน...');
+    await MemberFuture().apiInsertMember(map).then((onValue) {
+      _resultRegister = onValue;
+      if (_resultRegister.isNotEmpty &&
+          _resultRegister[0].RESULT == "success") {
+        EasyLoading.dismiss();
+        if (map['AVATAR'] != "") {
+          _onUploadAvatarProfile(_resultRegister[0].UPLOADKEY, map['AVATAR']);
+        }
+        EasyLoading.showSuccess('ลงทะเบียนสำเร็จ');
+        // Navigate to OrganizationScreen or wherever needed
+        Navigator.popUntil(context, (route) => route.isFirst); // Clear stack
+        // Ideally navigate to login or organization.
+        // Legacy flow went to OrganizationScreen.
+        // Let's assume user wants to login or go to Org.
+        // For now, let's pop to first and maybe replace?
+        // Actually OtpScreen code pushes OrganizationScreen.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrganizationScreen(),
+          ),
+        );
+      } else {
+        EasyLoading.dismiss();
+        EasyLoading.showError('ลงทะเบียนไม่สำเร็จ');
+      }
+    });
+    return true;
+  }
+
+  Future<dynamic> _onUploadAvatarProfile(
+      String uploadKey, String pathFile) async {
+    await MemberFuture().uploadAvatarProfile(
+      file: pathFile,
+      uploadKey: uploadKey,
+    );
+    return true;
+  }
+
+  // Legacy (confusing name, it sends OTP)
   List<ItemsOTPList> _result = [];
   Future<bool> onLoadInsertMember(Map map) async {
     await new MemberFuture().apiPostOtp(map).then((onValue) {
@@ -372,6 +429,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               },
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
+              readOnly: widget.verifiedPhoneNumber != null,
+              enabled: widget.verifiedPhoneNumber == null,
               style: TextStyle(
                 fontFamily: FontStyles().FontFamily,
                 fontSize: 24,
@@ -479,7 +538,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   onTap: () {
                     if (_formKey.currentState?.validate() ?? false) {
                       print('ถัดไป');
-                      _checkMember();
+                      if (widget.verifiedPhoneNumber != null) {
+                        _registerMember(_postDataInput());
+                      } else {
+                        _checkMember();
+                      }
                     }
                   },
                   child: Container(

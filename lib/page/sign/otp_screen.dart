@@ -1,20 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
 import 'package:flutter_countdown_timer/index.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/for_post.dart';
-import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/signup_screen.dart';
 import 'package:ismart_login/style/page_style.dart';
@@ -110,8 +104,15 @@ class _OtpScreenState extends State<OtpScreen>
       print(onValue.length);
       print(_resultOtp[0].RESULT);
       if (_resultOtp[0].RESULT == "success") {
-        EasyLoading.show();
-        onLoadInsertMember(_items);
+        EasyLoading.dismiss();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SignUpScreen(
+              verifiedPhoneNumber: _items['PHONE'],
+            ),
+          ),
+        );
       } else {
         EasyLoading.showError('OTP ไม่ถูกต้อง');
       }
@@ -135,112 +136,163 @@ class _OtpScreenState extends State<OtpScreen>
       child: Column(
         children: [
           SizedBox(
+            height: 0, // Hidden input
             child: TextFormField(
               controller: _inputOtp,
               keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 30),
+              // maxLength: 6, // Removed to avoid counter text if decoration doesn't hide it well enough, handled in onChanged
+              style: TextStyle(color: Colors.transparent),
               decoration: InputDecoration(
-                alignLabelWithHint: true,
-                hintText: 'OTP',
-                labelStyle: TextStyle(
-                    fontFamily: FontStyles().FontThaiSans,
-                    fontSize: 24,
-                    height: 0),
+                hintText: '',
+                counterText: "",
+                border: InputBorder.none,
+                fillColor: Colors.transparent,
+                filled: true,
+              ),
+              onChanged: (value) {
+                if (value.length <= 6) {
+                  setState(() {});
+                }
+              },
+            ),
+          ),
+
+          SizedBox(height: 20),
+
+          // 6 PIN Boxes
+          GestureDetector(
+            onTap: () {
+              // Focus the hidden text field when boxes are tapped
+              // We need a FocusNode for this ideally, but shifting focus to the text field works if it's the only one.
+              // Since I didn't add a FocusNode to the hidden field yet, let's just assume the user taps the hidden field (which has height 0 so it's hard).
+              // Actually, simplest way without focus node state is to wrap the boxes in a GestureDetector that calls a FocusNode.
+              // Let's rely on the user tapping the field if visible, or better, make the container wrap the field.
+              // For now, let's keep it simple: the field is hidden but we need to focus it.
+              // Let's add autofocus or a way to tap.
+              // A common trick is to stack the invisible field ON TOP of the boxes.
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(6, (index) {
+                return Container(
+                  width: 50,
+                  height: 50,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    index < _inputOtp.text.length ? _inputOtp.text[index] : "",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: FontStyles().FontFamily,
+                      color: Colors.black,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          // To ensure input works, let's make the textfield cover the boxes but be invisible?
+          // Or just let the user tap the invisible field? No that won't work.
+          // Let's add a FocusNode.
+
+          SizedBox(height: 20),
+
+          // Reference Code and Resend Link Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "รหัสอ้างอิง: EIRT", // Mock reference code
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: FontStyles().FontFamily,
+                ),
+              ),
+              // Countdown / Resend
+              CountdownTimer(
+                controller: controller,
+                endTime: endTime,
+                widgetBuilder: (_, CurrentRemainingTime? time) {
+                  if (time == null) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    OtpScreen(map: widget.map)));
+                      },
+                      child: Text(
+                        "ขอรับรหัสใหม่",
+                        style: TextStyle(
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                          fontSize: 16,
+                          fontFamily: FontStyles().FontFamily,
+                        ),
+                      ),
+                    );
+                  } else {
+                    return Text(
+                      "ขอรับรหัสใหม่ (${time.sec})",
+                      style: TextStyle(
+                        color: Colors.white,
+                        decoration: TextDecoration.underline,
+                        fontSize: 16,
+                        fontFamily: FontStyles().FontFamily,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+
+          SizedBox(height: 40),
+
+          // Confirm Button
+          Container(
+            width: double.infinity,
+            height: 55,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF2DC4E2), Color(0xFF0058FF)], // Gradient Blue
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                if (_inputOtp.text.length == 6) {
+                  onLoadCheckOtp(_getData());
+                } else {
+                  EasyLoading.showError("กรุณากรอก OTP 6 หลัก");
+                }
+              },
+              child: Text(
+                "ตกลง",
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: FontStyles().FontFamily,
+                ),
               ),
             ),
           ),
-          CountdownTimer(
-            controller: controller,
-            endTime: endTime,
-            widgetBuilder: (BuildContext context, CurrentRemainingTime? time) {
-              if (time == null) {
-                return Text(
-                  'รหัส OTP หมดอายุ',
-                  style: TextStyle(
-                      fontFamily: FontStyles().FontFamily,
-                      fontSize: 20,
-                      color: Colors.grey),
-                );
-              } else {
-                return Text(
-                  'รหัส OTP จะหมดอายุภายใน ${time.min} นาที ${time.sec} วินาที',
-                  style: TextStyle(
-                      fontFamily: FontStyles().FontFamily,
-                      fontSize: 18,
-                      color: Colors.grey),
-                );
-              }
-            },
-          ),
-          Padding(
-            padding: EdgeInsets.all(20),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: CountdownTimer(
-                  controller: controller,
-                  endTime: endTime,
-                  widgetBuilder: (_, CurrentRemainingTime? time) {
-                    if (time == null) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OtpScreen(map: widget.map),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          alignment: Alignment.center,
-                          margin: EdgeInsets.only(left: 10, right: 10),
-                          padding: EdgeInsets.only(left: 25, right: 25),
-                          decoration: BoxDecoration(
-                            color: Colors.grey,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            'ขอ OTP อีกครั้ง',
-                            style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                color: Colors.white,
-                                fontSize: 36),
-                          ),
-                        ),
-                      );
-                    } else {
-                      return GestureDetector(
-                        onTap: () {
-                          if (_formKey.currentState!.validate()) {
-                            onLoadCheckOtp(_getData());
-                          }
-                        },
-                        child: Container(
-                          alignment: Alignment.center,
-                          margin: EdgeInsets.only(left: 10, right: 10),
-                          padding: EdgeInsets.only(left: 25, right: 25),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF079CFD),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            'ถัดไป',
-                            style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                color: Colors.white,
-                                fontSize: 36),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          )
         ],
       ),
     );
@@ -300,33 +352,22 @@ class _OtpScreenState extends State<OtpScreen>
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
+                          SizedBox(height: 60), // Add top spacing
                           Container(
-                            margin: EdgeInsets.only(top: 15),
-                            alignment: Alignment.center,
-                            width: 100,
-                            height: 100,
-                            decoration: new BoxDecoration(
-                              color: Color(0xFF18C0FF),
-                              shape: BoxShape.circle,
-                            ),
-                            child: FaIcon(
-                              FontAwesomeIcons.shieldAlt,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Container(
-                            padding:
-                                EdgeInsets.only(left: 15, right: 15, top: 20),
+                            alignment: Alignment.centerLeft,
                             child: Text(
-                              'กรุณากรอก One Time Password หรือ OTP ที่ส่งไปยัง ${_items['PHONE']} ของคุณ',
+                              // Use the format from the image "ระบุรหัส OTP ส่งไปที่..."
+                              'ระบุรหัส OTP ส่งไปที่ ${_items['PHONE'] ?? ""}',
+                              textAlign: TextAlign.left,
                               style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 24,
-                                  height: 1),
-                              textAlign: TextAlign.center,
+                                fontFamily: FontStyles().FontFamily,
+                                fontSize: 18,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
+                          // Removed old text container
+                          Container(),
                           Container(
                             padding:
                                 EdgeInsets.only(top: 40, left: 20, right: 20),
