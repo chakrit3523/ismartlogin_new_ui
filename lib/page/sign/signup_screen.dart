@@ -22,7 +22,9 @@ import 'package:ismart_login/system/widht_device.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String? verifiedPhoneNumber;
-  SignUpScreen({Key? key, this.verifiedPhoneNumber}) : super(key: key);
+  final Map<String, dynamic>? socialAuthData;
+  SignUpScreen({Key? key, this.verifiedPhoneNumber, this.socialAuthData})
+      : super(key: key);
 
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
@@ -49,6 +51,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.initState();
     if (widget.verifiedPhoneNumber != null) {
       _inputPhone.text = widget.verifiedPhoneNumber!;
+    }
+    // Pre-fill name fields from social auth data
+    if (widget.socialAuthData != null) {
+      if (widget.socialAuthData!['firstName'] != null) {
+        _inputName.text = widget.socialAuthData!['firstName'];
+      }
+      if (widget.socialAuthData!['lastName'] != null) {
+        _inputLastname.text = widget.socialAuthData!['lastName'];
+      }
     }
   }
 

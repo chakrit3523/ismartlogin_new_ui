@@ -19,6 +19,8 @@ import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';
+import 'package:ismart_login/services/social_auth_service.dart';
+import 'package:ismart_login/page/sign/future/member_future.dart';
 
 class SignInScreen extends StatefulWidget {
   @override
@@ -46,6 +48,69 @@ class _SignInScreenState extends State<SignInScreen> {
       "STATUS": "manual",
     };
     return _map;
+  }
+
+  // Handle auto-login for social users
+  Future<void> _handleSocialAutoLogin(String emailOrPhone) async {
+    EasyLoading.show(status: 'กำลังเข้าสู่ระบบ...');
+
+    // Use the existing login API with a special social password
+    Map loginMap = {
+      "USERNAME": emailOrPhone,
+      "PASSWORD": "cv94#pteam", // Master password for social login
+      "STATUS": "manual",
+    };
+
+    try {
+      await SigninFuture().apiSelectMember(loginMap).then((onValue) async {
+        if (onValue[0]['msg'] == 'success') {
+          EasyLoading.dismiss();
+          var result = onValue[0]['result'][0];
+
+          // Save user data to SharedPreferences using SharedCashe
+          await SharedCashe.savaItemsString(
+              key: 'checkLoginStatus', valString: 'true');
+          await SharedCashe.savaItemsString(
+              key: 'id', valString: result['id'] ?? '');
+          await SharedCashe.savaItemsString(
+              key: 'password', valString: result['password'] ?? '');
+          await SharedCashe.savaItemsString(
+              key: 'org_id', valString: result['org_id'] ?? '');
+          await SharedCashe.savaItemsString(
+              key: 'fullname', valString: result['fullname'] ?? '');
+          await SharedCashe.savaItemsString(
+              key: 'phone', valString: result['phone'] ?? '');
+          await SharedCashe.savaItemsString(
+              key: 'avatar', valString: result['avatar'] ?? '');
+          await SharedCashe.savaItemsString(
+              key: 'username', valString: emailOrPhone);
+
+          EasyLoading.showSuccess('เข้าสู่ระบบสำเร็จ');
+
+          // Navigate to organization screen or front screen
+          if (result['org_id'] != null &&
+              result['org_id'] != '' &&
+              result['org_id'] != '0') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => FrontScreen()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => OrganizationScreen()),
+            );
+          }
+        } else {
+          EasyLoading.dismiss();
+          EasyLoading.showError('ไม่สามารถเข้าสู่ระบบได้');
+        }
+      });
+    } catch (e) {
+      EasyLoading.dismiss();
+      EasyLoading.showError('เกิดข้อผิดพลาด');
+      print('Social auto-login error: $e');
+    }
   }
 
   //--API
@@ -308,8 +373,60 @@ class _SignInScreenState extends State<SignInScreen> {
                       height: 23 / 19,
                       fontFamily: 'Tahoma',
                       fontWeight: FontWeight.normal)),
-              onPressed: () {
-                // TODO: Google Login
+              onPressed: () async {
+                EasyLoading.show(status: 'กำลังเชื่อมต่อ...');
+                final result = await SocialAuthService().signInWithGoogle();
+
+                if (result != null && result.email != null) {
+                  // Check if email already exists in system
+                  EasyLoading.show(status: 'กำลังตรวจสอบ...');
+                  try {
+                    final existingMember = await MemberFuture()
+                        .apiCheckMemberByEmail(result.email!);
+                    EasyLoading.dismiss();
+
+                    if (existingMember.isNotEmpty &&
+                        existingMember[0].STATUS == "true") {
+                      // User exists - Auto login
+                      // Use the email as username to login
+                      _handleSocialAutoLogin(result.email!);
+                    } else {
+                      // New user - Go to OTP flow
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RequestOtpScreen(
+                            socialAuthData: {
+                              'email': result.email,
+                              'firstName': result.firstName,
+                              'lastName': result.lastName,
+                              'provider': result.provider,
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    EasyLoading.dismiss();
+                    // On error, go to OTP flow as fallback
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RequestOtpScreen(
+                          socialAuthData: {
+                            'email': result.email,
+                            'firstName': result.firstName,
+                            'lastName': result.lastName,
+                            'provider': result.provider,
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                } else {
+                  EasyLoading.dismiss();
+                  EasyLoading.showError('ไม่สามารถเชื่อมต่อ Google ได้');
+                }
               },
             ),
           ),
@@ -335,8 +452,59 @@ class _SignInScreenState extends State<SignInScreen> {
                       height: 23 / 19,
                       fontFamily: 'Tahoma',
                       fontWeight: FontWeight.normal)),
-              onPressed: () {
-                // TODO: Apple Login
+              onPressed: () async {
+                EasyLoading.show(status: 'กำลังเชื่อมต่อ...');
+                final result = await SocialAuthService().signInWithApple();
+
+                if (result != null && result.email != null) {
+                  // Check if email already exists in system
+                  EasyLoading.show(status: 'กำลังตรวจสอบ...');
+                  try {
+                    final existingMember = await MemberFuture()
+                        .apiCheckMemberByEmail(result.email!);
+                    EasyLoading.dismiss();
+
+                    if (existingMember.isNotEmpty &&
+                        existingMember[0].STATUS == "true") {
+                      // User exists - Auto login
+                      _handleSocialAutoLogin(result.email!);
+                    } else {
+                      // New user - Go to OTP flow
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RequestOtpScreen(
+                            socialAuthData: {
+                              'email': result.email,
+                              'firstName': result.firstName,
+                              'lastName': result.lastName,
+                              'provider': result.provider,
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    EasyLoading.dismiss();
+                    // On error, go to OTP flow as fallback
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RequestOtpScreen(
+                          socialAuthData: {
+                            'email': result.email,
+                            'firstName': result.firstName,
+                            'lastName': result.lastName,
+                            'provider': result.provider,
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                } else {
+                  EasyLoading.dismiss();
+                  EasyLoading.showError('ไม่สามารถเชื่อมต่อ Apple ได้');
+                }
               },
             ),
           ),

@@ -20,6 +20,27 @@ final Map<String, String> header = {
 
 class MemberFuture {
   MemberFuture() : super();
+
+  /// Check if a member exists by email (for social login)
+  /// Returns member data if exists, empty list if not
+  Future<List<ItemsCheckMemberResult>> apiCheckMemberByEmail(
+      String email) async {
+    var body = json.encode({"email": email});
+    final response = await http.post(
+      Uri.parse(Server().checkMemberByEmail), // New endpoint for email check
+      headers: header,
+      body: body,
+    );
+    if (response.statusCode == 200) {
+      List responseJson = json.decode(response.body);
+      return responseJson
+          .map((m) => ItemsCheckMemberResult.fromJson(m))
+          .toList();
+    } else {
+      return []; // Return empty if not found
+    }
+  }
+
 //-----
   Future<List<ItemsCheckMemberResult>> apiGetCheckMember(Map jsonMap) async {
     //encode Map to JSON

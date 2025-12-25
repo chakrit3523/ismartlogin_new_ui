@@ -8,7 +8,9 @@ import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/otp_screen.dart';
 
 class RequestOtpScreen extends StatefulWidget {
-  const RequestOtpScreen({Key? key}) : super(key: key);
+  final Map<String, dynamic>? socialAuthData;
+
+  const RequestOtpScreen({Key? key, this.socialAuthData}) : super(key: key);
 
   @override
   State<RequestOtpScreen> createState() => _RequestOtpScreenState();
@@ -22,6 +24,9 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
   List<ItemsCheckMemberResult> _resultCheck = [];
   List<ItemsOTPList> _resultOtp = [];
   bool _isPhoneValid = false; // State to track phone validity
+
+  // Social auth data
+  Map<String, dynamic>? get socialAuthData => widget.socialAuthData;
 
   @override
   void initState() {
@@ -103,9 +108,10 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => OtpScreen(
-                map:
-                    otpMap, // Passing map for consistency with legacy OtpScreen
-                // We will add a new parameter to OtpScreen later to support cleaner passing
+                map: {
+                  ...otpMap,
+                  'socialAuthData': socialAuthData, // Pass social auth data
+                },
               ),
             ),
           );

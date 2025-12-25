@@ -110,6 +110,7 @@ class _OtpScreenState extends State<OtpScreen>
           MaterialPageRoute(
             builder: (context) => SignUpScreen(
               verifiedPhoneNumber: _items['PHONE'],
+              socialAuthData: _items['socialAuthData'] as Map<String, dynamic>?,
             ),
           ),
         );

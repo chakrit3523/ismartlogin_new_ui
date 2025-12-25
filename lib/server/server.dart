@@ -16,6 +16,7 @@ class Server {
   String getCheckMember = _baseUrl + 'member/getCheckMember';
   String updateMemberPassword = _baseUrl + 'member/updateMemberPassword';
   String getMemberByUsername = _baseUrl + 'member/getMemberByUsername';
+  String checkMemberByEmail = _baseUrl + 'member/checkMemberByEmail';
   // ---องค์กร
   String getOrg = _baseUrl + 'organization/getOrg';
 
