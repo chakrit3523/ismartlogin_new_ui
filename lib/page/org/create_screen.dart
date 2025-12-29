@@ -11,6 +11,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
@@ -25,6 +26,7 @@ import 'package:ismart_login/page/managements/org_manage_screen.dart';
 import 'package:ismart_login/page/managements/org_screen.dart';
 import 'package:ismart_login/page/org/future/getJoinOrg_future.dart';
 import 'package:ismart_login/page/org/model/itemSwitchOrg.dart';
+import 'package:ismart_login/page/org/org_setup_screen.dart';
 import 'package:ismart_login/page/splashscreen/splashscreen_screen.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -482,6 +484,191 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Use new design for insert mode, keep old design for update mode
+    if (widget.type == "insert") {
+      return _buildInsertModeUI();
+    }
+    return _buildUpdateModeUI();
+  }
+
+  // New design for creating organization
+  Widget _buildInsertModeUI() {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () {
+              widget.refresh();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/other/bg_regis.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Spacer
+                Spacer(flex: 2),
+
+                SizedBox(height: 20),
+
+                // Title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Text(
+                    "ตั้งชื่อกลุ่ม/องค์กร",
+                    style: GoogleFonts.kanit(
+                      fontSize: 25,
+                      color: Colors.white,
+                      fontWeight: FontWeight.normal,
+                      height: 38 / 25, // line-height 38px
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                // Text input
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Form(
+                    key: _formKey,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: TextFormField(
+                          controller: _inputSubject,
+                          focusNode: _focusSubject,
+                          keyboardType: TextInputType.text,
+                          textAlignVertical: TextAlignVertical.center,
+                          style: GoogleFonts.kanit(
+                            fontSize: 18,
+                            color: Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            isCollapsed: true,
+                            hintText: 'ชื่อกลุ่ม/องค์กร',
+                            hintStyle: GoogleFonts.kanit(
+                              fontSize: 18,
+                              color: Colors.grey[400],
+                            ),
+                            border: InputBorder.none,
+                            contentPadding:
+                                EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 30),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                          begin: Alignment(-0.97, -0.24),
+                          end: Alignment(0.97, 0.24),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x29000000),
+                            offset: Offset(0, 3),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_inputSubject.text == '') {
+                            alert(context, 'กรุณาป้อนข้อมูลให้ครบถ้วน');
+                          } else {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              // Navigate to setup screen instead of creating org directly
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrgSetupScreen(
+                                    orgName: _inputSubject.text,
+                                    orgId:
+                                        '0', // Will be assigned after creation
+                                    onComplete: () {
+                                      // After setup complete, create the organization
+                                      Navigator.pop(
+                                          context); // Pop setup screen
+                                      alert_new_org(context,
+                                          'คุณต้องการสร้างทีม/องค์กร\n"${_inputSubject.text}"\nใช่หรือไม่ ?');
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          "สร้าง",
+                          style: GoogleFonts.kanit(
+                            fontSize: 21,
+                            color: Colors.white,
+                            fontWeight: FontWeight.normal,
+                            height: 30 / 21,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 60),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Original design for updating organization
+  Widget _buildUpdateModeUI() {
     return Scaffold(
       body: Container(
         decoration: StylePage().background,

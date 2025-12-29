@@ -1,24 +1,19 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/checkmemberlist.dart';
 import 'package:ismart_login/page/sign/model/for_post.dart';
-import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/otp_screen.dart';
-import 'package:ismart_login/page/sign/signin_screen.dart';
-import 'package:ismart_login/style/page_style.dart';
-import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/widht_device.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String? verifiedPhoneNumber;
@@ -32,19 +27,18 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  //Setup
+
+  // Image picker
   XFile? _imageFile;
   dynamic _pickImageError;
-  //----
+
+  // Controllers
   TextEditingController _inputName = TextEditingController();
   TextEditingController _inputLastname = TextEditingController();
   TextEditingController _inputNickname = TextEditingController();
   TextEditingController _inputPhone = TextEditingController();
   TextEditingController _inputPassword = TextEditingController();
   TextEditingController _inputRePassword = TextEditingController();
-  FocusNode _focusNickname = FocusNode();
-  FocusNode _focusName = FocusNode();
-  FocusNode _focusLastname = FocusNode();
 
   @override
   void initState() {
@@ -63,9 +57,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  //--- Map get Value
-  _postDataInput() {
-    Map _map = {
+  @override
+  void dispose() {
+    _inputName.dispose();
+    _inputLastname.dispose();
+    _inputNickname.dispose();
+    _inputPhone.dispose();
+    _inputPassword.dispose();
+    _inputRePassword.dispose();
+    super.dispose();
+  }
+
+  // Get form data
+  Map _getFormData() {
+    return {
       "NAME": _inputName.text,
       "LASTNAME": _inputLastname.text,
       "NICKNAME": _inputNickname.text,
@@ -74,19 +79,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       "REPASSWORD": _inputRePassword.text,
       "AVATAR": _imageFile?.path ?? "",
     };
-    onLoadInsertMember(_map);
-    return _map;
   }
 
-  _checkMember() {
-    EasyLoading.show();
-    Map _map = {
-      "username": _inputPhone.text,
-    };
-    onLoadCheckMember(_map);
-  }
-
-  //--API
+  // API - Register member
   List<ItemsMemberResultList> _resultRegister = [];
   Future<bool> _registerMember(Map map) async {
     EasyLoading.show(status: 'กำลังลงทะเบียน...');
@@ -99,13 +94,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _onUploadAvatarProfile(_resultRegister[0].UPLOADKEY, map['AVATAR']);
         }
         EasyLoading.showSuccess('ลงทะเบียนสำเร็จ');
-        // Navigate to OrganizationScreen or wherever needed
-        Navigator.popUntil(context, (route) => route.isFirst); // Clear stack
-        // Ideally navigate to login or organization.
-        // Legacy flow went to OrganizationScreen.
-        // Let's assume user wants to login or go to Org.
-        // For now, let's pop to first and maybe replace?
-        // Actually OtpScreen code pushes OrganizationScreen.
+        Navigator.popUntil(context, (route) => route.isFirst);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -129,454 +118,381 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return true;
   }
 
-  // Legacy (confusing name, it sends OTP)
-  List<ItemsOTPList> _result = [];
-  Future<bool> onLoadInsertMember(Map map) async {
-    await new MemberFuture().apiPostOtp(map).then((onValue) {
-      _result = onValue;
-      print(_result[0].MSG);
-      print(onValue.length);
+  // Check if member exists
+  List<ItemsCheckMemberResult> _resultCheck = [];
+  Future<bool> _checkMember() async {
+    EasyLoading.show(status: 'กำลังตรวจสอบ...');
+    Map map = {"username": _inputPhone.text};
+    await MemberFuture().apiGetCheckMember(map).then((onValue) {
+      _resultCheck = onValue;
+      if (_resultCheck[0].STATUS == "true") {
+        // Phone is available, proceed to OTP
+        _sendOtpAndNavigate();
+      } else {
+        EasyLoading.dismiss();
+        _showAlert("${_inputPhone.text} ถูกใช้งานแล้ว");
+      }
     });
-    setState(() {});
     return true;
   }
 
-  List<ItemsCheckMemberResult> _resultCheck = [];
-  Future<bool> onLoadCheckMember(Map map) async {
-    await new MemberFuture().apiGetCheckMember(map).then((onValue) {
-      _resultCheck = onValue;
-      print(_resultCheck[0].STATUS);
-      if (_resultCheck[0].STATUS == "true") {
+  // Send OTP
+  List<ItemsOTPList> _resultOtp = [];
+  Future<void> _sendOtpAndNavigate() async {
+    Map formData = _getFormData();
+    await MemberFuture().apiPostOtp(formData).then((onValue) {
+      _resultOtp = onValue;
+      EasyLoading.dismiss();
+
+      if (_resultOtp.isNotEmpty) {
+        // Extract reference code
+        String refCode = '';
+        if (_resultOtp[0].MSG is Map) {
+          refCode = _resultOtp[0].MSG['token']?.toString() ??
+              _resultOtp[0].MSG['ref']?.toString() ??
+              _resultOtp[0].MSG['refCode']?.toString() ??
+              '';
+        } else if (_resultOtp[0].MSG is String) {
+          refCode = _resultOtp[0].MSG;
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => OtpScreen(
-              map: _postDataInput(),
+              map: {
+                ...formData,
+                'refCode': refCode,
+              },
             ),
           ),
         );
-        EasyLoading.dismiss();
       } else {
-        EasyLoading.dismiss();
-        alert_null(context, "" + map['username'] + " ถูกใช้งานแล้ว");
+        EasyLoading.showError('ไม่สามารถส่ง OTP ได้');
       }
     });
-    setState(() {});
-    return true;
+  }
+
+  void _onRegisterPressed() {
+    if (_formKey.currentState?.validate() ?? false) {
+      if (widget.verifiedPhoneNumber != null) {
+        // Phone already verified, register directly
+        _registerMember(_getFormData());
+      } else {
+        // Need to verify phone first
+        _checkMember();
+      }
+    }
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    bool readOnly = false,
+    int? maxLength,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.kanit(
+            fontSize: 14,
+            color: Colors.white,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+        SizedBox(height: 8),
+        Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            obscureText: obscureText,
+            readOnly: readOnly,
+            maxLength: maxLength,
+            style: GoogleFonts.kanit(
+              fontSize: 18,
+              color: readOnly ? Colors.grey : Colors.black,
+            ),
+            decoration: InputDecoration(
+              counterText: "",
+              border: InputBorder.none,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              isCollapsed: true,
+            ),
+            validator: validator,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              padding: EdgeInsets.only(left: 20, right: 20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Container(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'iSmartLogin',
-                          style: TextStyle(
-                              fontFamily: FontStyles().FontFamily,
-                              fontSize: 46,
-                              color: Colors.white,
-                              fontWeight: FontWeight.normal),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SignInScreen(),
-                              ),
-                            );
-                          },
-                          child: FaIcon(
-                            FontAwesomeIcons.times,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SingleChildScrollView(
-                    child: Container(
-                      padding: EdgeInsets.only(
-                          left: 5, right: 5, top: 10, bottom: 20),
-                      width: WidhtDevice().widht(context),
-                      decoration: StylePage().boxWhite,
-                      child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/other/bg_login.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 20),
+
+                      // Avatar with camera button
+                      Stack(
                         children: [
-                          // Container(
-                          //   margin: EdgeInsets.only(top: 15),
-                          //   alignment: Alignment.center,
-                          //   width: 100,
-                          //   height: 100,
-                          //   decoration: new BoxDecoration(
-                          //     color: Color(0xFF18C0FF),
-                          //     shape: BoxShape.circle,
-                          //   ),
-                          //   child: Icon(
-                          //     Icons.person,
-                          //     color: Colors.white,
-                          //     size: 75,
-                          //   ),
-                          // ),
-                          // Text(
-                          //   'ลงทะเบียน',
-                          //   style: TextStyle(
-                          //       fontFamily: FontStyles().FontFamily, fontSize: 46),
-                          // ),
-                          Container(
-                            padding:
-                                EdgeInsets.only(top: 40, left: 20, right: 20),
-                            child: formlogin(),
+                          GestureDetector(
+                            onTap: _handleClickFiles,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF9E9E9E),
+                              ),
+                              child: ClipOval(
+                                child: _imageFile == null
+                                    ? Icon(
+                                        Icons.person,
+                                        size: 80,
+                                        color: Colors.white,
+                                      )
+                                    : Image.file(
+                                        File(_imageFile!.path),
+                                        fit: BoxFit.cover,
+                                        width: 120,
+                                        height: 120,
+                                      ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _handleClickFiles,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 20,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
+
+                      SizedBox(height: 30),
+
+                      // Row 1: ชื่อ / นามสกุล
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _inputName,
+                              label: "ชื่อ",
+                              keyboardType: TextInputType.name,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'กรุณากรอกชื่อ';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 15),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _inputLastname,
+                              label: "นามสกุล",
+                              keyboardType: TextInputType.name,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'กรุณากรอกนามสกุล';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 20),
+
+                      // Row 2: ชื่อเรียกในกลุ่ม/องค์กร / เบอร์โทรศัพท์
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _inputNickname,
+                              label: "ชื่อเรียกในกลุ่ม/องค์กร",
+                              keyboardType: TextInputType.name,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'กรุณากรอกชื่อเรียก';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 15),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _inputPhone,
+                              label: "เบอร์โทรศัพท์",
+                              keyboardType: TextInputType.phone,
+                              maxLength: 10,
+                              readOnly: widget.verifiedPhoneNumber != null,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'กรุณากรอกเบอร์';
+                                } else if (value.length != 10) {
+                                  return 'กรุณากรอก 10 หลัก';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 20),
+
+                      // Row 3: รหัสผ่าน / ยืนยันรหัสผ่าน
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _inputPassword,
+                              label: "รหัสผ่าน",
+                              keyboardType: TextInputType.visiblePassword,
+                              obscureText: true,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'กรุณาตั้งรหัสผ่าน';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 15),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _inputRePassword,
+                              label: "ยืนยันรหัสผ่าน",
+                              keyboardType: TextInputType.visiblePassword,
+                              obscureText: true,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'กรุณายืนยันรหัส';
+                                } else if (value != _inputPassword.text) {
+                                  return 'รหัสไม่ตรงกัน';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 40),
+
+                      // Register Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _onRegisterPressed,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              "ลงทะเบียน",
+                              style: GoogleFonts.kanit(
+                                fontSize: 21,
+                                color: Colors.white,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 40),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget formlogin() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              FocusScopeNode currentFocus = FocusScope.of(context);
-              if (!currentFocus.hasPrimaryFocus) {
-                currentFocus.unfocus();
-              }
-              _handleClickFiles();
-            },
-            child: Container(
-              child: Center(
-                child: Container(
-                  child: ClipOval(
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      color: Color(0xFFA6D6F2),
-                      child: Column(
-                        children: <Widget>[
-                          Expanded(
-                            child: Container(
-                              child: Center(
-                                child: _imageFile == null
-                                    ? Icon(
-                                        Icons.person,
-                                        size: 140,
-                                        color: Colors.white,
-                                      )
-                                    : _imageFile != null
-                                        ? Image.file(
-                                            File(_imageFile!.path),
-                                            fit: BoxFit.cover,
-                                            width: 300.0,
-                                            height: 300.0,
-                                          )
-                                        : SizedBox.shrink(),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            height: 33.0,
-                            width: double.infinity,
-                            color: Color(0xFF7B7B7B),
-                            child: Center(
-                              child: Container(
-                                child: Text('เพิ่มรูปภาพ',
-                                    textScaleFactor: 1.0,
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18.0,
-                                        fontFamily: FontStyles().FontFamily),
-                                    textAlign: TextAlign.center),
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(padding: EdgeInsets.all(10)),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  child: TextFormField(
-                    controller: _inputName,
-                    onFieldSubmitted: (v) {
-                      FocusScope.of(context).requestFocus(_focusLastname);
-                    },
-                    focusNode: _focusName,
-                    keyboardType: TextInputType.name,
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'โปรดกรอกชื่อ';
-                      }
-                      return null;
-                    },
-                    style: TextStyle(
-                      fontFamily: FontStyles().FontFamily,
-                      fontSize: 24,
-                    ),
-                    decoration: InputDecoration(
-                      alignLabelWithHint: true,
-                      hintText: 'ชื่อ',
-                      hintStyle: TextStyle(
-                        fontFamily: FontStyles().FontThaiSans,
-                        fontSize: 24,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(10),
-              ),
-              Expanded(
-                child: SizedBox(
-                  child: TextFormField(
-                    keyboardType: TextInputType.name,
-                    controller: _inputLastname,
-                    focusNode: _focusLastname,
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'โปรดกรอกนามสกุล';
-                      }
-                      return null;
-                    },
-                    style: TextStyle(
-                      fontFamily: FontStyles().FontFamily,
-                      fontSize: 24,
-                    ),
-                    decoration: InputDecoration(
-                        alignLabelWithHint: true,
-                        hintText: 'นามสกุล',
-                        hintStyle: TextStyle(
-                          fontFamily: FontStyles().FontThaiSans,
-                          fontSize: 24,
-                        )),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: EdgeInsets.all(5),
-          ),
-          SizedBox(
-            child: TextFormField(
-              focusNode: _focusNickname,
-              controller: _inputNickname,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'โปรดกรอก ชื่อเรียกในองค์กร';
-                }
-                return null;
-              },
-              keyboardType: TextInputType.name,
-              textInputAction: TextInputAction.next,
-              style: TextStyle(
-                fontFamily: FontStyles().FontFamily,
-                fontSize: 24,
-              ),
-              decoration: InputDecoration(
-                alignLabelWithHint: true,
-                hintText: 'ชื่อเรียกในองค์กร',
-                hintStyle: TextStyle(
-                    fontFamily: FontStyles().FontThaiSans, fontSize: 24),
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.person,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(5),
-          ),
-          SizedBox(
-            child: TextFormField(
-              controller: _inputPhone,
-              maxLength: 10,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'โปรดกรอก เบอร์โทรศัพท์';
-                } else if (value.length != 10) {
-                  return 'โปรดกรอกเบอร์โทรศัพท์ 10 หลัก';
-                }
-                return null;
-              },
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
-              readOnly: widget.verifiedPhoneNumber != null,
-              enabled: widget.verifiedPhoneNumber == null,
-              style: TextStyle(
-                fontFamily: FontStyles().FontFamily,
-                fontSize: 24,
-              ),
-              decoration: InputDecoration(
-                counterText: "",
-                alignLabelWithHint: true,
-                hintText: 'เบอร์โทรศัพท์',
-                hintStyle: TextStyle(
-                    fontFamily: FontStyles().FontThaiSans, fontSize: 24),
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.phone_iphone,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(5),
-          ),
-          SizedBox(
-            child: TextFormField(
-              controller: _inputPassword,
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.next,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'โปรด ตั้งรหัสผ่าน';
-                }
-                return null;
-              },
-              obscureText: true,
-              style: TextStyle(
-                fontFamily: FontStyles().FontFamily,
-                fontSize: 24,
-              ),
-              decoration: InputDecoration(
-                alignLabelWithHint: true,
-                hintText: 'ตั้งรหัสผ่าน',
-                hintStyle: TextStyle(
-                    fontFamily: FontStyles().FontThaiSans, fontSize: 24),
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.lock,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(5),
-          ),
-          SizedBox(
-            child: TextFormField(
-              controller: _inputRePassword,
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'กรุณายืนยันรหัสผ่าน';
-                } else {
-                  if (_inputPassword.text != '' &&
-                      _inputPassword.text != value) {
-                    return 'กรุณาใส่รหัสให้ตรงกัน';
-                  }
-                }
-                return null;
-              },
-              onChanged: (val) {
-                // You can add logic here if needed, but do not return a value.
-              },
-              obscureText: true,
-              style: TextStyle(
-                fontFamily: FontStyles().FontFamily,
-                fontSize: 24,
-              ),
-              decoration: InputDecoration(
-                alignLabelWithHint: true,
-                hintText: 'ยืนยันรหัสผ่าน',
-                hintStyle: TextStyle(
-                    fontFamily: FontStyles().FontThaiSans, fontSize: 24),
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.lock,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(20),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Container(
-                child: GestureDetector(
-                  onTap: () {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      print('ถัดไป');
-                      if (widget.verifiedPhoneNumber != null) {
-                        _registerMember(_postDataInput());
-                      } else {
-                        _checkMember();
-                      }
-                    }
-                  },
-                  child: Container(
-                    alignment: Alignment.center,
-                    margin: EdgeInsets.only(left: 10, right: 10),
-                    padding: EdgeInsets.only(left: 25, right: 25),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF079CFD),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Text(
-                      'ลงทะเบียน',
-                      style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          color: Colors.white,
-                          fontSize: 26),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          )
-        ],
       ),
     );
   }
@@ -586,28 +502,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
       context: context,
       builder: (BuildContext context) {
         return CupertinoActionSheet(
-          title: Text('อัพโหลดรูป',
-              textScaleFactor: 1.0,
-              style: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold)),
+          title: Text(
+            'อัพโหลดรูป',
+            style: GoogleFonts.kanit(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           actions: <Widget>[
             CupertinoActionSheetAction(
-              child: Text(
-                'รูปภาพ',
-                textScaleFactor: 1.0,
-              ),
+              child: Text('รูปภาพ', style: GoogleFonts.kanit(fontSize: 16)),
               onPressed: () {
-                // _openFileImagesExplorer();
                 _imgFromGallery();
                 Navigator.pop(context);
               },
             ),
             CupertinoActionSheetAction(
-              child: Text(
-                'กล้อง',
-                textScaleFactor: 1.0,
-              ),
+              child: Text('กล้อง', style: GoogleFonts.kanit(fontSize: 16)),
               onPressed: () {
-                // _openCameraExplorer(ImageSource.camera, context: context);
                 _imgFromCamera();
                 Navigator.pop(context);
               },
@@ -615,8 +524,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ],
           cancelButton: CupertinoActionSheetAction(
             isDefaultAction: true,
-            child: Text('ยกเลิก',
-                textScaleFactor: 1.0, style: TextStyle(color: Colors.red)),
+            child: Text(
+              'ยกเลิก',
+              style: GoogleFonts.kanit(fontSize: 16, color: Colors.red),
+            ),
             onPressed: () {
               Navigator.pop(context);
             },
@@ -660,67 +571,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  ///-------
-  alert_null(BuildContext context, String text) async {
-    return showDialog(
+  void _showAlert(String text) {
+    showDialog(
       barrierDismissible: true,
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(20.0))),
-          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-          content: Container(
-            width: WidhtDevice().widht(context),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  alignment: Alignment.center,
-                  height: 100,
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10),
+              Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.kanit(fontSize: 18),
+              ),
+              SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[100],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        height: 1,
-                        fontFamily: FontStyles().FontFamily,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold),
+                    'ปิด',
+                    style:
+                        GoogleFonts.kanit(fontSize: 16, color: Colors.red[900]),
                   ),
                 ),
-                Container(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.red[100],
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.0),
-                                bottomRight: Radius.circular(20.0),
-                              ),
-                            ),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'ปิด',
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

@@ -82,7 +82,6 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
       // Checking signup_screen.dart usage:
       // _postDataInput() sends NAME, LASTNAME etc. + PHONE
       // But apiPostOtp usually only needs PHONE.
-      // Let's send basic info or just PHONE if API supports it.
       // Based on legacy code, it sends the whole map.
       // We might need to send dummy data or just PHONE if the backend allows.
       // Let's try sending just PHONE first, if it fails we might need to adjust.
@@ -94,14 +93,37 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
       "AVATAR": "",
     };
 
+    print('=== Requesting OTP ===');
+    print('Phone: ${_inputPhone.text.trim()}');
+    print('OTP Map: $otpMap');
+
     try {
       await MemberFuture().apiPostOtp(otpMap).then((onValue) {
+        print('=== OTP Response ===');
+        print('Response: $onValue');
+        print('Response length: ${onValue.length}');
+
         _resultOtp = onValue;
         if (_resultOtp.isNotEmpty) {
           // Assuming if we get a result, it sent successfully.
           // Legacy code prints MSG and length.
+          print('OTP sent successfully!');
+          print('OTP MSG: ${_resultOtp[0].MSG}');
+
           EasyLoading.dismiss();
           EasyLoading.showSuccess('ส่ง OTP แล้ว');
+
+          // Extract reference code from API response if available
+          String refCode = '';
+          if (_resultOtp[0].MSG is Map) {
+            refCode = _resultOtp[0].MSG['token']?.toString() ??
+                _resultOtp[0].MSG['ref']?.toString() ??
+                _resultOtp[0].MSG['refCode']?.toString() ??
+                '';
+          } else if (_resultOtp[0].MSG is String) {
+            refCode = _resultOtp[0].MSG;
+          }
+          print('Reference Code: $refCode');
 
           // Navigate to OTP Screen
           Navigator.push(
@@ -111,19 +133,23 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
                 map: {
                   ...otpMap,
                   'socialAuthData': socialAuthData, // Pass social auth data
+                  'refCode': refCode, // Pass reference code
                 },
               ),
             ),
           );
         } else {
+          print('OTP response is empty');
           EasyLoading.dismiss();
           EasyLoading.showError('ไม่สามารถส่ง OTP ได้');
         }
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       EasyLoading.dismiss();
-      print(e);
-      EasyLoading.showError('เกิดข้อผิดพลาดในการส่ง OTP');
+      print('=== OTP Error ===');
+      print('Error: $e');
+      print('StackTrace: $stackTrace');
+      EasyLoading.showError('เกิดข้อผิดพลาดในการส่ง OTP: $e');
     }
   }
 

@@ -5,15 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
 import 'package:flutter_countdown_timer/index.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/for_post.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/signup_screen.dart';
-import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/widht_device.dart';
 
 class OtpScreen extends StatefulWidget {
   final Map map;
@@ -25,42 +23,61 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  //-----
-  bool _reOtp = true;
+
+  // 6 controllers for 6 OTP fields
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(
+    6,
+    (index) => FocusNode(),
+  );
+
   Map _items = {};
-  //---
-  TextEditingController _inputOtp = TextEditingController();
+  String _refCode = '';
+
+  String get _otpValue {
+    return _otpControllers.map((c) => c.text).join();
+  }
+
   _getData() {
     Map _map = {
-      "OTP": _inputOtp.text,
+      "OTP": _otpValue,
       "PHONE": _items['PHONE'],
     };
     return _map;
   }
 
-  //Setup
+  // Countdown timer
   late CountdownTimerController controller;
-  int endTime = DateTime.now().millisecondsSinceEpoch + 1000 * 600;
+  int endTime = DateTime.now().millisecondsSinceEpoch + 1000 * 60; // 60 seconds
+
   void onEnd() {
     print('onEnd');
   }
 
   void onReset() {
     setState(() {
+      endTime = DateTime.now().millisecondsSinceEpoch + 1000 * 60;
       controller = CountdownTimerController(endTime: endTime, onEnd: onEnd);
       controller.start();
     });
-    // controller.start();
   }
 
   @override
   void dispose() {
     controller.dispose();
+    for (var c in _otpControllers) {
+      c.dispose();
+    }
+    for (var f in _focusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
-// API
-// --- Post Data Member
+  // API - Post Data Member
   List<ItemsMemberResultList> _result = [];
   Future<bool> onLoadInsertMember(Map map) async {
     await new MemberFuture().apiInsertMember(map).then((onValue) {
@@ -96,9 +113,10 @@ class _OtpScreenState extends State<OtpScreen>
     return true;
   }
 
-  //-- check OTP
+  // Check OTP
   List<ItemsOTPList> _resultOtp = [];
   Future<bool> onLoadCheckOtp(Map map) async {
+    EasyLoading.show(status: 'กำลังตรวจสอบ...');
     await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
       _resultOtp = onValue;
       print(onValue.length);
@@ -122,268 +140,301 @@ class _OtpScreenState extends State<OtpScreen>
     return true;
   }
 
-// API
   @override
   void initState() {
     controller = CountdownTimerController(endTime: endTime, onEnd: onEnd);
     _items = widget.map;
-    print("FILE IMAGES => " + _items['AVATAR']);
+    _refCode = _items['refCode']?.toString() ?? '';
+    print("OTP Screen - Phone: " + (_items['PHONE'] ?? ''));
+    print("OTP Screen - RefCode: $_refCode");
     super.initState();
+
+    // Auto focus first field
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).requestFocus(_focusNodes[0]);
+    });
   }
 
-  Widget formlogin() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 0, // Hidden input
-            child: TextFormField(
-              controller: _inputOtp,
-              keyboardType: TextInputType.number,
-              // maxLength: 6, // Removed to avoid counter text if decoration doesn't hide it well enough, handled in onChanged
-              style: TextStyle(color: Colors.transparent),
-              decoration: InputDecoration(
-                hintText: '',
-                counterText: "",
-                border: InputBorder.none,
-                fillColor: Colors.transparent,
-                filled: true,
-              ),
-              onChanged: (value) {
-                if (value.length <= 6) {
-                  setState(() {});
-                }
-              },
-            ),
+  // Format phone number for display (e.g., 080-7064050)
+  String _formatPhoneNumber(String? phone) {
+    if (phone == null || phone.isEmpty) return "";
+    if (phone.length == 10) {
+      return "${phone.substring(0, 3)}-${phone.substring(3)}";
+    }
+    return phone;
+  }
+
+  Widget _buildOtpBox(int index) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _focusNodes[index].hasFocus
+              ? Color(0xFF0663F7)
+              : Colors.grey.shade300,
+          width: 1.5,
+        ),
+      ),
+      child: Center(
+        child: TextField(
+          controller: _otpControllers[index],
+          focusNode: _focusNodes[index],
+          textAlign: TextAlign.center,
+          maxLength: 1,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: GoogleFonts.kanit(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF0663F7),
           ),
-
-          SizedBox(height: 20),
-
-          // 6 PIN Boxes
-          GestureDetector(
-            onTap: () {
-              // Focus the hidden text field when boxes are tapped
-              // We need a FocusNode for this ideally, but shifting focus to the text field works if it's the only one.
-              // Since I didn't add a FocusNode to the hidden field yet, let's just assume the user taps the hidden field (which has height 0 so it's hard).
-              // Actually, simplest way without focus node state is to wrap the boxes in a GestureDetector that calls a FocusNode.
-              // Let's rely on the user tapping the field if visible, or better, make the container wrap the field.
-              // For now, let's keep it simple: the field is hidden but we need to focus it.
-              // Let's add autofocus or a way to tap.
-              // A common trick is to stack the invisible field ON TOP of the boxes.
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (index) {
-                return Container(
-                  width: 50,
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    index < _inputOtp.text.length ? _inputOtp.text[index] : "",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: FontStyles().FontFamily,
-                      color: Colors.black,
-                    ),
-                  ),
-                );
-              }),
-            ),
+          decoration: InputDecoration(
+            counterText: "",
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
           ),
-          // To ensure input works, let's make the textfield cover the boxes but be invisible?
-          // Or just let the user tap the invisible field? No that won't work.
-          // Let's add a FocusNode.
-
-          SizedBox(height: 20),
-
-          // Reference Code and Resend Link Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "รหัสอ้างอิง: EIRT", // Mock reference code
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontFamily: FontStyles().FontFamily,
-                ),
-              ),
-              // Countdown / Resend
-              CountdownTimer(
-                controller: controller,
-                endTime: endTime,
-                widgetBuilder: (_, CurrentRemainingTime? time) {
-                  if (time == null) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    OtpScreen(map: widget.map)));
-                      },
-                      child: Text(
-                        "ขอรับรหัสใหม่",
-                        style: TextStyle(
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
-                          fontSize: 16,
-                          fontFamily: FontStyles().FontFamily,
-                        ),
-                      ),
-                    );
-                  } else {
-                    return Text(
-                      "ขอรับรหัสใหม่ (${time.sec})",
-                      style: TextStyle(
-                        color: Colors.white,
-                        decoration: TextDecoration.underline,
-                        fontSize: 16,
-                        fontFamily: FontStyles().FontFamily,
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-
-          SizedBox(height: 40),
-
-          // Confirm Button
-          Container(
-            width: double.infinity,
-            height: 55,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF2DC4E2), Color(0xFF0058FF)], // Gradient Blue
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () {
-                if (_inputOtp.text.length == 6) {
-                  onLoadCheckOtp(_getData());
-                } else {
-                  EasyLoading.showError("กรุณากรอก OTP 6 หลัก");
-                }
-              },
-              child: Text(
-                "ตกลง",
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: FontStyles().FontFamily,
-                ),
-              ),
-            ),
-          ),
-        ],
+          onChanged: (value) {
+            if (value.isNotEmpty && index < 5) {
+              // Move to next field
+              FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+            } else if (value.isEmpty && index > 0) {
+              // Move to previous field on backspace
+              FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
+            }
+            setState(() {});
+          },
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         body: Container(
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height,
-      decoration: StylePage().background,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Container(
-            padding: EdgeInsets.only(left: 20, right: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'iSmartLogin',
-                        style: TextStyle(
-                            fontFamily: FontStyles().FontFamily,
-                            fontSize: 46,
-                            color: Colors.white,
-                            fontWeight: FontWeight.normal),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SignUpScreen(),
-                            ),
-                          );
-                        },
-                        child: FaIcon(
-                          FontAwesomeIcons.times,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SingleChildScrollView(
-                  child: Container(
-                    padding:
-                        EdgeInsets.only(left: 5, right: 5, top: 10, bottom: 20),
-                    width: WidhtDevice().widht(context),
-                    decoration: StylePage().boxWhite,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          SizedBox(height: 60), // Add top spacing
-                          Container(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              // Use the format from the image "ระบุรหัส OTP ส่งไปที่..."
-                              'ระบุรหัส OTP ส่งไปที่ ${_items['PHONE'] ?? ""}',
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                fontSize: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          // Removed old text container
-                          Container(),
-                          Container(
-                            padding:
-                                EdgeInsets.only(top: 40, left: 20, right: 20),
-                            child: formlogin(),
-                          ),
-                        ],
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/other/bg_login.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 60),
+
+                    // Header text
+                    Text(
+                      "ระบุรหัส OTP ส่งไปที่ ${_formatPhoneNumber(_items['PHONE'])}",
+                      style: GoogleFonts.kanit(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.normal,
+                        height: 1.5,
                       ),
                     ),
-                  ),
+
+                    SizedBox(height: 20),
+
+                    // 6 OTP Boxes
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children:
+                          List.generate(6, (index) => _buildOtpBox(index)),
+                    ),
+
+                    SizedBox(height: 15),
+
+                    // Reference Code and Resend Link Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "รหัสอ้างอิง: ${_refCode.isNotEmpty ? _refCode : '-'}",
+                          style: GoogleFonts.kanit(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                        // Countdown / Resend
+                        CountdownTimer(
+                          controller: controller,
+                          endTime: endTime,
+                          widgetBuilder: (_, CurrentRemainingTime? time) {
+                            if (time == null) {
+                              return GestureDetector(
+                                onTap: () async {
+                                  // Resend OTP - call API and restart countdown
+                                  EasyLoading.show(status: 'กำลังส่ง OTP...');
+                                  try {
+                                    Map<String, dynamic> otpMap = {
+                                      "PHONE": _items['PHONE'],
+                                      "NAME": "",
+                                      "LASTNAME": "",
+                                      "NICKNAME": "",
+                                      "PASSWORD": "",
+                                      "REPASSWORD": "",
+                                      "AVATAR": "",
+                                    };
+                                    final result =
+                                        await MemberFuture().apiPostOtp(otpMap);
+                                    EasyLoading.dismiss();
+                                    EasyLoading.showSuccess('ส่ง OTP ใหม่แล้ว');
+
+                                    // Extract new reference code from response
+                                    String newRefCode = '';
+                                    if (result.isNotEmpty &&
+                                        result[0].MSG is Map) {
+                                      newRefCode = result[0]
+                                              .MSG['token']
+                                              ?.toString() ??
+                                          result[0].MSG['ref']?.toString() ??
+                                          result[0]
+                                              .MSG['refCode']
+                                              ?.toString() ??
+                                          '';
+                                    } else if (result.isNotEmpty &&
+                                        result[0].MSG is String) {
+                                      newRefCode = result[0].MSG;
+                                    }
+
+                                    // Reset countdown timer and update refCode
+                                    setState(() {
+                                      _refCode = newRefCode;
+                                      endTime = DateTime.now()
+                                              .millisecondsSinceEpoch +
+                                          1000 * 60;
+                                      controller.dispose();
+                                      controller = CountdownTimerController(
+                                          endTime: endTime, onEnd: onEnd);
+                                    });
+
+                                    // Clear OTP fields
+                                    for (var c in _otpControllers) {
+                                      c.clear();
+                                    }
+                                    FocusScope.of(context)
+                                        .requestFocus(_focusNodes[0]);
+                                  } catch (e) {
+                                    EasyLoading.dismiss();
+                                    EasyLoading.showError(
+                                        'ไม่สามารถส่ง OTP ได้');
+                                    print('Resend OTP error: $e');
+                                  }
+                                },
+                                child: Text(
+                                  "ขอรับรหัสใหม่",
+                                  style: GoogleFonts.kanit(
+                                    color: Colors.white,
+                                    decoration: TextDecoration.none,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return Text(
+                                "ขอรับรหัสใหม่ (${time.sec}s)",
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  decoration: TextDecoration.none,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 40),
+
+                    // Confirm Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: _otpValue.length == 6
+                              ? LinearGradient(
+                                  colors: [
+                                    Color(0xFF21CCD4),
+                                    Color(0xFF0663F7)
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                )
+                              : null,
+                          color:
+                              _otpValue.length == 6 ? null : Color(0xFFAAAAAA),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_otpValue.length == 6) {
+                              onLoadCheckOtp(_getData());
+                            } else {
+                              EasyLoading.showError("กรุณากรอก OTP 6 หลัก");
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            "ยืนยัน OTP",
+                            style: GoogleFonts.kanit(
+                              fontSize: 21,
+                              color: Colors.white,
+                              fontWeight: FontWeight.normal,
+                              height: 30 / 21,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 40),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 }

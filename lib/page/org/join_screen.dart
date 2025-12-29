@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ismart_login/page/org/future/getJoinOrg_future.dart';
 import 'package:ismart_login/page/org/join_detail_screen.dart';
@@ -71,330 +73,188 @@ class _OrganizationJoinScreenState extends State<OrganizationJoinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              padding: EdgeInsets.only(left: 20, right: 20),
-              width: MediaQuery.of(context).size.width,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  AppBar(
-                    centerTitle: true,
-                    leading: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/other/bg_regis.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Spacer
+                Spacer(flex: 2),
+
+                SizedBox(height: 20),
+
+                // Title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Text(
+                    "ป้อนรหัสเข้าร่วมกลุ่ม/องค์กร",
+                    style: GoogleFonts.kanit(
+                      fontSize: 25,
+                      color: Colors.white,
+                      fontWeight: FontWeight.normal,
+                      height: 38 / 25,
                     ),
-                    title: Text(
-                      'เข้าร่วมทีม',
-                      style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          fontSize: 40,
-                          color: Colors.white,
-                          fontWeight: FontWeight.normal),
-                    ),
-                    backgroundColor: Colors.white.withOpacity(0),
-                    elevation: 0,
+                    textAlign: TextAlign.center,
                   ),
-                  SingleChildScrollView(
-                    child: Container(
-                      padding: EdgeInsets.only(
-                          left: 10, right: 10, top: 10, bottom: 20),
-                      width: WidhtDevice().widht(context),
-                      decoration: StylePage().boxWhite,
-                      child: Column(
-                        children: [
-                          Form(
-                            key: _formKey,
-                            child: TextFormField(
-                              controller: _inputCode,
-                              maxLength: 9,
-                              keyboardType: TextInputType.number,
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 24),
-                              decoration: InputDecoration(
-                                counterText: "",
-                                hintText: 'รหัสทีม 9 หลัก',
-                                hintStyle: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 24),
-                                suffixIcon: kIsWeb
-                                    ? Container(
-                                        width: 0,
-                                        height: 0,
-                                      )
-                                    : GestureDetector(
-                                        onTap: () {
-                                          _navigateAndDisplaySelection(context);
-                                        },
-                                        child: Padding(
-                                          padding: EdgeInsets.all(10),
-                                          child: Container(
-                                            width: 30,
-                                            height: 30,
-                                            child: Image.asset(
-                                              'assets/images/other/qrcode-scan.png',
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                              onChanged: (val) {
-                                if (val.length != 9) {
-                                  setState(() {
-                                    _btn = false;
-                                  });
-                                } else {
-                                  setState(() {
-                                    _btn = true;
-                                  });
-                                }
-                              },
+                ),
+
+                SizedBox(height: 30),
+
+                // Text input with QR icon (QR outside input)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Row(
+                    children: [
+                      // Input field
+                      Expanded(
+                        child: Form(
+                          key: _formKey,
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  _navigateAndDisplaySelection(context);
-                                },
-                                child: Text(
-                                  kIsWeb ? '' : 'แสกนคิวอาร์โค้ด',
-                                  style: TextStyle(
-                                    fontFamily: FontStyles().FontThaiSans,
-                                    fontSize: 20,
-                                    color: Color(0xFF6093B8),
-                                  ),
+                            child: Center(
+                              child: TextFormField(
+                                controller: _inputCode,
+                                maxLength: 9,
+                                keyboardType: TextInputType.number,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: GoogleFonts.kanit(
+                                  fontSize: 18,
+                                  color: Colors.black,
                                 ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  if (_inputCode.text.length == 9) {
-                                    EasyLoading.show();
-                                    onLoadSelectOrganization(_inputCode.text);
-                                    // _inputCode.text = "";
+                                decoration: InputDecoration(
+                                  isCollapsed: true,
+                                  counterText: "",
+                                  hintText: 'รหัสเข้าร่วมกลุ่มหรือองค์กร',
+                                  hintStyle: GoogleFonts.kanit(
+                                    fontSize: 18,
+                                    color: Colors.grey[400],
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding:
+                                      EdgeInsets.symmetric(horizontal: 16),
+                                ),
+                                onChanged: (val) {
+                                  if (val.length != 9) {
+                                    setState(() {
+                                      _btn = false;
+                                    });
+                                  } else {
+                                    setState(() {
+                                      _btn = true;
+                                    });
                                   }
                                 },
-                                child: Container(
-                                  padding: EdgeInsets.only(
-                                      left: 10, right: 10, top: 8, bottom: 8),
-                                  decoration: _btn
-                                      ? BoxDecoration(
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(10.0),
-                                            topRight: Radius.circular(10.0),
-                                            bottomLeft: Radius.circular(10.0),
-                                            bottomRight: Radius.circular(10.0),
-                                          ),
-                                          gradient: LinearGradient(
-                                              colors: [
-                                                Color(0xFF0093E9),
-                                                Color(0xFF36C2CF),
-                                              ],
-                                              begin: Alignment.centerLeft,
-                                              end: Alignment.centerRight,
-                                              stops: [0.0, 1.0],
-                                              tileMode: TileMode.clamp),
-                                        )
-                                      : BoxDecoration(
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(10.0),
-                                            topRight: Radius.circular(10.0),
-                                            bottomLeft: Radius.circular(10.0),
-                                            bottomRight: Radius.circular(10.0),
-                                          ),
-                                          color: Colors.grey,
-                                        ),
-                                  child: Text(
-                                    'เข้าร่วมทีม',
-                                    style: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 24,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              )
-                            ],
+                              ),
+                            ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                height: 200,
-                                child:
-                                    Image.asset('assets/images/other/join.png'),
-                              )
-                            ],
-                          )
-                          // Container(
-                          //   padding: EdgeInsets.only(left: 30, right: 30),
-                          //   height: 200,
-                          //   child:
-                          //       Image.asset('assets/images/other/org_select.png'),
-                          // ),
-                          // GestureDetector(
-                          //   child: Card(
-                          //     shadowColor: Color(0xFFE8E8E8),
-                          //     elevation: 3.0,
-                          //     shape: RoundedRectangleBorder(
-                          //       side: BorderSide(width: 0.1),
-                          //       borderRadius: BorderRadius.circular(20),
-                          //     ),
-                          //     child: Container(
-                          //       padding: EdgeInsets.all(10),
-                          //       child: Row(
-                          //         children: [
-                          //           Expanded(
-                          //             child: Container(
-                          //               child: Column(
-                          //                 crossAxisAlignment:
-                          //                     CrossAxisAlignment.start,
-                          //                 children: [
-                          //                   RichText(
-                          //                     text: TextSpan(
-                          //                       style: Theme.of(context)
-                          //                           .textTheme
-                          //                           .body1
-                          //                           .copyWith(
-                          //                               fontSize: 40,
-                          //                               fontFamily: FontStyles()
-                          //                                   .FontFamily,
-                          //                               fontWeight:
-                          //                                   FontWeight.bold),
-                          //                       children: [
-                          //                         TextSpan(
-                          //                           text: 'เข้าร่วม',
-                          //                           style: TextStyle(
-                          //                             color: Color(0xFF0799E5),
-                          //                           ),
-                          //                         ),
-                          //                         TextSpan(
-                          //                           text: 'ทีม/องค์กร',
-                          //                           style: TextStyle(
-                          //                             color: Color(0xFF6B6B6B),
-                          //                           ),
-                          //                         ),
-                          //                       ],
-                          //                     ),
-                          //                   ),
-                          //                   Container(
-                          //                     padding: EdgeInsets.only(right: 10),
-                          //                     child: Text(
-                          //                       'เข้าร่วมทีมที่เพื่อนคุณสร้างไว้แล้ว โดยถาม ID องค์กร/ทีม กับเพื่อนของคุณ',
-                          //                       style: TextStyle(
-                          //                           color: Color(0xFF6B6B6B),
-                          //                           fontFamily:
-                          //                               FontStyles().FontFamily,
-                          //                           fontSize: 22,
-                          //                           height: 1),
-                          //                     ),
-                          //                   )
-                          //                 ],
-                          //               ),
-                          //             ),
-                          //           ),
-                          //           Icon(
-                          //             Icons.arrow_forward_ios,
-                          //             color: Colors.blue,
-                          //           )
-                          //         ],
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
-                          // Padding(padding: EdgeInsets.all(5)),
-                          // GestureDetector(
-                          //   child: Card(
-                          //     shadowColor: Color(0xFFE8E8E8),
-                          //     elevation: 3.0,
-                          //     shape: RoundedRectangleBorder(
-                          //       side: BorderSide(width: 0.1),
-                          //       borderRadius: BorderRadius.circular(20),
-                          //     ),
-                          //     child: Container(
-                          //       padding: EdgeInsets.all(10),
-                          //       child: Row(
-                          //         children: [
-                          //           Expanded(
-                          //             child: Container(
-                          //               child: Column(
-                          //                 crossAxisAlignment:
-                          //                     CrossAxisAlignment.start,
-                          //                 children: [
-                          //                   RichText(
-                          //                     text: TextSpan(
-                          //                       style: Theme.of(context)
-                          //                           .textTheme
-                          //                           .body1
-                          //                           .copyWith(
-                          //                               fontSize: 40,
-                          //                               fontFamily: FontStyles()
-                          //                                   .FontFamily,
-                          //                               fontWeight:
-                          //                                   FontWeight.bold),
-                          //                       children: [
-                          //                         TextSpan(
-                          //                           text: 'สร้าง',
-                          //                           style: TextStyle(
-                          //                             color: Color(0xFFFF6600),
-                          //                           ),
-                          //                         ),
-                          //                         TextSpan(
-                          //                           text: 'ทีม/องค์กรใหม่',
-                          //                         ),
-                          //                       ],
-                          //                     ),
-                          //                   ),
-                          //                   Container(
-                          //                     padding: EdgeInsets.only(right: 10),
-                          //                     child: Text(
-                          //                       'แล้วชวนทีมงานมาเข้าร่วม',
-                          //                       style: TextStyle(
-                          //                           color: Color(0xFF6B6B6B),
-                          //                           fontFamily:
-                          //                               FontStyles().FontFamily,
-                          //                           fontSize: 22,
-                          //                           height: 1),
-                          //                     ),
-                          //                   )
-                          //                 ],
-                          //               ),
-                          //             ),
-                          //           ),
-                          //           Icon(
-                          //             Icons.arrow_forward_ios,
-                          //             color: Colors.blue,
-                          //           )
-                          //         ],
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
+                        ),
+                      ),
+                      // QR Scan Icon (outside input)
+                      if (!kIsWeb)
+                        GestureDetector(
+                          onTap: () {
+                            _navigateAndDisplaySelection(context);
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.only(left: 12),
+                            child: Image.asset(
+                              'assets/images/other/scan-qrcode.png',
+                              width: 40,
+                              height: 40,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                // Join Button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                          begin: Alignment(-0.97, -0.24),
+                          end: Alignment(0.97, 0.24),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x29000000),
+                            offset: Offset(0, 3),
+                            blurRadius: 6,
+                          ),
                         ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_inputCode.text.length == 9) {
+                            EasyLoading.show();
+                            onLoadSelectOrganization(_inputCode.text);
+                          } else {
+                            alert_null(context, 'กรุณากรอกรหัส 9 หลัก');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          "เข้าร่วม",
+                          style: GoogleFonts.kanit(
+                            fontSize: 21,
+                            color: Colors.white,
+                            fontWeight: FontWeight.normal,
+                            height: 30 / 21,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                SizedBox(height: 60),
+              ],
             ),
           ),
         ),
