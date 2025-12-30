@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:flutter/material.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ismart_login/page/main.dart';
@@ -9,9 +8,9 @@ import 'package:ismart_login/page/protect/future/protect_future.dart';
 import 'package:ismart_login/page/protect/model/protectSwitch.dart';
 import 'package:ismart_login/page/sign/future/singin_future.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
-import 'package:ismart_login/page/sign/model/memberresult.dart';
+
 import 'package:ismart_login/page/sign/signin_screen.dart';
-import 'package:ismart_login/page/sign/signin_screen2.dart';
+
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/gps.dart';
 import 'package:ismart_login/page/protect/protected.dart';
@@ -25,13 +24,56 @@ class SplashscreenScreen extends StatefulWidget {
   _SplashscreenScreenState createState() => _SplashscreenScreenState();
 }
 
-class _SplashscreenScreenState extends State<SplashscreenScreen> {
+class _SplashscreenScreenState extends State<SplashscreenScreen>
+    with TickerProviderStateMixin {
   bool sent = false;
   bool protect = false;
   bool new_user = false;
   bool protect_switch = false;
 
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
   // FToast fToast;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Setup Animation
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 1500),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.0, 0.6, curve: Curves.easeIn),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _animationController.forward();
+
+    // Logic Initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initializeApp();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   _controllerLoginAuto() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -153,15 +195,6 @@ class _SplashscreenScreenState extends State<SplashscreenScreen> {
   }
 
 //////////----
-  @override
-  void initState() {
-    // _controllerLoginAuto();
-    // LocationService.checkService();
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _initializeApp();
-    });
-  }
 
   Future<void> _initializeApp() async {
     await SharedPreferences.getInstance();
@@ -196,47 +229,89 @@ class _SplashscreenScreenState extends State<SplashscreenScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/other/logo_app.png',
-                  height: 150,
-                ),
-                Text(
-                  'iSmartLogin',
-                  style: TextStyle(
-                    fontFamily: FontStyles().FontFamily,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24.0,
-                  ),
-                ),
-              ],
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF21CCD4), // Cyan
+              Color(0xFF0663F7), // Blue
+            ],
           ),
-          // Footer
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: Text(
-                "Copyright© Powered by CityVariety Corporation.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: FontStyles().FontFamily,
-                  fontSize: 16,
-                  color: Colors.grey[600],
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        decoration:
+                            BoxDecoration(shape: BoxShape.circle, boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: Offset(0, 10),
+                          )
+                        ]),
+                        child: Image.asset(
+                          'assets/images/other/logo_app.png',
+                          height: 150,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        'iSmartLogin',
+                        style: TextStyle(
+                          fontFamily: FontStyles().FontFamily,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 32.0,
+                          color: Colors.white,
+                          letterSpacing: 1.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black26,
+                              offset: Offset(0, 4),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            // Footer
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Text(
+                    "Copyright© Powered by CityVariety Corporation.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: FontStyles().FontFamily,
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
