@@ -2,40 +2,40 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/main.dart';
+import 'package:ismart_login/page/front/future/attend_future.dart';
+import 'package:ismart_login/utils/image_helper.dart';
+
 import 'package:ismart_login/page/outside/future/attend_outside_future.dart';
-import 'package:ismart_login/page/outside/model/attendOutsideDescription.dart';
-import 'package:ismart_login/page/outside/model/attendOutsideEnd.dart';
 import 'package:ismart_login/page/outside/model/attendOutsideStart.dart';
-import 'package:ismart_login/page/outside/model/attendOutsideToDay.dart';
-import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
-import 'package:ismart_login/style/text_style.dart';
-import 'package:ismart_login/system/clock.dart';
 import 'package:ismart_login/system/widht_device.dart';
 
 class OutsideScreen extends StatefulWidget {
   final double lat;
   final double long;
   final String uid;
+  final bool isOvertime;
+  final String timeId;
 
   const OutsideScreen({
     super.key,
     required this.lat,
     required this.long,
     required this.uid,
+    this.isOvertime = false,
+    this.timeId = '',
   });
+
   @override
   _OutsideScreenState createState() => _OutsideScreenState();
 }
@@ -53,14 +53,6 @@ class _OutsideScreenState extends State<OutsideScreen> {
   //-----
   bool _login = false;
   bool _logout = false;
-  //---
-  TextStyle styleLabelCamera =
-      TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 26, height: 1);
-  TextStyle styleTime = TextStyle(
-      fontFamily: FontStyles().FontFamily,
-      fontSize: 20,
-      height: 1,
-      color: Colors.grey);
   //-----
   ////---- MAP
   Completer<GoogleMapController> _controller = Completer();
@@ -83,8 +75,6 @@ class _OutsideScreenState extends State<OutsideScreen> {
   }
 
   addMarker(context) {
-    ImageConfiguration configuration;
-    configuration = createLocalImageConfiguration(context);
     Set<Marker> markers = {};
     markers.add(Marker(
       markerId: MarkerId('Marker_user'),
@@ -95,12 +85,94 @@ class _OutsideScreenState extends State<OutsideScreen> {
     return markers;
   }
 
-  ///----
-  ///
+  //---
+  /// ---- Server - OT Flow (Upload -> Post) ---
+  Future<bool> processOvertimeCheckIn() async {
+    if (_imageFile_login == null) {
+      EasyLoading.showError('กรุณาถ่ายรูป');
+      return false;
+    }
 
-  /// ---- Servere---
+    try {
+      EasyLoading.show(status: 'กำลังประมวลผล...');
+
+      // 1. Prepare Note
+      String noteStr = _inputTopic.text;
+      if (_inputDescription.text.isNotEmpty) {
+        noteStr += "\nรายละเอียด: ${_inputDescription.text}";
+      }
+
+      // 2. Generate Upload Key
+      final uploadKey =
+          DateTime.now().millisecondsSinceEpoch.toString() + '_' + widget.uid;
+
+      // 3. Compress Image
+      File originalFile = File(_imageFile_login!.path);
+      File compressedFile = await ImageHelper.compressImage(originalFile);
+
+      EasyLoading.show(status: 'กำลังอัพโหลดรูปภาพ...');
+
+      // 4. Upload Image
+      final uploadResult = await AttandFuture().uploadAttend(
+        file: compressedFile,
+        cmd: 'attend',
+        uid: widget.uid,
+        uploadKey: uploadKey,
+        attact_type: 'i_start',
+      );
+
+      if (uploadResult['success'] != true) {
+        // allow checking bool or map
+        throw Exception(uploadResult['error'] ?? 'Upload failed');
+      }
+
+      EasyLoading.show(status: 'กำลังบันทึกข้อมูล...');
+
+      // 5. Post Attendance Data
+      Map map = {
+        "uid": widget.uid,
+        "time": DateFormat("HH:mm:ss")
+            .format(DateTime.now()), // Server expect time?
+        "image": _imageFile_login!.path, // path only
+        "latitude": widget.lat.toString(),
+        "longitude": widget.long.toString(),
+        "start_status": '5', // OT Status
+        "start_note": noteStr,
+        "start_location_status": '1', // Outside
+        "log": 'timeid_${widget.timeId}',
+        "uploadKey": uploadKey,
+      };
+
+      print("OT CHECK-IN DATA: $map");
+
+      final response = await AttandFuture().apiPostAttandStart(map);
+
+      if (response.isNotEmpty && response[0].STATUS == 'success') {
+        EasyLoading.showSuccess('บันทึกสำเร็จ');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainPage()),
+        );
+        return true;
+      } else {
+        throw Exception(
+            response.isNotEmpty ? response[0].MSG : 'Failed to save data');
+      }
+    } catch (e) {
+      EasyLoading.showError('เกิดข้อผิดพลาด: $e');
+      return false;
+    }
+  }
+
+  /// ---- Server - Normal Outside Flow (Post -> Upload) ---
   List<ItemsAttandOutsideStartResult> _resultAttandStart = [];
   Future<bool> onLoadAttandOutside() async {
+    // If OT mode, redirect to OT flow
+    if (widget.isOvertime) {
+      return await processOvertimeCheckIn();
+    }
+
+    // Normal Flow
     String dateNow = DateFormat("HH:mm:ss").format(timeNow);
     List note = [
       {
@@ -118,24 +190,33 @@ class _OutsideScreenState extends State<OutsideScreen> {
       "start_note": json.encode(note),
     };
     print(map);
-    await AttandOutsideFuture().apiPostAttandOutsideStart(map).then((onValue) {
-      print(onValue[0].STATUS);
-      print(onValue[0].MSG);
-      if (onValue[0].STATUS == 'success') {
-        _resultAttandStart = onValue;
-        if (_imageFile_login != null) {
-          onUploadFiles('i_start');
+
+    try {
+      EasyLoading.show(status: 'กำลังบันทึก...');
+      await AttandOutsideFuture()
+          .apiPostAttandOutsideStart(map)
+          .then((onValue) {
+        if (onValue[0].STATUS == 'success') {
+          _resultAttandStart = onValue;
+          if (_imageFile_login != null) {
+            onUploadFiles('i_start');
+          }
+          EasyLoading.dismiss(); // Dismiss after successful post/upload init
+          // onUploadFiles handles its own loading? Checked source: yes it uses EasyLoading.
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainPage(),
+            ),
+          );
+        } else {
+          EasyLoading.showError('ล้มเหลว');
         }
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MainPage(),
-          ),
-        );
-      } else {
-        EasyLoading.showError('ล้มเหลว');
-      }
-    });
+      });
+    } catch (e) {
+      EasyLoading.showError('Error: $e');
+    }
     return true;
   }
 
@@ -158,257 +239,267 @@ class _OutsideScreenState extends State<OutsideScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: SafeArea(
-          child: GestureDetector(
-            onTap: () {
-              FocusScopeNode currentFocus = FocusScope.of(context);
-              if (!currentFocus.hasPrimaryFocus) {
-                currentFocus.unfocus();
-              }
-            },
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  AppBar(
-                    centerTitle: true,
-                    leading: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 26,
-                      ),
+          bottom: false,
+          child: Column(
+            children: [
+              // 1. Header
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_ios, color: Colors.white),
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MainPage(),
-                          ),
-                        );
+                        Navigator.pop(context);
                       },
                     ),
-                    title:
-                        Text('ทำงานนอกสถานที่', style: StylesText.titleAppBar),
-                    backgroundColor: Colors.white.withOpacity(0),
-                    elevation: 0,
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          widget.isOvertime
+                              ? 'ทำงานล่วงเวลา'
+                              : 'ทำงานนอกสถานที่',
+                          style: GoogleFonts.kanit(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 48), // Balance back button
+                  ],
+                ),
+              ),
+
+              // 2. White Curved Body
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(30)),
                   ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: Container(
-                      padding: EdgeInsets.only(left: 20, right: 20, top: 10),
+                  child: SingleChildScrollView(
+                    physics: BouncingScrollPhysics(),
+                    padding: EdgeInsets.all(20),
+                    child: Form(
+                      key: _formKey,
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Location Header
+                          Center(
+                            child: Text(
+                              'ตำแหน่งที่คุณล็อกอิน',
+                              style: GoogleFonts.kanit(
+                                fontSize: 18,
+                                color: Color(0xFF089AE5),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 15),
+
+                          // Google Map Container
                           Container(
-                            margin: EdgeInsets.only(bottom: 20),
-                            padding: EdgeInsets.only(
-                                left: 10, right: 10, top: 10, bottom: 20),
-                            width: WidhtDevice().widht(context),
-                            decoration: StylePage().boxWhite,
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                children: [
-                                  Container(
-                                    child: Text(
-                                      'ตำแหน่งที่คุณล็อกอิน',
-                                      style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontSize: 20,
-                                          color: Color(0xFF089AE5)),
-                                    ),
-                                  ),
-                                  Container(
-                                    alignment: Alignment.center,
-                                    height: 200,
-                                    child: GoogleMap(
-                                      mapType: MapType.normal,
-                                      markers: addMarker(context),
-                                      myLocationEnabled: true,
-                                      initialCameraPosition: mapMark(),
-                                      onMapCreated:
-                                          (GoogleMapController controller) {
-                                        _controller.complete(controller);
-                                      },
-                                    ),
-                                  ),
-                                  TextFormField(
-                                    controller: _inputTopic,
-                                    keyboardType: TextInputType.text,
-                                    style: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 22),
-                                    decoration: InputDecoration(
-                                      hintText: 'เรื่อง',
-                                      prefixIcon: Padding(
-                                        padding: EdgeInsets.all(
-                                            0), // add padding to adjust icon
-                                        child: Icon(
-                                          Icons.topic_outlined,
-                                          size: 22,
-                                        ),
+                            height: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: GoogleMap(
+                                mapType: MapType.normal,
+                                markers: addMarker(context),
+                                myLocationEnabled: true,
+                                initialCameraPosition: mapMark(),
+                                onMapCreated: (GoogleMapController controller) {
+                                  _controller.complete(controller);
+                                },
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 25),
+
+                          // Form Fields
+                          _buildModernTextField(
+                            controller: _inputTopic,
+                            hint: 'เรื่อง',
+                            icon: Icons.topic_outlined,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'กรุณากรอกข้อมูล';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 15),
+                          _buildModernTextField(
+                            controller: _inputDescription,
+                            hint: 'รายละเอียด',
+                            icon: Icons.description_outlined,
+                            maxLines: 3,
+                          ),
+                          SizedBox(height: 15),
+                          _buildModernTextField(
+                            controller: _inputTime,
+                            hint: 'ใช้เวลากี่ชั่วโมง',
+                            icon: Icons.timer_outlined,
+                            keyboardType:
+                                TextInputType.numberWithOptions(decimal: true),
+                          ),
+                          SizedBox(height: 25),
+
+                          // Camera Section
+                          GestureDetector(
+                            onTap: () {
+                              _imgFromCamera_in(context);
+                            },
+                            child: Container(
+                              height: 150,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: Colors.grey[300]!, width: 2),
+                              ),
+                              child: _imageFile_login != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: Image.file(
+                                        File(_imageFile_login!.path),
+                                        fit: BoxFit.cover,
                                       ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'กรุณากรอกข้อมูล';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  TextFormField(
-                                    controller: _inputDescription,
-                                    maxLines: 3,
-                                    keyboardType: TextInputType.text,
-                                    style: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 22),
-                                    decoration: InputDecoration(
-                                      hintText: 'รายละเอียด',
-                                      prefixIcon: Padding(
-                                        padding: EdgeInsets.only(
-                                            bottom:
-                                                60), // add padding to adjust icon
-                                        child: Icon(
-                                          Icons.description_outlined,
-                                          size: 22,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  TextFormField(
-                                    controller: _inputTime,
-                                    keyboardType:
-                                        TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    style: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 22),
-                                    decoration: InputDecoration(
-                                      hintText: 'ใช้เวลากี่ชั่วโมง',
-                                      prefixIcon: Padding(
-                                        padding: EdgeInsets.all(
-                                            0), // add padding to adjust icon
-                                        child: Icon(
-                                          Icons.timer_outlined,
-                                          size: 22,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: EdgeInsets.only(top: 10),
-                                    child: Row(
+                                    )
+                                  : Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Expanded(
-                                          child: _imageFile_login != null
-                                              ? Container(
-                                                  child: Center(
-                                                    child: Container(
-                                                      height: 150,
-                                                      padding: EdgeInsets.only(
-                                                          top: 5),
-                                                      child: Image.file(
-                                                        File(_imageFile_login!.path),
-                                                        fit: BoxFit.cover,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                              : GestureDetector(
-                                                  onTap: () {
-                                                    _imgFromCamera_in(context);
-                                                  },
-                                                  child: Container(
-                                                    padding: EdgeInsets.all(5),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.grey[200],
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.grey
-                                                              .withOpacity(0.6),
-                                                          spreadRadius: 0,
-                                                          blurRadius: 7,
-                                                          offset: Offset(0,
-                                                              6), // changes position of shadow
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Icon(Icons.camera_alt),
-                                                        Text(
-                                                          'ถ่ายรูป',
-                                                          style: TextStyle(
-                                                              fontFamily:
-                                                                  FontStyles()
-                                                                      .FontFamily,
-                                                              fontSize: 22),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(padding: EdgeInsets.all(5)),
-                                  Container(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () {
-                                            if (_formKey.currentState?.validate() ?? false) {
-                                              print('ถัดไป');
-                                              onLoadAttandOutside();
-                                            }
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            margin: EdgeInsets.only(
-                                                left: 10, right: 10),
-                                            padding: EdgeInsets.only(
-                                                left: 25, right: 25),
-                                            decoration: BoxDecoration(
-                                              color: Color(0xFF079CFD),
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                            child: Text(
-                                              'ตกลง',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  color: Colors.white,
-                                                  fontSize: 26),
-                                            ),
+                                        Icon(Icons.camera_alt,
+                                            size: 40, color: Colors.grey),
+                                        SizedBox(height: 10),
+                                        Text(
+                                          'ถ่ายรูป',
+                                          style: GoogleFonts.kanit(
+                                            fontSize: 18,
+                                            color: Colors.grey,
                                           ),
                                         ),
                                       ],
                                     ),
+                            ),
+                          ),
+                          SizedBox(height: 30),
+
+                          // Submit Button
+                          Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0xFF0663F7).withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  if (_formKey.currentState?.validate() ??
+                                      false) {
+                                    onLoadAttandOutside();
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(30),
+                                child: Center(
+                                  child: Text(
+                                    'ตกลง',
+                                    style: GoogleFonts.kanit(
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
+                          SizedBox(height: 40),
                         ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        style: GoogleFonts.kanit(fontSize: 16),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.kanit(color: Colors.grey[400]),
+          prefixIcon: Icon(icon, color: Color(0xFF21CCD4)),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        ),
+        validator: validator,
       ),
     );
   }
@@ -423,38 +514,9 @@ class _OutsideScreenState extends State<OutsideScreen> {
       setState(() {
         _imageFile_login = pickedFile;
       });
-
-      // if (_imageFile != null) {
-      //   _getMyLocation();
-      // Map _map = {
-      //   "uid": _items[0].ID,
-      //   "pathImage": pickedFile.path,
-      //   "lat": _resultItemDepartment[0].LATITUDE,
-      //   "long": _resultItemDepartment[0].LONGTITUDE,
-      //   "time": timeIn,
-      //   "myLat": _myLat,
-      //   "myLng": _myLng,
-      // };
-      // print(_map);
-      //   showDialog(
-      //       context: context,
-      //       builder: (_) {
-      //         return InsiteDialog(
-      //           uid: _items[0].ID,
-      //           pathImage: pickedFile.path,
-      //           lat: _resultItemDepartment[0].LATITUDE,
-      //           long: _resultItemDepartment[0].LONGTITUDE,
-      //           time: timeIn,
-      //           myLat: _myLat,
-      //           myLng: _myLng,
-      //           radius: double.parse(_resultItemDepartment[0].RADIUS),
-      //         );
-      //       });
-      // }
     } catch (e) {
       setState(() {
         _pickImageError = e;
-        print(_pickImageError.toString());
       });
     }
   }

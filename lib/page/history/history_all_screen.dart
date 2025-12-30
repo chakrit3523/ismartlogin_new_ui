@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/front/front_count_absence_screen.dart';
 import 'package:ismart_login/page/front/front_count_late_screen.dart';
 import 'package:ismart_login/page/front/front_count_ontime_screen.dart';
@@ -53,7 +54,9 @@ class _HistoryAllScreenState extends State<HistoryAllScreen> {
     Map map = {
       "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
       "start": _start,
-      "branch_id": (widget.admin_branch != '0' && widget.status_super != '1') ? widget.admin_branch : "0",
+      "branch_id": (widget.admin_branch != '0' && widget.status_super != '1')
+          ? widget.admin_branch
+          : "0",
       "department_id": dropdownValueDepartment,
     };
     print("onLoadHistoryAll : ${map}");
@@ -82,7 +85,8 @@ class _HistoryAllScreenState extends State<HistoryAllScreen> {
     Map _map = {
       "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
       "create_date": _date,
-      "department_id": dropdownValueDepartment != "0" ? dropdownValueDepartment : '0',
+      "department_id":
+          dropdownValueDepartment != "0" ? dropdownValueDepartment : '0',
     };
     onLoadGetSummaryToDay(_map, _type);
   }
@@ -385,454 +389,85 @@ class _HistoryAllScreenState extends State<HistoryAllScreen> {
 
   Widget _list() {
     return Scrollbar(
-      child: ListView.builder(
-        // separatorBuilder: (BuildContext context, int index) => const Divider(),
+      child: ListView.separated(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        separatorBuilder: (context, index) => SizedBox(height: 16),
         itemCount: _result.length,
         itemBuilder: (BuildContext context, int index) {
+          var item = _result[index];
           return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  alignment: Alignment.bottomLeft,
-                  padding: EdgeInsets.only(bottom: 5),
+                // Date Header
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
                   child: Text(
-                    _result[index].CREATE_DATE_TH,
-                    style: TextStyle(
-                        height: 1,
-                        fontFamily: FontStyles().FontFamily,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold),
+                    item.CREATE_DATE_TH,
+                    style: GoogleFonts.kanit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF21CCD4),
+                    ),
                   ),
                 ),
+                // Stats Grid/Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          EasyLoading.show();
-                          _activeDataShow(1, _result[index].CREATE_DATE);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey[400] ?? Colors.grey,
-                                width: 1,
-                              ),
-                              right: BorderSide(
-                                color: Colors.grey[400] ?? Colors.grey,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          padding: EdgeInsets.only(left: 2, right: 2),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            child: Text(
-                                              _result[index].ABSENCE > 0
-                                                  ? _result[index]
-                                                      .ABSENCE
-                                                      .toString()
-                                                  : '0',
-                                              style: TextStyle(
-                                                  fontSize: 40,
-                                                  fontFamily:
-                                                      FontStyles().FontThaiSans,
-                                                  height: 0.6),
-                                            ),
-                                          ),
-                                          Container(
-                                            alignment: Alignment.centerLeft,
-                                            width: 20,
-                                            height: 3,
-                                            color: Color(0xFFFF802C),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        children: [
-                                          Text('คน',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 12)),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            color: Color(0xFF18C0FF),
-                                            size: 12,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.only(bottom: 5),
-                                child: Text(
-                                  'ยังไม่ลงเวลา',
-                                  style: styleLabel,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
+                    _buildStatItem(
+                      "ยังไม่ลงเวลา",
+                      item.ABSENCE,
+                      Color(0xFFFF802C),
+                      () {
+                        EasyLoading.show();
+                        _activeDataShow(1, item.CREATE_DATE);
+                      },
                     ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          EasyLoading.show();
-                          _activeDataShow(2, _result[index].CREATE_DATE);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey[400] ?? Colors.grey,
-                                width: 1,
-                              ),
-                              right: BorderSide(
-                                color: Colors.grey[400] ?? Colors.grey,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          padding: EdgeInsets.only(left: 2, right: 2),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            child: Text(
-                                              _result[index].ONTIME > 0
-                                                  ? _result[index]
-                                                      .ONTIME
-                                                      .toString()
-                                                  : '0',
-                                              style: TextStyle(
-                                                  fontSize: 40,
-                                                  fontFamily:
-                                                      FontStyles().FontThaiSans,
-                                                  height: 0.6),
-                                            ),
-                                          ),
-                                          Container(
-                                            alignment: Alignment.centerLeft,
-                                            width: 20,
-                                            height: 3,
-                                            color: Color(0xFFA7D645),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        children: [
-                                          Text('คน',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 12)),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            color: Color(0xFF18C0FF),
-                                            size: 12,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.only(bottom: 5),
-                                child: Text(
-                                  'ทันเวลา',
-                                  style: styleLabel,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
+                    _buildStatItem(
+                      "ทันเวลา",
+                      item.ONTIME,
+                      Color(0xFFA7D645),
+                      () {
+                        EasyLoading.show();
+                        _activeDataShow(2, item.CREATE_DATE);
+                      },
                     ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          EasyLoading.show();
-                          _activeDataShow(4, _result[index].CREATE_DATE);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey,
-                                width: 1,
-                              ),
-                              right: BorderSide(
-                                color: Colors.grey[400] ?? Colors.grey,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          padding: EdgeInsets.only(left: 2, right: 2),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            child: Text(
-                                              _result[index].OUTSIDE > 0
-                                                  ? _result[index]
-                                                      .OUTSIDE
-                                                      .toString()
-                                                  : '0',
-                                              style: TextStyle(
-                                                  fontSize: 40,
-                                                  fontFamily:
-                                                      FontStyles().FontThaiSans,
-                                                  height: 0.6),
-                                            ),
-                                          ),
-                                          Container(
-                                            alignment: Alignment.centerLeft,
-                                            width: 20,
-                                            height: 3,
-                                            color: Color(0xFFB907BD),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        children: [
-                                          Text('งาน',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 12)),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            color: Color(0xFF18C0FF),
-                                            size: 12,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.only(bottom: 5),
-                                child: Text(
-                                  'นอกสถานที่',
-                                  style: styleLabel,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
+                    _buildStatItem(
+                      "นอกสถานที่",
+                      item.OUTSIDE,
+                      Color(0xFFB907BD),
+                      () {
+                        EasyLoading.show();
+                        _activeDataShow(4, item.CREATE_DATE);
+                      },
                     ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          EasyLoading.show();
-                          _activeDataShow(3, _result[index].CREATE_DATE);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey,
-                                width: 1,
-                              ),
-                              right: BorderSide(
-                                color: Colors.grey[400] ?? Colors.grey,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          padding: EdgeInsets.only(left: 2, right: 2),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            child: Text(
-                                              _result[index].LATE > 0
-                                                  ? _result[index]
-                                                      .LATE
-                                                      .toString()
-                                                  : '0',
-                                              style: TextStyle(
-                                                  fontSize: 40,
-                                                  fontFamily:
-                                                      FontStyles().FontThaiSans,
-                                                  height: 0.6),
-                                            ),
-                                          ),
-                                          Container(
-                                            alignment: Alignment.centerLeft,
-                                            width: 20,
-                                            height: 3,
-                                            color: Color(0xFFD40000),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        children: [
-                                          Text('คน',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 12)),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            color: Color(0xFF18C0FF),
-                                            size: 12,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.only(bottom: 5),
-                                child: Text(
-                                  'สาย',
-                                  style: styleLabel,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
+                    _buildStatItem(
+                      "สาย",
+                      item.LATE,
+                      Color(0xFFD40000),
+                      () {
+                        EasyLoading.show();
+                        _activeDataShow(3, item.CREATE_DATE);
+                      },
                     ),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.grey[400] ?? Colors.grey,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        padding: EdgeInsets.only(left: 2, right: 2),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          child: Text(
-                                            '0',
-                                            style: TextStyle(
-                                                fontSize: 40,
-                                                fontFamily:
-                                                    FontStyles().FontThaiSans,
-                                                height: 0.6),
-                                          ),
-                                        ),
-                                        Container(
-                                          alignment: Alignment.centerLeft,
-                                          width: 20,
-                                          height: 3,
-                                          color: Color(0xFFFF802C),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    child: Column(
-                                      children: [
-                                        Text('คน',
-                                            style: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 12)),
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          color: Color(0xFF18C0FF),
-                                          size: 12,
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.only(bottom: 5),
-                              child: Text(
-                                'ลา',
-                                style: styleLabel,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
+                    _buildStatItem(
+                      "ลา",
+                      0, // Hardcoded as per original
+                      Colors.blue, // Pick a color for Leave
+                      () {}, // No action yet
                     ),
                   ],
                 ),
@@ -840,6 +475,50 @@ class _HistoryAllScreenState extends State<HistoryAllScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+      String label, int count, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          color: Colors.transparent, // Hit test
+          child: Column(
+            children: [
+              Container(
+                height: 4,
+                width: 20,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                count > 0 ? count.toString() : '0',
+                style: GoogleFonts.kanit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  height: 1,
+                ),
+              ),
+              Text(
+                label,
+                style: GoogleFonts.kanit(
+                  fontSize: 10,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

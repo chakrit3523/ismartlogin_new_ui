@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ismart_login/page/org/create_screen.dart';
+import 'package:ismart_login/page/org/org_setup_screen.dart';
 import 'package:ismart_login/page/org/join_screen.dart';
 import 'package:ismart_login/page/sign/signout_popup.dart';
 import 'package:location/location.dart';
@@ -44,19 +44,9 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => OrganizationCreateScreen(
-          type: 'insert',
-          title: 'สร้างทีม/องค์กรใหม่',
-          id: '0',
-          invite: "000000000",
-          action: true,
-          history: 'false',
-          noti: 'false',
-          refresh: () {},
-          logout: 'false',
-          ot: 'false',
-          time_status: 'false',
-          leave_cancel_status: 'false',
+        builder: (context) => OrgSetupScreen(
+          orgName: '',
+          // No callback - OrgSetupScreen will handle API call directly
         ),
       ),
     );

@@ -5,17 +5,17 @@ import 'dart:convert';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 // import 'package:flutter_app_badger/flutter_app_badger.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:io';
+
 import 'package:image_picker/image_picker.dart'
     show XFile; // For XFile type only
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/drawer.dart';
-import 'package:ismart_login/page/front/front_count_widget.dart';
+
 import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/front/future/org_future.dart';
-import 'package:ismart_login/page/front/history_day_widget.dart';
+
 import 'package:ismart_login/page/front/insite_popup.dart';
 import 'package:ismart_login/page/front/model/attendToDay.dart';
 import 'package:ismart_login/page/front/model/orglist.dart';
@@ -29,13 +29,15 @@ import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart'
 import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/outside/outside_screen.dart';
+import 'package:ismart_login/widgets/atom_orbit_widget.dart';
+import 'package:ismart_login/widgets/curved_white_panel_clipper.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
+
 import 'package:ismart_login/system/clock.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:ismart_login/system/widht_device.dart';
+
 import 'package:ismart_login/widgets/simple_camera_screen.dart';
 import 'package:location/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,10 +49,14 @@ class FrontScreen extends StatefulWidget {
   _FrontScreenState createState() => _FrontScreenState();
 }
 
-class _FrontScreenState extends State<FrontScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+class _FrontScreenState extends State<FrontScreen>
+    with SingleTickerProviderStateMixin {
   int currentIndex = 0;
   TextEditingController _inputNote = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Animation Controller
+  late AnimationController _controller;
 
   //---
   Location location = new Location();
@@ -65,6 +71,7 @@ class _FrontScreenState extends State<FrontScreen> {
   //---
   List<ItemsMemberList> _items = [];
   late String _dateString;
+  late String _dayString;
   late String _timeString;
   String badge = '0';
   //----
@@ -99,19 +106,27 @@ class _FrontScreenState extends State<FrontScreen> {
 
   @override
   void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 4), // Spin duration
+      vsync: this,
+    )..repeat(); // Loop forever
+
     onLoadMemberManage();
     onLoadBadgeLeaveManage();
     _getMyLocation();
     _getShaerd();
     _timeString = _formatTime(DateTime.now());
     _dateString = _formatDate(DateTime.now());
+    _dayString = Clock().thDay[DateTime.now().weekday % 7];
     _timer = Timer.periodic(Duration(seconds: 1), (Timer t) => _getTime());
     _date = Timer.periodic(Duration(seconds: 1), (Timer t) => _getDate());
-    super.initState();
   }
 
   @override
+  @override
   void dispose() {
+    _controller.dispose();
     _timer.cancel();
     _date.cancel();
     super.dispose();
@@ -417,8 +432,12 @@ class _FrontScreenState extends State<FrontScreen> {
     String month = Clock().thMonth[int.parse(date[1])];
     String year = (int.parse(date[2]) + 543).toString();
     String display = day + ' ' + month + ' ' + year;
+    // weekday: 1=Monday, 2=Tuesday, ..., 7=Sunday
+    // thDay: 0=Sunday, 1=Monday, ..., 6=Saturday
+    int dayIndex = now.weekday % 7; // Convert: 7(Sun)->0, 1(Mon)->1, etc.
     setState(() {
       _dateString = display;
+      _dayString = Clock().thDay[dayIndex];
     });
   }
 
@@ -447,8 +466,12 @@ class _FrontScreenState extends State<FrontScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: Colors.white,
       drawer: MenuDrawer(
           images: _itemMember.length > 0 ? (_itemMember[0].AVATAR ?? '') : '',
           leave: _itemMember.length > 0 ? (_itemMember[0].LEAVE ?? '0') : '0',
@@ -473,698 +496,503 @@ class _FrontScreenState extends State<FrontScreen> {
           type_member: _itemMember.length > 0
               ? (_itemMember[0].MEMBER_TYPE ?? 'member')
               : 'member'),
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              //bgImage
-              padding: EdgeInsets.only(top: 20),
-              child: Column(
-                children: [
-                  //--- Profile
-                  Container(
-                    decoration: new BoxDecoration(
-                      image: const DecorationImage(
-                          image: AssetImage("assets/images/other/bg2.png"),
-                          fit: BoxFit.cover),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(14.0),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              spreadRadius: 5,
-                              blurRadius: 7,
-                              offset:
-                                  Offset(3, 0), // changes position of shadow
-                            ),
-                          ],
-                        ),
-                        height: 100,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: EdgeInsets.only(left: 20, right: 20),
-                                child: Row(
-                                  children: [
-                                    GestureDetector(
-                                      child: _itemMember.length > 0
-                                          ? _itemMember[0].AVATAR != ''
-                                              ? Container(
-                                                  alignment: Alignment.center,
-                                                  width: 60,
-                                                  height: 60,
-                                                  decoration: new BoxDecoration(
-                                                    color: Color(0xFFF2F2F2),
-                                                    image: DecorationImage(
-                                                      image: NetworkImage(
-                                                          Server.url +
-                                                              (_itemMember[0]
-                                                                      .AVATAR ??
-                                                                  '')),
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                        color: Colors.white,
-                                                        width: 2),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.grey
-                                                            .withOpacity(0.3),
-                                                        spreadRadius: 2,
-                                                        blurRadius: 5,
-                                                        offset: Offset(0,
-                                                            0), // changes position of shadow
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                              : Container(
-                                                  margin:
-                                                      EdgeInsets.only(top: 0),
-                                                  alignment: Alignment.center,
-                                                  width: 60,
-                                                  height: 60,
-                                                  decoration: new BoxDecoration(
-                                                    color: Color(0xFFF2F2F2),
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                        color: Colors.white,
-                                                        width: 2),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.grey
-                                                            .withOpacity(0.3),
-                                                        spreadRadius: 2,
-                                                        blurRadius: 5,
-                                                        offset: Offset(0,
-                                                            0), // changes position of shadow
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.person,
-                                                    color: Colors.white,
-                                                    size: 50,
-                                                  ),
-                                                )
-                                          : Container(
-                                              margin: EdgeInsets.only(top: 15),
-                                              alignment: Alignment.center,
-                                              width: 60,
-                                              height: 60,
-                                              decoration: new BoxDecoration(
-                                                color: Color(0xFFF2F2F2),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.grey
-                                                        .withOpacity(0.3),
-                                                    spreadRadius: 2,
-                                                    blurRadius: 5,
-                                                    offset: Offset(0,
-                                                        0), // changes position of shadow
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Icon(
-                                                Icons.person,
-                                                color: Colors.white,
-                                                size: 50,
-                                              ),
-                                            ),
-                                    ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Container(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceEvenly,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  _itemMember.length > 0
-                                                      ? _subFullname(
-                                                          _itemMember[0]
-                                                                  .FULLNAME ??
-                                                              '')
-                                                      : '',
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 24,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Text(
-                                                  _itemMember.length > 0
-                                                      ? (_itemMember[0]
-                                                              .ORG_NAME ??
-                                                          '')
-                                                      : '',
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 22,
-                                                      fontWeight:
-                                                          FontWeight.normal),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Text(
-                                                  _itemMember.length > 0
-                                                      ? _itemMember[0].ORG_SUB_NAME ==
-                                                                  '' ||
-                                                              _itemMember[0]
-                                                                      .ORG_SUB_NAME ==
-                                                                  null
-                                                          ? ''
-                                                          : 'สาขา ' +
-                                                              (_itemMember[0]
-                                                                      .ORG_SUB_NAME ??
-                                                                  '')
-                                                      : '',
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 20,
-                                                      color: Colors.grey,
-                                                      fontWeight:
-                                                          FontWeight.normal),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            if (_itemMember != null)
-                              if (_itemMember.length > 0)
-                                if (_itemMember[0].LEAVE == "1")
-                                  GestureDetector(
-                                    onTap: () {
-                                      //noti
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              LeaveNotiListScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      child: Stack(
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.only(
-                                                right: 10, top: 7),
-                                            child: Icon(
-                                              Icons.notifications,
-                                              size: 35,
-                                            ),
-                                          ),
-                                          if (badge != "0")
-                                            Positioned(
-                                              top: 0.5,
-                                              right: 7,
-                                              child: new Container(
-                                                padding: EdgeInsets.all(1.0),
-                                                decoration: new BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          10.0),
-                                                ),
-                                                constraints: BoxConstraints(
-                                                  minWidth: 20.0,
-                                                  minHeight: 20.0,
-                                                ),
-                                                child: new Text(
-                                                  badge.toString(),
-                                                  textScaleFactor: 1.0,
-                                                  style: new TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 10.0,
-                                                      height: 1.5),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                            )
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                            GestureDetector(
-                              onTap: () {
-                                _scaffoldKey.currentState?.openDrawer();
-                              },
-                              child: Container(
-                                padding: EdgeInsets.only(right: 20, top: 7),
-                                child: Icon(
-                                  Icons.menu,
-                                  size: 35,
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        EdgeInsets.only(left: 5, right: 5, top: 5, bottom: 20),
-                    width: WidhtDevice().widht(context),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(15.0),
-                        bottomRight: Radius.circular(15.0),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Container(
-                        //   child: SingleChildScrollView(
-                        //     scrollDirection: Axis.horizontal,
-                        //     child: Row(
-                        //       mainAxisAlignment: MainAxisAlignment.center,
-                        //       children: [
-                        //         Container(
-                        //           padding: EdgeInsets.only(left: 25, right: 25),
-                        //           decoration: BoxDecoration(
-                        //             borderRadius: BorderRadius.circular(30),
-                        //             gradient: LinearGradient(
-                        //                 colors: [
-                        //                   Color(0xFF398EFD),
-                        //                   Color(0xFFFFA2C2),
-                        //                 ],
-                        //                 begin: Alignment.centerLeft,
-                        //                 end: Alignment.centerRight,
-                        //                 stops: [0.0, 1.0],
-                        //                 tileMode: TileMode.repeated),
-                        //           ),
-                        //           child: Row(
-                        //             children: [
-                        //               Text(
-                        //                 _dateString,
-                        //                 style: styleTime,
-                        //               ),
-                        //               SizedBox(
-                        //                 width: 7,
-                        //               ),
-                        //               Container(
-                        //                 child: Row(
-                        //                   children: [
-                        //                     Text(
-                        //                       _timeString + ' น. ',
-                        //                       style: styleTime,
-                        //                     ),
-                        //                     GestureDetector(
-                        //                       onTap: () {
-                        //                         Navigator.push(
-                        //                           context,
-                        //                           MaterialPageRoute(
-                        //                             builder: (context) =>
-                        //                                 MainPage(),
-                        //                           ),
-                        //                         );
-                        //                       },
-                        //                       child: FaIcon(
-                        //                         FontAwesomeIcons.sync,
-                        //                         color: Colors.white,
-                        //                         size: 14,
-                        //                       ),
-                        //                     ),
-                        //                   ],
-                        //                 ),
-                        //               ),
-                        //             ],
-                        //           ),
-                        //         ),
-                        //       ],
-                        //     ),
-                        //   ),
-                        // ),
-                        if (_itemMember != null)
-                          if (_itemMember.length > 0)
-                            if (_itemMember[0].MEMBER_TYPE == 'admin')
-                              FrontCountWidget(),
-                        if (_itemMember.length > 0 &&
-                            _itemMember[0].HISTORY == "1" &&
-                            _itemMember[0].MEMBER_TYPE == 'member')
-                          FrontCountWidget(),
-                        Container(
-                          padding: EdgeInsets.only(top: 20),
-                          alignment: Alignment.center,
-                          width: MediaQuery.of(context).size.width,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                child: Text(
-                                  _timeString.toString(),
-                                  style: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 100,
-                                      height: 0.5),
-                                ),
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width,
-                                alignment: Alignment.center,
-                                child: Text(
-                                  _dateString,
-                                  style: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 26,
-                                      height: 1),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        affiliate
-                            ? Container(
-                                padding: EdgeInsets.all(10),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (_login) {
-                                            print("dayWorking : $dayWorking");
-                                            if (dayWorking) {
-                                              if (ot_status == '1' &&
-                                                  end_time != '') {
-                                                popupOT_in(context);
-                                              } else {
-                                                _imgFromCamera_in(
-                                                    context, false);
-                                              }
-                                            } else {
-                                              popupOT_in(context);
-                                            }
-                                          }
-                                        },
-                                        child: Container(
-                                          padding: EdgeInsets.only(bottom: 5),
-                                          decoration: BoxDecoration(
-                                            border: Border(
-                                              bottom: BorderSide(
-                                                color: Colors.grey[400] ??
-                                                    Colors.grey,
-                                                width: 1,
-                                              ),
-                                              right: BorderSide(
-                                                color: Colors.grey[400] ??
-                                                    Colors.grey,
-                                                width: 1,
-                                              ),
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Column(
-                                              children: [
-                                                Container(
-                                                  padding: EdgeInsets.all(10),
-                                                  width: 120,
-                                                  height: 150,
-                                                  decoration: BoxDecoration(
-                                                      color: !_login
-                                                          ? Colors.grey[100]
-                                                          : Color(0xFFD6F5FF),
-                                                      shape: BoxShape.circle),
-                                                  child: Container(
-                                                    padding: EdgeInsets.all(10),
-                                                    decoration: BoxDecoration(
-                                                        color: !_login
-                                                            ? Colors.grey[300]
-                                                            : Color(0xFFA7E9FF),
-                                                        shape: BoxShape.circle),
-                                                    child: Container(
-                                                      decoration: BoxDecoration(
-                                                          color: !_login
-                                                              ? Colors.grey[400]
-                                                              : Color(
-                                                                  0xFF36C8FF),
-                                                          shape:
-                                                              BoxShape.circle),
-                                                      child: Icon(
-                                                        Icons.camera_alt,
-                                                        size: 50,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'เข้างาน',
-                                                  style: styleLabelCamera,
-                                                ),
-                                                Text(
-                                                  'ถ่ายรูปคุณคู่กับสถานที่',
-                                                  style: styleDetailCamera,
-                                                ),
-                                                Text(
-                                                  'เวลาเข้างาน ' +
-                                                      Clock().convertTime(
-                                                          time: dayWorking
-                                                              ? timeIn
-                                                              : '--:--') +
-                                                      ' น.',
-                                                  style: styleDetailCamera,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (_logout) {
-                                            if (dayWorking) {
-                                              print(
-                                                  "dayWorking logout : $dayWorking");
-                                              if (ot_status == '1' &&
-                                                  end_time != '') {
-                                                _imgFromCamera_out(
-                                                    context, true);
-                                              } else {
-                                                _imgFromCamera_out(
-                                                    context, false);
-                                              }
-                                            } else {
-                                              _imgFromCamera_out(context, true);
-                                            }
-                                            // Navigator.push(
-                                            //   context,
-                                            //   MaterialPageRoute(
-                                            //     builder: (context) => CameraCustom(),
-                                            //   ),
-                                            // );
-                                          }
-                                        },
-                                        child: Container(
-                                          padding: EdgeInsets.only(bottom: 5),
-                                          decoration: BoxDecoration(
-                                            border: Border(
-                                              bottom: BorderSide(
-                                                color: Colors.grey[400] ??
-                                                    Colors.grey,
-                                                width: 1,
-                                              ),
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Column(
-                                              children: [
-                                                Container(
-                                                  padding: EdgeInsets.all(10),
-                                                  width: 120,
-                                                  height: 150,
-                                                  decoration: BoxDecoration(
-                                                      color: !_logout
-                                                          ? Colors.grey[100]
-                                                          : Color(0xFFFFEDCE),
-                                                      shape: BoxShape.circle),
-                                                  child: Container(
-                                                    padding: EdgeInsets.all(10),
-                                                    decoration: BoxDecoration(
-                                                        color: !_logout
-                                                            ? Colors.grey[300]
-                                                            : Color(0xFFFAD7A0),
-                                                        shape: BoxShape.circle),
-                                                    child: Container(
-                                                      decoration: BoxDecoration(
-                                                          color: !_logout
-                                                              ? Colors.grey[400]
-                                                              : Color(
-                                                                  0xFFFFAF36),
-                                                          shape:
-                                                              BoxShape.circle),
-                                                      child: Icon(
-                                                        Icons.camera_alt,
-                                                        size: 50,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'ออกงาน',
-                                                  style: styleLabelCamera,
-                                                ),
-                                                Text(
-                                                  'ถ่ายรูปคุณคู่กับสถานที่',
-                                                  style: styleDetailCamera,
-                                                ),
-                                                Text(
-                                                  'เวลาออกงาน ' +
-                                                      Clock().convertTime(
-                                                          time: dayWorking
-                                                              ? timeOut
-                                                              : '--:--') +
-                                                      ' น.',
-                                                  style: styleDetailCamera,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Container(
-                                height: 150,
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      Text(
-                                        "--\n กรุณาแก้ไขข้อมูลส่วนตัว \nเลือก 'สาขา' และ 'เวลาทำงาน' \n--",
-                                        style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 24,
-                                            color: Colors.grey),
-                                        textAlign: TextAlign.center,
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              ),
-                        Padding(padding: EdgeInsets.all(5)),
-                        Container(
-                          padding: EdgeInsets.only(left: 20, bottom: 150),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'รายการที่บันทึก',
-                                style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 24,
-                                    height: 1,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              HistoryDayWidget(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+      body: Stack(
+        children: [
+          // 1. Blue Gradient Background (Full Screen)
+          Container(
+            height: screenHeight,
+            width: screenWidth,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(-0.3, -1.0),
+                end: Alignment(0.3, 1.0),
+                colors: [
+                  Color(0xFF21CCD4), // 0%
+                  Color(0xFF0663F7), // 100%
                 ],
               ),
             ),
           ),
-        ),
-      ),
-      floatingActionButton: Container(
-        width: 100,
-        height: 100,
-        alignment: Alignment.bottomCenter,
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OutsideScreen(
-                      uid: _itemMember[0].ID ?? '',
-                      lat: _myLat,
-                      long: _myLng,
-                    ),
+
+          // 2. Main Scrollable Content
+          SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: screenHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    children: [
+                      SizedBox(height: MediaQuery.of(context).padding.top + 10),
+                      // Header
+                      _buildHeader(),
+                      SizedBox(height: 10),
+                      // Clock
+                      _buildCircularClock(),
+                      SizedBox(height: 8),
+                      // Org Name
+                      _buildOrgName(),
+                      SizedBox(height: 12),
+                      // Check In/Out Buttons
+                      _buildActionButtons(),
+                      SizedBox(height: 8),
+                      // Status Text
+                      _buildStatusText(),
+                      SizedBox(
+                          height: 0), // Removed spacing to move panel higher
+                    ],
                   ),
-                );
-              },
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 10,
-                        color: Colors.black.withOpacity(0.2),
-                        spreadRadius: 5)
-                  ],
-                ),
-                child: CircleAvatar(
-                    backgroundColor: Color(0xFFB907BD),
-                    child: FaIcon(
-                      FontAwesomeIcons.plus,
+
+                  // 3. White Panel with Rounded Top Corners
+                  Container(
+                    width: screenWidth,
+                    padding: EdgeInsets.only(
+                        top: 20, bottom: 100, left: 20, right: 20),
+                    decoration: BoxDecoration(
                       color: Colors.white,
-                      size: 30,
-                    )),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildMenuGrid(),
+                        SizedBox(height: 75),
+                      ],
+                    ),
+                  )
+                ],
               ),
             ),
-            Padding(padding: EdgeInsets.all(1)),
-            Text(
-              'ทำงานนอกสถานที่',
-              style:
-                  TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 14),
-            )
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Profile
+          Column(
+            children: [
+              Container(
+                padding: EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF80AB), // Pink accent
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.white,
+                  backgroundImage: (_itemMember.length > 0 &&
+                          _itemMember[0].AVATAR != null &&
+                          _itemMember[0].AVATAR != '')
+                      ? NetworkImage(Server.url + (_itemMember[0].AVATAR ?? ''))
+                      : null,
+                  child: (_itemMember.length == 0 ||
+                          _itemMember[0].AVATAR == null ||
+                          _itemMember[0].AVATAR == '')
+                      ? Icon(Icons.person, color: Colors.grey)
+                      : null,
+                ),
+              ),
+              SizedBox(height: 5),
+              Text(
+                'สวัสดี ${_itemMember.length > 0 ? (_itemMember[0].NICKNAME ?? '') : ''}',
+                style: TextStyle(
+                  fontFamily: FontStyles().FontFamily,
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+              )
+            ],
+          ),
+
+          // Logo (Center)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('iSmart',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: FontStyles().FontFamily)),
+              Row(
+                children: [
+                  Text('L',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: FontStyles().FontFamily)),
+                  Icon(Icons.lock_outline, color: Colors.white, size: 24),
+                  Text('g',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: FontStyles().FontFamily)),
+                  Text('in',
+                      style: TextStyle(
+                          color: Color(0xFFC6FF00),
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: FontStyles().FontFamily)),
+                ],
+              )
+            ],
+          ),
+
+          // Notification (Right)
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LeaveNotiListScreen(),
+                ),
+              );
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(Icons.notifications_none, color: Colors.white, size: 35),
+                if (badge != "0")
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                          color: Colors.red, shape: BoxShape.circle),
+                      child: Text(badge,
+                          style: TextStyle(color: Colors.white, fontSize: 10)),
+                    ),
+                  )
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircularClock() {
+    // 3D Atom-like orbits animation around the clock
+    return AtomOrbitWidget(
+      size: 220,
+      orbitColor: Color(0xFF0663F7),
+      duration: Duration(seconds: 3),
+      child: Container(
+        width: 155,
+        height: 155,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              spreadRadius: 2,
+            ),
           ],
         ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _dayString,
+              style: TextStyle(
+                  fontSize: 24,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: FontStyles().FontFamily),
+            ),
+            SizedBox(height: 2),
+            Text(
+              _dateString,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[500],
+                  fontFamily: FontStyles().FontFamily),
+            ),
+            SizedBox(height: 4),
+            Text(
+              _timeString,
+              style: TextStyle(
+                  fontSize: 42,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                  fontFamily: FontStyles().FontFamily),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrgName() {
+    return Text(
+      _itemMember.length > 0
+          ? (_itemMember[0].ORG_NAME ?? 'บริษัท เดอะสแตนดาร์ด จำกัด')
+          : 'ชื่อบริษัท',
+      style: TextStyle(
+          fontFamily: FontStyles().FontFamily,
+          color: Colors.white,
+          fontSize: 17,
+          height: 27 / 17, // Line height 27px
+          letterSpacing: 0,
+          shadows: [
+            Shadow(
+              color: Color(0x29000000),
+              offset: Offset(0, 3),
+              blurRadius: 6,
+            )
+          ]),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      // Reduced padding to accommodate 187px buttons
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildButtonCard(context, true),
+          // Vertical Dashed Line
+          Container(
+            height: 50,
+            margin: EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(
+                  8,
+                  (index) => Container(
+                        width: 2,
+                        height: 3,
+                        color: Colors.white.withOpacity(0.5),
+                      )),
+            ),
+          ),
+          _buildButtonCard(context, false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildButtonCard(BuildContext context, bool isCheckIn) {
+    bool isEnabled = isCheckIn ? _login : _logout;
+    String imageAsset;
+    if (isCheckIn) {
+      imageAsset = isEnabled
+          ? 'assets/images/other/chekin_btn.png'
+          : 'assets/images/other/chekin_btn_disable.png';
+    } else {
+      imageAsset = isEnabled
+          ? 'assets/images/other/checkout_btn.png'
+          : 'assets/images/other/checkout_btn_disable.png';
+    }
+
+    String timeLabel = isCheckIn ? 'เข้า' : 'ออก';
+    String timeValue = isCheckIn ? '8:30' : '17.30'; // Should be dynamic
+    String mainText = isCheckIn ? 'เข้างาน' : 'ออกงาน';
+    Color textColor = isCheckIn
+        ? Color(0xFF0099CC)
+        : Color(0xFFFF6B8A); // Cyan for checkin, Coral pink for checkout
+
+    // Adjust text color for disabled state if needed, or keep same
+    if (!isEnabled) {
+      textColor = Colors.grey;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (!isEnabled) return;
+
+        // Logic copy-pasted
+        if (isCheckIn) {
+          if (_login) {
+            if (dayWorking) {
+              if (ot_status == '1' && end_time != '') {
+                popupOT_in(context);
+              } else {
+                _imgFromCamera_in(context, false);
+              }
+            } else {
+              popupOT_in(context);
+            }
+          } else {
+            if (dayWorking) {
+              _imgFromCamera_in(context, false);
+            } else {
+              popupOT_in(context);
+            }
+          }
+        } else {
+          if (_logout) {
+            _handleCheckoutAttempt(context);
+          }
+        }
+      },
+      child: Container(
+        width: 175, // Adjusted width
+        height: 90, // Adjusted height
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(45), // Pill shape
+            image: DecorationImage(
+                image: AssetImage(imageAsset),
+                fit: BoxFit.fill // Fill to match button size
+                )),
+        child: Padding(
+          padding: EdgeInsets.only(
+              left: 80, right: 8), // Better centering in text area
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Time row: "เข้า 8:30" or "ออก 17.30"
+              Row(
+                children: [
+                  Text(timeLabel,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: textColor,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: FontStyles().FontFamily)),
+                  SizedBox(width: 3),
+                  Text(timeValue,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: FontStyles().FontFamily)),
+                ],
+              ),
+              SizedBox(height: 0),
+              // Main text: "เข้างาน" or "ออกงาน"
+              Text(mainText,
+                  style: TextStyle(
+                      fontSize: 24,
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                      fontFamily: FontStyles().FontFamily)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusText() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.access_time_filled, color: Colors.yellowAccent, size: 20),
+        SizedBox(width: 5),
+        Text('สถานะ : ',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontFamily: FontStyles().FontFamily)),
+        Text(_logout ? 'เข้างานแล้ว' : 'ยังไม่เข้างาน',
+            style: TextStyle(
+                color: Colors.yellowAccent,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: FontStyles().FontFamily)),
+      ],
+    );
+  }
+
+  Widget _buildMenuGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMenuIcon('assets/images/other/workout.png', 'ทำงาน\nนอกสถานที่',
+              onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OutsideScreen(
+                  uid: _itemMember.length > 0 ? (_itemMember[0].ID ?? '') : '',
+                  lat: _myLat,
+                  long: _myLng,
+                ),
+              ),
+            );
+          }),
+          _buildMenuIcon('assets/images/other/timeout.png', 'ทำงาน\nล่วงเวลา',
+              onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OutsideScreen(
+                  uid: _itemMember.length > 0 ? (_itemMember[0].ID ?? '') : '',
+                  lat: _myLat,
+                  long: _myLng,
+                  isOvertime: true,
+                  timeId: _time_id,
+                ),
+              ),
+            );
+          }),
+          _buildMenuIcon('assets/images/other/holiday.png', 'วันหยุด\nประจำปี',
+              onTap: () {
+            EasyLoading.showInfo('ยังไม่พร้อมใช้งาน');
+          }),
+          _buildMenuIcon('assets/images/other/Flat@2x.png', 'ระเบียบ\nบริษัท',
+              onTap: () {
+            EasyLoading.showInfo('ยังไม่พร้อมใช้งาน');
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuIcon(String assetPath, String title, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 55,
+            height: 55,
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Image.asset(assetPath),
+          ),
+          SizedBox(height: 8),
+          Text(title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 14, // Updated to 14px as requested
+                  height: 1.2, // Default comfortable height for 14px
+                  color: Color(0xFF424242), // Dark grey for visibility
+                  fontFamily: FontStyles().FontFamily))
+        ],
       ),
     );
   }
@@ -1202,11 +1030,19 @@ class _FrontScreenState extends State<FrontScreen> {
 
   _imgFromCamera_in(BuildContext context, bool holiday) async {
     try {
-      // Navigate to Simple Camera
-      final imagePath = await Navigator.push<String>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SimpleCameraScreen(
+      // Navigate to Simple Camera using Modal Bottom Sheet
+      final imagePath = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        enableDrag: false,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height * 0.85, // 85% Height
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: SimpleCameraScreen(
             title: 'เข้างาน',
           ),
         ),
@@ -1268,11 +1104,19 @@ class _FrontScreenState extends State<FrontScreen> {
 
   _imgFromCamera_out(BuildContext context, bool holiday) async {
     try {
-      // Navigate to Simple Camera
-      final imagePath = await Navigator.push<String>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SimpleCameraScreen(
+      // Navigate to Simple Camera using Modal Bottom Sheet
+      final imagePath = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        enableDrag: false,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height * 0.85, // 85% Height
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: SimpleCameraScreen(
             title: 'ออกงาน',
           ),
         ),
@@ -1303,6 +1147,99 @@ class _FrontScreenState extends State<FrontScreen> {
       }
     } catch (e) {
       print('Error in face detection camera: $e');
+    }
+  }
+
+  void _handleCheckoutAttempt(BuildContext context) {
+    // 1. Check if we have a valid scheduled checkout time
+    if (timeOut == '' || timeOut == null || _timeString == '') {
+      _proceedWithCheckout(context);
+      return;
+    }
+
+    try {
+      // 2. Parse times (Assuming HH:mm format)
+      // Current Time
+      List<String> currentParts = _timeString.split(':');
+      int currentHour = int.parse(currentParts[0]);
+      int currentMinute = int.parse(currentParts[1]);
+      int currentTotalMinutes = (currentHour * 60) + currentMinute;
+
+      // Scheduled Time
+      List<String> scheduledParts = timeOut.split(':');
+      int scheduledHour = int.parse(scheduledParts[0]);
+      int scheduledMinute = int.parse(scheduledParts[1]);
+      int scheduledTotalMinutes = (scheduledHour * 60) + scheduledMinute;
+
+      // 3. Compare
+      if (currentTotalMinutes < scheduledTotalMinutes) {
+        // Early Checkout - Show Warning
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.orange, size: 30),
+                  SizedBox(width: 10),
+                  Text('แจ้งเตือน',
+                      style: TextStyle(
+                          fontFamily: FontStyles().FontFamily,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: Text(
+                'ขณะนี้ยังไม่ถึงเวลาเลิกงาน ($timeOut)\nคุณยืนยันที่จะออกงานก่อนเวลาหรือไม่?',
+                style: TextStyle(
+                    fontFamily: FontStyles().FontFamily, fontSize: 18),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('ยกเลิก',
+                      style: TextStyle(
+                          fontFamily: FontStyles().FontFamily,
+                          color: Colors.grey,
+                          fontSize: 18)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    _proceedWithCheckout(context); // Proceed
+                  },
+                  child: Text('ยืนยัน',
+                      style: TextStyle(
+                          fontFamily: FontStyles().FontFamily,
+                          color: Color(0xFF00B4D8),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18)),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        // On time or late - Proceed
+        _proceedWithCheckout(context);
+      }
+    } catch (e) {
+      print("Time parsing error: $e");
+      _proceedWithCheckout(context); // Fallback
+    }
+  }
+
+  void _proceedWithCheckout(BuildContext context) {
+    if (dayWorking) {
+      if (ot_status == '1' && end_time != '') {
+        _imgFromCamera_out(context, true);
+      } else {
+        _imgFromCamera_out(context, false);
+      }
+    } else {
+      _imgFromCamera_out(context, true);
     }
   }
 

@@ -14,6 +14,7 @@ import 'package:ismart_login/page/sign/model/checkmemberlist.dart';
 import 'package:ismart_login/page/sign/model/for_post.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/otp_screen.dart';
+import 'package:ismart_login/system/shared_preferences.dart';
 
 class SignUpScreen extends StatefulWidget {
   final String? verifiedPhoneNumber;
@@ -85,10 +86,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   List<ItemsMemberResultList> _resultRegister = [];
   Future<bool> _registerMember(Map map) async {
     EasyLoading.show(status: 'กำลังลงทะเบียน...');
-    await MemberFuture().apiInsertMember(map).then((onValue) {
+    await MemberFuture().apiInsertMember(map).then((onValue) async {
       _resultRegister = onValue;
       if (_resultRegister.isNotEmpty &&
           _resultRegister[0].RESULT == "success") {
+        // Save ID to SharedCashe
+        print("Saving ID from Registration: ${_resultRegister[0].ID}");
+        await SharedCashe.savaItemsString(
+            key: 'id', valString: _resultRegister[0].ID);
+
         EasyLoading.dismiss();
         if (map['AVATAR'] != "") {
           _onUploadAvatarProfile(_resultRegister[0].UPLOADKEY, map['AVATAR']);

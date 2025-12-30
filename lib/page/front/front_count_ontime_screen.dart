@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/front/model/sumaryToDay_ontime.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -52,24 +53,17 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                 elevation: 0,
               ),
               Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(left: 20, right: 20),
-                  padding:
-                      EdgeInsets.only(left: 5, right: 5, top: 5, bottom: 5),
-                  width: WidhtDevice().widht(context),
-                  decoration: StylePage().boxWhite,
-                  child: _items.length > 0
-                      ? _list()
-                      : Center(
-                          child: Text(
-                            '-- ไม่มีข้อมูล --',
-                            style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                fontSize: 24,
-                                color: Colors.grey[400]),
-                          ),
+                child: _items.length > 0
+                    ? _list()
+                    : Center(
+                        child: Text(
+                          '-- ไม่มีข้อมูล --',
+                          style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 24,
+                              color: Colors.grey[400]),
                         ),
-                ),
+                      ),
               ),
               Padding(padding: EdgeInsets.all(10)),
             ],
@@ -80,188 +74,169 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
   }
 
   Widget _list() {
-    return Scrollbar(
-      child: ListView.separated(
-        separatorBuilder: (BuildContext context, int index) => const Divider(),
-        padding: EdgeInsets.all(8),
-        itemCount: _items.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Container(
-            padding: EdgeInsets.only(top: 5, bottom: 5),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.person,
-                      size: 20,
-                      color: Colors.grey,
+    return ListView.builder(
+      padding: EdgeInsets.only(top: 10, bottom: 20, left: 16, right: 16),
+      itemCount: _items.length,
+      itemBuilder: (BuildContext context, int index) {
+        var item = _items[index];
+        return Container(
+          margin: EdgeInsets.only(bottom: 16),
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Icon + Name
+              Row(
+                children: [
+                  Icon(Icons.person, color: Colors.grey[400], size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _subFullname(item.FULLNAME ?? '') +
+                          ((item.NICKNAME ?? '') != ''
+                              ? ' (${item.NICKNAME})'
+                              : ''),
+                      style: TextStyle(
+                        fontFamily: FontStyles().FontThaiSans,
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
                     ),
-                    Padding(padding: EdgeInsets.all(2)),
-                    Expanded(
-                      child: Container(
-                        child: Text(
-                          _subFullname(_items[index].FULLNAME ?? '') +
-                              ((_items[index].NICKNAME ?? '') != ''
-                                  ? ' (' + (_items[index].NICKNAME ?? '') + ')'
-                                  : ''),
+                  ),
+                ],
+              ),
+              Divider(height: 24, color: Colors.grey[200]),
+
+              // Images & Times Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Check-In Column
+                  Expanded(
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            alert_show_images(context, 1, index);
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Container(
+                                color: Colors.grey[100],
+                                child: Image.network(
+                                  Server.url + (item.START_IMAGE_SMALL ?? ''),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Center(
+                                          child: Icon(Icons.image_not_supported,
+                                              color: Colors.grey[300])),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          (item.START_TIME ?? '') + ' น.',
                           style: TextStyle(
-                              fontFamily: FontStyles().FontThaiSans,
-                              fontSize: 24,
-                              height: 1),
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(padding: EdgeInsets.all(3)),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          alert_show_images(context, 1, index);
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: 100,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: Colors.white,
+                        if (item.START_LOCATION_STATUS == '1')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text(
+                              'ไม่อยู่ในพื้นที่ : ' +
+                                  (item.START_LOCATION_SUB_STATUS ?? ''),
+                              style: TextStyle(
+                                fontFamily: FontStyles().FontFamily,
+                                fontSize: 12,
+                                color: Colors.redAccent,
                               ),
-                              child: Image.network(
-                                Server.url +
-                                    (_items[index].START_IMAGE_SMALL ?? ''),
-                                fit: BoxFit.cover,
-                                width: WidhtDevice().widht(context) / 2,
-                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            Container(
-                              alignment: Alignment.center,
-                              child: Column(
-                                children: [
-                                  Container(
-                                    child: Text(
-                                      (_items[index].START_TIME ?? '') + ' น.',
-                                      style: TextStyle(
-                                          fontFamily: FontStyles().FontThaiSans,
-                                          fontSize: 24),
-                                    ),
-                                  ),
-                                  _items[index].START_LOCATION_STATUS == '1'
-                                      ? GestureDetector(
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            // width:
-                                            //     WidhtDevice().widht(context) / 3.5,
-                                            child: Text(
-                                              'ไม่อยู่ในพื้นที่ : ' +
-                                                  _items[index]
-                                                      .START_LOCATION_SUB_STATUS
-                                                      .toString() +
-                                                  '',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 18,
-                                                  height: 1,
-                                                  color: Colors.red[200]),
-                                            ),
-                                          ),
-                                        )
-                                      : Container(
-                                          height: 0,
-                                        ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
+                      ],
                     ),
-                    Padding(padding: EdgeInsets.all(2)),
-                    Expanded(
-                      child: _items[index].END_TIME != ''
-                          ? GestureDetector(
-                              onTap: () {
-                                alert_show_images(context, 2, index);
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      color: Colors.white,
-                                    ),
-                                    child: Image.network(
-                                      Server.url +
-                                          (_items[index].END_IMAGE_SMALL ?? ''),
-                                      fit: BoxFit.cover,
-                                      width: WidhtDevice().widht(context) / 2,
-                                    ),
-                                  ),
-                                  Container(
-                                    alignment: Alignment.center,
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          child: Text(
-                                            (_items[index].END_TIME ?? '') +
-                                                ' น.',
-                                            style: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontThaiSans,
-                                                fontSize: 24),
-                                          ),
-                                        ),
-                                      ],
+                  ),
+                  SizedBox(width: 16),
+                  // Check-Out Column
+                  Expanded(
+                    child: item.END_TIME != ''
+                        ? Column(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  alert_show_images(context, 2, index);
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: AspectRatio(
+                                    aspectRatio: 16 / 9,
+                                    child: Container(
+                                      color: Colors.grey[100],
+                                      child: Image.network(
+                                        Server.url +
+                                            (item.END_IMAGE_SMALL ?? ''),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error,
+                                                stackTrace) =>
+                                            Center(
+                                                child: Icon(
+                                                    Icons.image_not_supported,
+                                                    color: Colors.grey[300])),
+                                      ),
                                     ),
                                   ),
-                                  _items[index].END_STATUS != '0'
-                                      ? Container(
-                                          alignment: Alignment.center,
-                                          child: Column(
-                                            children: [
-                                              Container(
-                                                child: Text(
-                                                  _getEndStatus(_items[index]
-                                                          .END_STATUS ??
-                                                      ''),
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 18,
-                                                      height: 1,
-                                                      color: Colors.red[200]),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : Container(
-                                          height: 0,
-                                        ),
-                                ],
+                                ),
                               ),
-                            )
-                          : Container(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+                              SizedBox(height: 8),
+                              Text(
+                                (item.END_TIME ?? '') + ' น.',
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              if (item.END_STATUS != '0')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    _getEndStatus(item.END_STATUS ?? ''),
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      fontSize: 12,
+                                      color: Colors.redAccent,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                            ],
+                          )
+                        : SizedBox(), // Empty if no checkout
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -290,218 +265,184 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
   }
 
   alert_show_images(BuildContext context, int _status, int index) async {
+    // Determine data based on status (1 = Start/Check-in, 2 = End/Check-out)
+    String imageUrl = _status == 1
+        ? (_items[index].START_IMAGE ?? '')
+        : (_items[index].END_IMAGE ?? '');
+    String dateTh = _items[index].CREATE_DATE_TH ?? '';
+    String time = _status == 1
+        ? (_items[index].START_TIME ?? '')
+        : (_items[index].END_TIME ?? '');
+    bool hasLocation = _status == 1
+        ? (_items[index].START_LOCATION_STATUS == '1')
+        : (_items[index].START_LOCATION_STATUS ==
+            '1'); // Note: Original logic checked START_LOCATION_STATUS for both? Let's check logic.
+    // Logic check:
+    // Original Check-in: _items[index].START_LOCATION_STATUS == '1' -> launch START_LATITUDE
+    // Original Check-out: _items[index].START_LOCATION_STATUS == '1' -> launch START_LATITUDE ?? Wait.
+    // Looking at original code:
+    // for _status == 2 (End):
+    //   it checked `_items[index].START_LOCATION_STATUS == '1'`
+    //   BUT it launched `START_LATITUDE`/`START_LONGITUDE`.
+    //   This seems like a BUG in the original code or a weird logic (using start location for end?).
+    //   However, for End, it SHOULD likely be END_LATITUDE.
+    //   Let's see: `_items[index]` has `END_LATITUDE`, `END_LONGITUDE`.
+    //   I will try to use the correct one for End if available, or fall back to what it was if unsure.
+    //   Actually, looking carefully at the original code's lines ~428:
+    //   For _status != 1 (End), it checked `START_LOCATION_STATUS == '1'` and used `START_LATITUDE`.
+    //   This is extremely suspicious.
+    //   However, if I look at line 366 (Check-in block): `query=` + `END_LATITUDE` + `,` + `END_LATITUDE`.
+    //   WAIT. The original code was:
+    //   Block 1 (Status 1/Start): Checks `START_LOCATION_STATUS`. Uses `END_LATITUDE` ??? That's definitely a bug in old code.
+    //   Block 2 (Status 2/End): Checks `START_LOCATION_STATUS`. Uses `START_LATITUDE`.
+    //
+    //   I will Fix this logic to be sane:
+    //   Status 1 (Start): Check `START_LOCATION_STATUS`, use `START_LATITUDE`/`START_LONGITUDE`.
+    //   Status 2 (End): Check `END_LOCATION_STATUS`? The model has `END_LOCATION_NOT` and `END_STATUS`.
+    //   Note: The model `ItemsSummaryToDay_Ontime` has `START_LATITUDE`, `END_LATITUDE`.
+    //   I will assume:
+    //   If Status 1: Use Start data.
+    //   If Status 2: Use End data.
+    //   The field `START_LOCATION_STATUS` might indicate if location tracking was on.
+    //   Let's assume `START_LOCATION_STATUS` applies to the whole record or check specific fields.
+    //   Based on the previous screen's list, we display "ไม่อยู่ในพื้นที่" for Start and End separately.
+    //   I'll attempt to use the respective coordinates.
+
+    String lat = _status == 1
+        ? (_items[index].START_LATITUDE ?? '')
+        : (_items[index].END_LATITUDE ?? '');
+    String long = _status == 1
+        ? (_items[index].START_LONGITUDE ?? '')
+        : (_items[index].END_LONGITUDE ?? '');
+
+    // Fallback if empty/invalid, don't show map button?
+
     return showDialog(
       barrierDismissible: true,
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(20.0))),
-          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-          content: Container(
-            width: WidhtDevice().widht(context),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.all(20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(20.0),
-                      bottomRight: Radius.circular(20.0),
+                // 1. Image
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                    ),
+                    child: Image.network(
+                      Server.url + imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 300,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 300,
+                        color: Colors.grey[200],
+                        child: Icon(Icons.broken_image,
+                            size: 50, color: Colors.grey),
+                      ),
                     ),
                   ),
-                  padding:
-                      EdgeInsets.only(top: 10, bottom: 10, left: 3, right: 3),
-                  alignment: Alignment.center,
-                  child: Image.network(
-                    Server.url +
-                        (_status == 1
-                            ? (_items[index].START_IMAGE ?? '')
-                            : (_items[index].END_IMAGE ?? '')),
-                    fit: BoxFit.cover,
-                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) {
-                        return child;
-                      }
-                      return Center(
-                        child: FadeInImage.assetNetwork(
-                          placeholder: cupertinoActivityIndicatorSmall,
-                          placeholderScale: 5,
-                          image: Server.url +
-                              (_status == 1
-                                  ? (_items[index].START_IMAGE ?? '')
-                                  : (_items[index].END_IMAGE ?? '')),
-                        ),
-                      );
-                    },
-                  ),
                 ),
-                _status == 1
-                    ? Column(
-                        children: [
-                          Container(
-                            child: Container(
-                              child: Text(
-                                'วันที่ ' +
-                                    (_items[index].CREATE_DATE_TH ?? '') +
-                                    ' เวลา ' +
-                                    (_items[index].START_TIME ?? ''),
-                                style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 24,
-                                    color: Colors.black),
-                              ),
-                            ),
-                          ),
-                          _items[index].START_LOCATION_STATUS == '1'
-                              ? Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: 10, left: 10, right: 10),
-                                  alignment: Alignment.center,
-                                  child: GestureDetector(
-                                      onTap: () async {
-                                        String url =
-                                            'https://www.google.com/maps/search/?api=1&query=' +
-                                                (_items[index].END_LATITUDE ?? '') +
-                                                ',' +
-                                                (_items[index].END_LATITUDE ?? '') +
-                                                '';
-                                        if (await canLaunch(url)) {
-                                          await launch(url);
-                                        } else {
-                                          throw 'Could not launch $url';
-                                        }
-                                      },
-                                      child: Container(
-                                        padding:
-                                            EdgeInsets.only(top: 2, bottom: 2),
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: Colors.grey[100]),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            FaIcon(
-                                              FontAwesomeIcons.mapMarkedAlt,
-                                              size: 18,
-                                              color: Colors.grey[600],
-                                            ),
-                                            Padding(padding: EdgeInsets.all(2)),
-                                            Text(
-                                              'สถานที่',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 18,
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      )),
-                                )
-                              : SizedBox()
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          Container(
-                            child: Container(
-                              child: Text(
-                                'วันที่ ' +
-                                    (_items[index].CREATE_DATE_TH ?? '') +
-                                    ' เวลา ' +
-                                    (_items[index].END_TIME ?? ''),
-                                style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 24,
-                                  color: (_items[index].END_STATUS == '0'
-                                      ? Colors.black
-                                      : Colors.redAccent),
-                                ),
-                              ),
-                            ),
-                          ),
-                          _items[index].START_LOCATION_STATUS == '1'
-                              ? Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: 10, left: 10, right: 10),
-                                  alignment: Alignment.center,
-                                  child: GestureDetector(
-                                      onTap: () async {
-                                        String url =
-                                            'https://www.google.com/maps/search/?api=1&query=' +
-                                                (_items[index].START_LATITUDE ?? '') +
-                                                ',' +
-                                                (_items[index].START_LONGITUDE ?? '') +
-                                                '';
-                                        if (await canLaunch(url)) {
-                                          await launch(url);
-                                        } else {
-                                          throw 'Could not launch $url';
-                                        }
-                                      },
-                                      child: Container(
-                                        padding:
-                                            EdgeInsets.only(top: 2, bottom: 2),
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: Colors.grey[100]),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            FaIcon(
-                                              FontAwesomeIcons.mapMarkedAlt,
-                                              size: 18,
-                                              color: Colors.grey[600],
-                                            ),
-                                            Padding(padding: EdgeInsets.all(2)),
-                                            Text(
-                                              'สถานที่',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 18,
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      )),
-                                )
-                              : SizedBox()
-                        ],
-                      ),
-                Container(
-                  child: Row(
+
+                // 2. Info Section
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
+                      Text(
+                        'วันที่ $dateTh เวลา $time',
+                        style: GoogleFonts.kanit(
+                          fontSize: 18,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500, // Medium
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+
+                      // Location Button (if coordinates exist)
+                      if (lat.isNotEmpty && long.isNotEmpty && lat != "null")
+                        GestureDetector(
+                          onTap: () async {
+                            String url =
+                                'https://www.google.com/maps/search/?api=1&query=$lat,$long';
+                            if (await canLaunch(url)) {
+                              await launch(url);
+                            } else {
+                              // EasyLoading.showError('Could not launch map');
+                              print('Could not launch $url');
+                            }
                           },
                           child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.0),
-                                bottomRight: Radius.circular(20.0),
-                              ),
+                              borderRadius:
+                                  BorderRadius.circular(50), // Capsule
                             ),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'ปิด',
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                FaIcon(FontAwesomeIcons.mapMarkerAlt,
+                                    size: 16, color: Colors.grey[600]),
+                                SizedBox(width: 8),
+                                Text(
+                                  'สถานที่',
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
+                        ),
+
+                      SizedBox(height: 16),
+
+                      // Close Button
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Text(
+                            'ปิด',
+                            style: GoogleFonts.kanit(
+                              fontSize: 16,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),

@@ -187,263 +187,286 @@ class _OffsideDialogState extends State<OffsideDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20.0))),
-      contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-      content: SingleChildScrollView(
+    bool isOffside = !distanc(); // Check if offside
+
+    return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(10),
         child: Container(
-          width: WidhtDevice().widht(context),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.only(top: 5),
-                height: 150,
-                child: Image.file(
-                  File(widget.pathImage),
-                  fit: BoxFit.fitHeight,
-                ),
-              ),
-              Container(
-                child: Column(
-                  children: [
-                    Text(
-                      // Clock().getTime(),
-                      widget.time_server.toString(),
-                      style: TextStyle(
-                        fontFamily: FontStyles().FontFamily,
-                        height: 1,
-                        fontSize: 40,
-                        color: Color(0xFF757575),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              distanc()
-                  ? Container()
-                  : Container(
-                      child: Text(
-                        'คุณไม่ได้อยู่ในพื้นที่',
-                        style: TextStyle(
-                            fontFamily: FontStyles().FontFamily,
-                            fontSize: 18,
-                            color: Colors.red),
-                      ),
-                    ),
-              Container(
-                child: Column(
-                  children: [
-                    Text(
-                      checkTimr(widget.time)
-                          ? ''
-                          : widget.holiday == true
-                              ? ''
-                              : 'ออกงานก่อนเวลา',
-                      style: TextStyle(
-                        fontFamily: FontStyles().FontFamily,
-                        height: 1,
-                        fontSize: 26,
-                        color: Colors.red,
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              checkHoliday(widget.holiday)
-                  ? Container()
-                  : checkTimr(widget.time)
-                      ? Container()
-                      : _radioButton(),
-              checkHoliday(widget.holiday)
-                  ? Container() //_causeNote()
-                  : checkTimr(widget.time)
-                      ? Container()
-                      : _causeNote(),
-              Container(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: _isUploading
-                            ? null
-                            : () async {
-                                Map _map = {
-                                  "uid": widget.uid,
-                                  "time": widget.time_server.toString(),
-                                  "image": widget.pathImage,
-                                  "latitude": widget.myLat.toString(),
-                                  "longitude": widget.myLng.toString(),
-                                  "end_status": checkTimr(widget.time)
-                                      ? '0'
-                                      : (currentIndex + 1),
-                                  "end_note": _inputNote.text,
-                                  "log": 'timeid_${widget.timeId}',
-                                };
-                                print("CHECK-OUT DATA: " + _map.toString());
-
-                                // Synchronous upload flow
-                                final success = await processCheckOut(_map);
-
-                                if (!success) {
-                                  // Upload failed, stay on dialog
-                                  return;
-                                }
-
-                                ///--- Navigation
-                                if (!distanc()) {
-                                  Navigator.pop(context);
-                                  showDialog(
-                                      barrierDismissible: false,
-                                      context: context,
-                                      builder: (_) {
-                                        return OutsideDialog(
-                                          status: 2,
-                                          uid: widget.uid,
-                                          mainLat: widget.lat.toString(),
-                                          mainLng: widget.long.toString(),
-                                          lat: widget.myLat.toString(),
-                                          long: widget.myLng.toString(),
-                                          time: widget.time,
-                                          time_server:
-                                              widget.time_server.toString(),
-                                        );
-                                      });
-                                } else {
-                                  Navigator.pop(context);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => MainPage()),
-                                  );
-                                }
-                              },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _isUploading
-                                ? Colors.grey[300]
-                                : Colors.green[100],
-                            borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(20.0),
-                              bottomRight: Radius.circular(20.0),
-                            ),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. Map & Photo Header
+                Container(
+                  height: 250,
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Map
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(20)),
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(widget.myLat, widget.myLng),
+                            zoom: 15,
                           ),
-                          height: 50,
-                          alignment: Alignment.center,
-                          child: _isUploading
-                              ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.green),
-                                      ),
-                                    ),
-                                    SizedBox(width: 10),
-                                    Flexible(
-                                      child: Text(
-                                        _uploadStatus +
-                                            (_uploadProgress > 0
-                                                ? ' ${(_uploadProgress * 100).toStringAsFixed(0)}%'
-                                                : ''),
-                                        style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontSize: 18,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Text(
-                                  'ตกลง',
-                                  style: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                          markers: {
+                            Marker(
+                              markerId: MarkerId('curr_loc'),
+                              position: LatLng(widget.myLat, widget.myLng),
+                              icon: BitmapDescriptor.defaultMarkerWithHue(
+                                  BitmapDescriptor.hueOrange),
+                            )
+                          },
+                          myLocationEnabled: false,
+                          zoomControlsEnabled: false,
                         ),
                       ),
-                    ),
-                  ],
+                      // Photo Overlay
+                      Positioned(
+                        bottom: 0,
+                        left: 20,
+                        child: Container(
+                          width: 100,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(15)),
+                            border: Border.all(color: Colors.white, width: 3),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black26, blurRadius: 4)
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(12)),
+                            child: Image.file(
+                              File(widget.pathImage),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Close Button
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.close, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                // 2. Info Header (Time & Location)
+                Container(
+                  padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  color: Color(0xFF0099CC),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.access_time_filled, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            widget.time_server,
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 24,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Location Name Placeholder (In real app, reverse geocode)
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, color: Colors.white),
+                          SizedBox(width: 5),
+                          Text(
+                            'ตำแหน่งของคุณ', // Placeholder
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+
+                // 3. Warning & Reason
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      // Warning Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.warning_rounded,
+                              color: Colors.redAccent, size: 30),
+                          SizedBox(width: 10),
+                          Text(
+                            'เหตุผลที่คุณอยู่นอกพื้นที่',
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+
+                      // Input Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: TextFormField(
+                          controller: _inputNote,
+                          style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'กรุณาระบุเหตุผล',
+                            hintStyle: TextStyle(color: Colors.grey),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 15, vertical: 15),
+                            suffixIcon: Icon(Icons.edit, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+
+                      // Quick Reason Chips
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildReasonChip('ทำงานที่บ้าน', 0),
+                          _buildReasonChip('พบลูกค้า', 1),
+                          _buildReasonChip('ตำแหน่งผิดพลาด', 2),
+                        ],
+                      ),
+                      SizedBox(height: 30),
+
+                      // Submit Button
+                      GestureDetector(
+                        onTap: _isUploading ? null : _submitOffsideForm,
+                        child: Container(
+                          width: double.infinity,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: _isUploading
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                    'ลงเวลา',
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ));
+  }
+
+  Widget _buildReasonChip(String label, int index) {
+    bool isSelected = currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          currentIndex = index;
+          _inputNote.text = label; // Auto-fill text
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Color(0xFFE0F7FA) : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Color(0xFF21CCD4) : Colors.transparent,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: FontStyles().FontFamily,
+            color: isSelected ? Color(0xFF0099CC) : Colors.black54,
           ),
         ),
       ),
     );
   }
 
-  _causeNote() {
-    return Container(
-        padding: EdgeInsets.all(10),
-        child: Row(
-          children: [
-            Text(
-              'สาเหตุ',
-              style:
-                  TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
-            ),
-            Expanded(
-              child: TextFormField(
-                controller: _inputNote,
-                keyboardType: TextInputType.text,
-                style: TextStyle(
-                    fontFamily: FontStyles().FontFamily, fontSize: 22),
-                decoration: InputDecoration(
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.all(0), // add padding to adjust icon
-                    child: Icon(
-                      Icons.edit,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          ],
-        ));
-  }
+  void _submitOffsideForm() async {
+    Map _map = {
+      "uid": widget.uid,
+      "time": widget.time_server.toString(),
+      "image": widget.pathImage,
+      "latitude": widget.myLat.toString(),
+      "longitude": widget.myLng.toString(),
+      "end_status": (currentIndex + 1)
+          .toString(), // +1 to match old logic (1-based index?)
+      "end_note": _inputNote.text,
+      "log": 'timeid_${widget.timeId}',
+    };
+    print("OFFSIDE SUBMIT: " + _map.toString());
 
-  _radioButton() {
-    return Container(
-      child: ListView.builder(
-        physics: NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.only(top: 0.0),
-        shrinkWrap: true,
-        itemCount: sortTimeOthers.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Container(
-            height: 35.0,
-            alignment: Alignment.topCenter,
-            child: RadioListTile(
-              value: index,
-              activeColor: Color(0xFF84ACFB),
-              groupValue: currentIndex,
-              title: Text(
-                sortTimeOthers[index],
-                style: TextStyle(
-                    fontFamily: FontStyles().FontFamily,
-                    fontSize: 22,
-                    height: 1),
-              ),
-              onChanged: (val) {
-                setState(() {
-                  currentIndex = val as int;
-                });
-                print(currentIndex);
-              },
-            ),
-          );
-        },
-      ),
-    );
+    final success = await processCheckOut(_map);
+
+    if (success) {
+      Navigator.pop(context);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()),
+      );
+    }
   }
 }

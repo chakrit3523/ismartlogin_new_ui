@@ -16,6 +16,16 @@ class Clock {
     "พฤศจิกายน",
     "ธันวาคม"
   ];
+
+  List thDay = [
+    "อาทิตย์",
+    "จันทร์",
+    "อังคาร",
+    "พุธ",
+    "พฤหัสบดี",
+    "ศุกร์",
+    "เสาร์"
+  ];
   getTime() {
     final DateTime now = DateTime.now();
     final String formattedDateTime = formatTime(now);

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/history/history_all_screen.dart';
 import 'package:ismart_login/page/history/history_me_screen.dart';
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
-import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:ismart_login/system/widht_device.dart';
 
 class HistoryScreen extends StatefulWidget {
   @override
@@ -51,168 +49,94 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: Container(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF21CCD4), // Cyan
+              Color(0xFF0663F7), // Deep Blue
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  padding:
-                      EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.only(
-                              left: 5, right: 5, top: 5, bottom: 5),
-                          width: WidhtDevice().widht(context),
-                          decoration: StylePage().boxWhite,
-                          child: DefaultTabController(
-                              length: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (_itemMember.isNotEmpty)
-                                    if (_itemMember.length > 0)
-                                      if (_itemMember[0].MEMBER_TYPE ==
-                                              'admin' ||
-                                          _itemMember[0].SUPER_STATUS == "1")
-                                        if (_itemMember[0].ADMIN_BRANCH_ID ==
-                                            "0")
-                                          Container(
-                                            decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Color(0xFF53B1FF)),
-                                                borderRadius:
-                                                    BorderRadius.circular(30),
-                                                color: Colors.white),
-                                            width: MediaQuery.of(context)
-                                                .size
-                                                .width,
-                                            child: TabBar(
-                                                unselectedLabelColor:
-                                                    Color(0xFF707070),
-                                                unselectedLabelStyle: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    fontSize: 22),
-                                                labelStyle: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    color: Colors.white,
-                                                    fontSize: 22),
-                                                indicator: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(30),
-                                                  color: Color(0xFF53B1FF),
-                                                ),
-                                                indicatorSize:
-                                                    TabBarIndicatorSize.tab,
-                                                tabs: [
-                                                  Tab(text: "เฉพาะคุณ"),
-                                                  Tab(text: "ทุกคน"),
-                                                ]),
-                                          ),
-                                  if (_itemMember.length > 0 &&
-                                      _itemMember[0].HISTORY == "1" &&
-                                      _itemMember[0].MEMBER_TYPE == 'member')
-                                    Container(
-                                      decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: Color(0xFF53B1FF)),
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                          color: Colors.white),
-                                      width: MediaQuery.of(context).size.width,
-                                      child: TabBar(
-                                          unselectedLabelColor:
-                                              Color(0xFF707070),
-                                          unselectedLabelStyle: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontFamily,
-                                              fontSize: 22),
-                                          labelStyle: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontFamily,
-                                              color: Colors.white,
-                                              fontSize: 22),
-                                          indicator: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              color: Color(0xFF53B1FF)),
-                                          indicatorSize:
-                                              TabBarIndicatorSize.tab,
-                                          tabs: [
-                                            Tab(text: "เฉพาะคุณ"),
-                                            Tab(text: "ทุกคน"),
-                                          ]),
-                                    ),
-                                  if (_itemMember.length > 0 &&
-                                      _itemMember[0].ADMIN_BRANCH_ID != "0")
-                                    Container(
-                                      decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: Color(0xFF53B1FF)),
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                          color: Colors.white),
-                                      width: MediaQuery.of(context).size.width,
-                                      child: TabBar(
-                                          unselectedLabelColor:
-                                              Color(0xFF707070),
-                                          unselectedLabelStyle: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontFamily,
-                                              fontSize: 22),
-                                          labelStyle: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontFamily,
-                                              color: Colors.white,
-                                              fontSize: 22),
-                                          indicator: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              color: Color(0xFF53B1FF)),
-                                          indicatorSize:
-                                              TabBarIndicatorSize.tab,
-                                          tabs: [
-                                            Tab(text: "เฉพาะคุณ"),
-                                            Tab(text: "ทุกคน"),
-                                          ]),
-                                    ),
-                                  Expanded(
-                                    child: Container(
-                                      child: _itemMember.isEmpty
-                                          ? const Center(
-                                              child:
-                                                  CircularProgressIndicator()) // 🟡 กำลังโหลด
-                                          : TabBarView(
-                                              children: [
-                                                HistoryMeScreen(),
-                                                HistoryAllScreen(
-                                                  status_super: _itemMember[0]
-                                                          .SUPER_STATUS ??
-                                                      '',
-                                                  admin_branch: _itemMember[0]
-                                                          .ADMIN_BRANCH_ID ??
-                                                      '',
-                                                  name_branch: _itemMember[0]
-                                                          .NAME_BRANCH ??
-                                                      '',
-                                                ),
-                                              ],
-                                            ),
-                                    ),
-                                  ),
-                                ],
-                              )),
-                        ),
-                      )
-                    ],
-                  ),
+          child: Padding(
+            padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
-            ],
+              clipBehavior: Clip.antiAlias,
+              child: _itemMember.isEmpty
+                  ? Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF4EA9FB)),
+                    )
+                  : DefaultTabController(
+                      length: (_itemMember[0].SUPER_STATUS == '1' ||
+                              _itemMember[0].ADMIN_BRANCH_ID != '0')
+                          ? 2
+                          : 1,
+                      child: Column(
+                        children: [
+                          // Tab Bar (Only show if allowed to see All, or always show?
+                          // If only 1 tab (Me), showing a TabBar with 1 item is okay but a bit weird.
+                          // But to keep UI consistent, let's keep it.
+                          Container(
+                            margin: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                  color: Color(0xFF4EA9FB), width: 1.5),
+                              borderRadius: BorderRadius.circular(30),
+                              color: Colors.white,
+                            ),
+                            child: TabBar(
+                              labelColor: Colors.white,
+                              unselectedLabelColor: Color(0xFF4EA9FB),
+                              labelStyle: GoogleFonts.kanit(
+                                  fontSize: 16, fontWeight: FontWeight.w500),
+                              unselectedLabelStyle:
+                                  GoogleFonts.kanit(fontSize: 16),
+                              indicator: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                color: Color(0xFF4EA9FB),
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              dividerColor: Colors.transparent,
+                              tabs: [
+                                Tab(text: "เฉพาะคุณ"),
+                                if (_itemMember[0].SUPER_STATUS == '1' ||
+                                    _itemMember[0].ADMIN_BRANCH_ID != '0')
+                                  Tab(text: "ทุกคน"),
+                              ],
+                            ),
+                          ),
+                          // Tab Views
+                          Expanded(
+                            child: TabBarView(
+                              children: [
+                                HistoryMeScreen(),
+                                if (_itemMember[0].SUPER_STATUS == '1' ||
+                                    _itemMember[0].ADMIN_BRANCH_ID != '0')
+                                  HistoryAllScreen(
+                                    status_super:
+                                        _itemMember[0].SUPER_STATUS ?? '',
+                                    admin_branch:
+                                        _itemMember[0].ADMIN_BRANCH_ID ?? '',
+                                    name_branch:
+                                        _itemMember[0].NAME_BRANCH ?? '',
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
           ),
         ),
       ),

@@ -327,14 +327,19 @@ class _OtpScreenState extends State<OtpScreen>
                                     }
 
                                     // Reset countdown timer and update refCode
+                                    // Dispose old controller first
+                                    controller.dispose();
+
+                                    // Create new controller and update state
+                                    endTime =
+                                        DateTime.now().millisecondsSinceEpoch +
+                                            1000 * 60;
+                                    controller = CountdownTimerController(
+                                        endTime: endTime, onEnd: onEnd);
+                                    controller.start();
+
                                     setState(() {
                                       _refCode = newRefCode;
-                                      endTime = DateTime.now()
-                                              .millisecondsSinceEpoch +
-                                          1000 * 60;
-                                      controller.dispose();
-                                      controller = CountdownTimerController(
-                                          endTime: endTime, onEnd: onEnd);
                                     });
 
                                     // Clear OTP fields

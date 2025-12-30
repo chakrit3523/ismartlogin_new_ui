@@ -1,29 +1,25 @@
 // ignore_for_file: deprecated_member_use, unused_local_variable
 
 import 'dart:io';
+import 'dart:convert'; // Added for JSON decoding
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/page/managements/future/department_manage_future.dart';
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
 import 'package:ismart_login/page/managements/future/time_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemDepartmentResultManage.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
+import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart'; // Added
 import 'package:ismart_login/page/profile/future/profile_future.dart';
-import 'package:ismart_login/page/profile/password_screen.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/develop_blank.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:ismart_login/system/widht_device.dart';
-
-import 'UserDeleteView.dart';
+import 'package:http/http.dart' as http;
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -47,27 +43,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '0';
   }
 
-  //Setup
+  // Setup
   XFile? _imageFile;
   dynamic _pickImageError;
   var org_id = "";
 
-  ///
   bool _edit = false;
   String uid = '';
   String avatar = '';
 
-  ///
   TextEditingController _inputName = TextEditingController();
   TextEditingController _inputLastname = TextEditingController();
   TextEditingController _inputNickname = TextEditingController();
 
-  ///
   String dropdownValueTime = '0';
   String dropdownValueDepartment = '0';
 
-  ///------ Time
-  ///----  / GET -----
+  // Time Schedule Data
+  List<ItemsTimeResultDayManage> _schedule = [];
+  List<String> _dayNames = [
+    'จันทร์',
+    'อังคาร',
+    'พุธ',
+    'พฤหัสบดี',
+    'ศุกร์',
+    'เสาร์',
+    'อาทิตย์'
+  ];
+
+  // Helper to parse schedule
+  void _updateSchedule() {
+    print("Updating schedule for Time ID: $dropdownValueTime");
+    _schedule = [];
+    if (dropdownValueTime != '0') {
+      try {
+        var selectedTime = _itemTime.firstWhere(
+            (t) => t.ID == dropdownValueTime,
+            orElse: () => ItemsTimeResultManage(
+                ID: '0',
+                ORG_ID: '',
+                SUBJECT: '',
+                DESCRIPTION: '',
+                CREATE_DATE: '',
+                STATUS: ''));
+
+        if (selectedTime.DESCRIPTION.isNotEmpty) {
+          // The description is a JSON string of list of objects
+          List<dynamic> jsonList = json.decode(selectedTime.DESCRIPTION);
+          _schedule = jsonList
+              .map((j) => ItemsTimeResultDayManage.fromJson(j))
+              .toList();
+        }
+      } catch (e) {
+        print("Error parsing schedule: $e");
+      }
+    }
+    setState(() {});
+  }
+
+  // API Fetching
   List<ItemsTimeResultManage> _itemTime = [];
   Future<bool> onLoadGetAllTime() async {
     Map map = {
@@ -80,6 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _itemTime.add(time);
           }
         }
+        _updateSchedule(); // Update schedule after loading times
         setState(() {});
       }
     });
@@ -105,9 +140,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return true;
   }
 
-  ///-----
-  ///
-  ///-----member
   List<ItemsMemberResultManage> _item = [];
   Future<bool> onLoadMemberManage() async {
     org_id = await SharedCashe.getItemsWay(name: 'org_id');
@@ -118,18 +150,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     };
 
     await MemberManageFuture().apiGetMemberManageList(map).then((onValue) {
-      setState(() {
-        if (onValue[0].STATUS) {
-          _item = onValue[0].RESULT;
-          print("status : " + _item[0].STATUS.toString());
-          _getData();
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (onValue[0].STATUS) {
+            _item = onValue[0].RESULT;
+            _getData();
+          }
+        });
+      }
     });
     EasyLoading.dismiss();
-
-    setState(() {});
-
     return true;
   }
 
@@ -137,8 +167,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_item.isEmpty) return;
     String fullname = _item[0].FULLNAME ?? '';
     String _nickname = _item[0].NICKNAME ?? '';
-    String org_sub_id = _item[0].ORG_SUB_ID ?? '';
-    String time_id = _item[0].TIME_ID ?? '';
     String _uid = await SharedCashe.getItemsWay(name: 'id');
     String timeId = await SharedCashe.getItemsWay(name: 'time_id');
     String _avatar = _item[0].AVATAR ?? '';
@@ -157,12 +185,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       dropdownValueTime =
           _item[0].TIME_ID != "" ? (_item[0].TIME_ID ?? '') : timeId;
     }
-    print("dropdownValueTime : $dropdownValueTime");
-    print("dropdownValueDepartment : $dropdownValueDepartment");
-    setState(() {});
+
+    _updateSchedule();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _handleClickFiles() async {
+    final ImagePicker _picker = ImagePicker();
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+      setState(() {
+        _imageFile = image;
+      });
+    } catch (e) {
+      setState(() {
+        _pickImageError = e;
+      });
+    }
   }
 
   Future<dynamic> onUpdateProfile() async {
+    EasyLoading.show(status: 'Updating...');
     await ProfileFuture().updateProfile(
       file: _imageFile?.path ?? '',
       uid: uid,
@@ -173,12 +221,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       time: dropdownValueTime,
       org_id: await SharedCashe.getItemsWay(name: 'org_id'),
     );
+    EasyLoading.dismiss();
+    EasyLoading.showSuccess('สำเร็จ');
+    setState(() {
+      _edit = false;
+    });
     return true;
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     _resultDepartment.add(ItemsDepartmentResultManage(
@@ -213,867 +265,507 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF21CCD4), // Cyan
+              Color(0xFF0663F7), // Deep Blue
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              child: Column(
-                children: [
-                  AppBar(
-                    centerTitle: true,
-                    title: Text(
-                      'ข้อมูลส่วนตัว',
-                      style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          fontSize: 30,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),
+          bottom: false,
+          child: Column(
+            children: [
+              // Custom AppBar
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    backgroundColor: Colors.white.withOpacity(0),
-                    elevation: 0,
-                    leading: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios,
+                    Text(
+                      'ข้อมูลของคุณ',
+                      style: GoogleFonts.kanit(
+                        fontSize: 24,
                         color: Colors.white,
-                        size: 26,
+                        fontWeight: FontWeight.bold,
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MainPage(),
-                          ),
-                        );
-                      },
                     ),
+                    Visibility(
+                      visible: !_edit,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _edit = true;
+                          });
+                        },
+                        icon: Icon(Icons.edit, color: Colors.white, size: 18),
+                        label: Text(
+                          'แก้ไข',
+                          style: GoogleFonts.kanit(color: Colors.white),
+                        ),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Visibility(
+                      visible: _edit, // Placeholder to balance row
+                      child: SizedBox(width: 80),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Main Content
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(30)),
                   ),
-                  SingleChildScrollView(
-                    child: Container(
-                      padding: EdgeInsets.only(left: 20, right: 20, top: 10),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(20),
+                    child: Form(
+                      key: _formKey,
                       child: Column(
                         children: [
-                          Container(
-                            padding: EdgeInsets.only(
-                                left: 10, right: 10, top: 10, bottom: 20),
-                            width: WidhtDevice().widht(context),
-                            decoration: StylePage().boxWhite,
-                            child: Column(
-                              children: [
-                                Visibility(
-                                  visible: !_edit ? true : false,
-                                  child: Container(
-                                    alignment: Alignment.centerRight,
-                                    width: WidhtDevice().widht(context),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        if (!_edit) {
-                                          setState(() {
-                                            _edit = true;
-                                          });
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          FaIcon(
-                                            FontAwesomeIcons.userEdit,
-                                            size: 18,
-                                          ),
-                                          Padding(padding: EdgeInsets.all(3)),
-                                          Text(
-                                            'แก้ไข',
-                                            style: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 22),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          if (_edit) {
-                                            _handleClickFiles();
-                                          }
-                                        },
-                                        child: Container(
-                                          margin: EdgeInsets.only(top: 10),
-                                          child: Center(
-                                            child: Container(
-                                              child: ClipOval(
-                                                child: Container(
-                                                  width: 150,
-                                                  height: 150,
-                                                  color: Color(0xFFA6D6F2),
-                                                  child: Column(
-                                                    children: <Widget>[
-                                                      Expanded(
-                                                        child: Container(
-                                                          child: Center(
-                                                            child: avatar != ''
-                                                                ? _imageFile ==
-                                                                        null
-                                                                    ? Image
-                                                                        .network(
-                                                                        Server.url +
-                                                                            avatar,
-                                                                        fit: BoxFit
-                                                                            .cover,
-                                                                        width:
-                                                                            300.0,
-                                                                        height:
-                                                                            300.0,
-                                                                      )
-                                                                    : Image
-                                                                        .file(
-                                                                        File(_imageFile?.path ??
-                                                                            ''),
-                                                                        fit: BoxFit
-                                                                            .cover,
-                                                                        width:
-                                                                            300.0,
-                                                                        height:
-                                                                            300.0,
-                                                                      )
-                                                                : _imageFile ==
-                                                                        null
-                                                                    ? Icon(
-                                                                        Icons
-                                                                            .person,
-                                                                        size:
-                                                                            140,
-                                                                        color: Colors
-                                                                            .white,
-                                                                      )
-                                                                    : Image
-                                                                        .file(
-                                                                        File(_imageFile?.path ??
-                                                                            ''),
-                                                                        fit: BoxFit
-                                                                            .cover,
-                                                                        width:
-                                                                            300.0,
-                                                                        height:
-                                                                            300.0,
-                                                                      ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      _edit
-                                                          ? Container(
-                                                              height: 33.0,
-                                                              width: double
-                                                                  .infinity,
-                                                              color: Color(
-                                                                  0xFF7B7B7B),
-                                                              child: Center(
-                                                                child:
-                                                                    Container(
-                                                                  child: Text(
-                                                                      'แก้ไขรูปภาพ',
-                                                                      textScaleFactor:
-                                                                          1.0,
-                                                                      style: TextStyle(
-                                                                          color: Colors
-                                                                              .white,
-                                                                          fontSize:
-                                                                              18.0,
-                                                                          fontFamily: FontStyles()
-                                                                              .FontFamily),
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center),
-                                                                ),
-                                                              ),
-                                                            )
-                                                          : Container(),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Padding(padding: EdgeInsets.all(10)),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: SizedBox(
-                                              child: TextFormField(
-                                                enabled: _edit,
-                                                controller: _inputName,
-                                                keyboardType:
-                                                    TextInputType.name,
-                                                validator: (value) {
-                                                  if (value == null ||
-                                                      value.isEmpty) {
-                                                    return 'กรุณากรอกข้อมูล';
-                                                  }
-                                                  return null;
-                                                },
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 24,
-                                                ),
-                                                decoration: InputDecoration(
-                                                  alignLabelWithHint: true,
-                                                  hintText: 'ชื่อ',
-                                                  hintStyle: TextStyle(
-                                                    fontFamily: FontStyles()
-                                                        .FontThaiSans,
-                                                    fontSize: 24,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: EdgeInsets.all(10),
-                                          ),
-                                          Expanded(
-                                            child: SizedBox(
-                                              child: TextFormField(
-                                                enabled: _edit,
-                                                keyboardType:
-                                                    TextInputType.name,
-                                                controller: _inputLastname,
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 24,
-                                                ),
-                                                decoration: InputDecoration(
-                                                    alignLabelWithHint: true,
-                                                    hintText: 'นามสกุล',
-                                                    hintStyle: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontThaiSans,
-                                                      fontSize: 24,
-                                                    )),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Padding(padding: EdgeInsets.all(2)),
-                                      SizedBox(
-                                        child: TextFormField(
-                                          enabled: _edit,
-                                          keyboardType: TextInputType.name,
-                                          controller: _inputNickname,
-                                          style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 24,
-                                          ),
-                                          decoration: InputDecoration(
-                                              alignLabelWithHint: true,
-                                              hintText: 'ชื่อเรียกในองค์กร',
-                                              hintStyle: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontThaiSans,
-                                                fontSize: 24,
-                                              )),
-                                        ),
-                                      ),
-                                      Padding(padding: EdgeInsets.all(2)),
-                                      if (dropdownValueDepartment != '')
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                                flex: 1,
-                                                child: Container(
-                                                    child: Text(
-                                                  'สาขา',
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 22),
-                                                ))),
-                                            Expanded(
-                                              flex: 2,
-                                              child: _edit
-                                                  ? Container(
-                                                      child: DropdownButton<
-                                                          String>(
-                                                        value:
-                                                            validDepartmentValue,
-                                                        icon: Icon(
-                                                            Icons
-                                                                .arrow_drop_down,
-                                                            color: Colors.grey),
-                                                        iconSize: 24,
-                                                        elevation: 16,
-                                                        style: TextStyle(
-                                                            color: Colors.black,
-                                                            fontSize: 20,
-                                                            fontFamily:
-                                                                FontStyles()
-                                                                    .FontFamily),
-                                                        underline: Container(
-                                                            height: 2,
-                                                            color: Colors.blue),
-                                                        onChanged:
-                                                            (String? newValue) {
-                                                          setState(() {
-                                                            dropdownValueDepartment =
-                                                                newValue ?? '0';
-                                                            print('สาขา' +
-                                                                dropdownValueDepartment);
-                                                          });
-                                                        },
-                                                        items: _resultDepartment
-                                                            .map((map) {
-                                                          return DropdownMenuItem(
-                                                            child: Text(
-                                                                map.SUBJECT),
-                                                            value: map.ID,
-                                                          );
-                                                        }).toList(),
-                                                      ),
-                                                    )
-                                                  : dropdownValueDepartment !=
-                                                          ''
-                                                      ? IgnorePointer(
-                                                          child: Container(
-                                                          child: DropdownButton<
-                                                              String>(
-                                                            value:
-                                                                validDepartmentValue,
-                                                            icon: Icon(
-                                                              Icons
-                                                                  .arrow_drop_down,
-                                                              color:
-                                                                  Colors.grey,
-                                                            ),
-                                                            iconSize: 24,
-                                                            elevation: 16,
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 20,
-                                                                fontFamily:
-                                                                    FontStyles()
-                                                                        .FontFamily),
-                                                            underline:
-                                                                Container(
-                                                              height: 1,
-                                                              color: Colors
-                                                                  .grey[400],
-                                                            ),
-                                                            onChanged: (String?
-                                                                newValue) {
-                                                              setState(() {
-                                                                dropdownValueDepartment =
-                                                                    newValue ??
-                                                                        '0';
-                                                              });
-                                                            },
-                                                            items: _resultDepartment
-                                                                        .length ==
-                                                                    0
-                                                                ? <String>[
-                                                                    '0'
-                                                                  ].map<
-                                                                    DropdownMenuItem<
-                                                                        String>>((String
-                                                                    value) {
-                                                                    return DropdownMenuItem(
-                                                                      child: Text(
-                                                                          '- เลือก -'),
-                                                                      value:
-                                                                          value,
-                                                                    );
-                                                                  }).toList()
-                                                                : _resultDepartment
-                                                                    .map((map) {
-                                                                    return DropdownMenuItem(
-                                                                      child: Text(
-                                                                          map.SUBJECT),
-                                                                      value: map
-                                                                          .ID,
-                                                                    );
-                                                                  }).toList(),
-                                                          ),
-                                                        ))
-                                                      : Container(),
-                                            )
-                                          ],
-                                        ),
-                                      Padding(padding: EdgeInsets.all(1)),
-                                      if (_item.isNotEmpty &&
-                                          (_item[0].TIME_ID == "" ||
-                                              _item[0].TIME_STATUS == "0"))
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                                flex: 1,
-                                                child: Container(
-                                                    child: Text(
-                                                  'เวลาทำงาน',
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 22),
-                                                ))),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Container(
-                                                  child: _edit
-                                                      ? DropdownButton(
-                                                          value:
-                                                              validTimeValue,
-                                                          icon: Icon(
-                                                            Icons
-                                                                .arrow_drop_down,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          iconSize: 24,
-                                                          elevation: 16,
-                                                          style: TextStyle(
-                                                              color:
-                                                                  Colors.black,
-                                                              fontSize: 20,
-                                                              fontFamily:
-                                                                  FontStyles()
-                                                                      .FontFamily),
-                                                          underline: Container(
-                                                            height: 2,
-                                                            color: Colors.blue,
-                                                          ),
-                                                          onChanged:
-                                                              (newValue) {
-                                                            setState(() {
-                                                              dropdownValueTime =
-                                                                  newValue
-                                                                      as String;
-                                                            });
-                                                            print('เวลา' +
-                                                                dropdownValueTime);
-                                                          },
-                                                          items: _itemTime
-                                                                      .length ==
-                                                                  0
-                                                              ? <String>[
-                                                                  '0'
-                                                                ].map<
-                                                                  DropdownMenuItem<
-                                                                      String>>((String
-                                                                  value) {
-                                                                  return DropdownMenuItem(
-                                                                    child: Text(
-                                                                        '- เลือก -'),
-                                                                    value:
-                                                                        value,
-                                                                  );
-                                                                }).toList()
-                                                              : _itemTime
-                                                                  .map((map) {
-                                                                  return DropdownMenuItem(
-                                                                    child: Text(
-                                                                        map.SUBJECT),
-                                                                    value:
-                                                                        map.ID,
-                                                                  );
-                                                                }).toList(),
-                                                        )
-                                                      : dropdownValueTime != ''
-                                                          ? IgnorePointer(
-                                                              child:
-                                                                  DropdownButton(
-                                                                value:
-                                                                    validTimeValue,
-                                                                icon: Icon(
-                                                                  Icons
-                                                                      .arrow_drop_down,
-                                                                  color: Colors
-                                                                      .grey,
-                                                                ),
-                                                                iconSize: 24,
-                                                                elevation: 16,
-                                                                style: TextStyle(
-                                                                    color: Colors
-                                                                        .black,
-                                                                    fontSize:
-                                                                        20,
-                                                                    fontFamily:
-                                                                        FontStyles()
-                                                                            .FontFamily),
-                                                                underline:
-                                                                    Container(
-                                                                  height: 1,
-                                                                  color: Colors
-                                                                          .grey[
-                                                                      400],
-                                                                ),
-                                                                onChanged:
-                                                                    (newValue) {
-                                                                  setState(() {
-                                                                    dropdownValueTime =
-                                                                        newValue
-                                                                            as String;
-                                                                  });
-                                                                },
-                                                                items: _itemTime
-                                                                            .length ==
-                                                                        0
-                                                                    ? <String>[
-                                                                        '0'
-                                                                      ].map<
-                                                                        DropdownMenuItem<
-                                                                            String>>((String
-                                                                        value) {
-                                                                        return DropdownMenuItem(
-                                                                          child:
-                                                                              Text('- เลือก -'),
-                                                                          value:
-                                                                              value,
-                                                                        );
-                                                                      }).toList()
-                                                                    : _itemTime
-                                                                        .map(
-                                                                            (map) {
-                                                                        return DropdownMenuItem(
-                                                                          child:
-                                                                              Text(map.SUBJECT),
-                                                                          value:
-                                                                              map.ID,
-                                                                        );
-                                                                      }).toList(),
-                                                              ),
-                                                            )
-                                                          : Container()),
-                                            )
-                                          ],
-                                        ),
-                                      Padding(padding: EdgeInsets.all(1)),
-                                      if (_item.isNotEmpty &&
-                                          _item[0].TIME_ID != "" &&
-                                          _item[0].TIME_STATUS == "1")
-                                        Row(children: [
-                                          Expanded(
-                                              flex: 1,
-                                              child: Container(
-                                                  child: Text(
-                                                'เวลาทำงาน',
-                                                style: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    fontSize: 22),
-                                              ))),
-                                          Expanded(
-                                              flex: 2,
-                                              child: Container(
-                                                child: Text(
-                                                    _item[0]
-                                                        .TIME_ID_NAME
-                                                        .toString(),
-                                                    style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 22,
-                                                    )),
-                                              )),
-                                        ]),
-                                      if (_item.isNotEmpty)
-                                        if (_item[0].TIME_ID != "" &&
-                                            _item[0].TIME_STATUS == "1")
-                                          Row(children: [
-                                            Expanded(
-                                                child: Container(
-                                              child: Text(
-                                                  "หมายเหตุ หากต้องการเปลี่ยนเวลาทำงานกรุณาแจ้งแอดมิน",
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 20,
-                                                      color: Colors.red)),
-                                            )),
-                                          ]),
-                                      // Row(
-                                      //   children: [
-                                      //     Container(
-                                      //       child: const Image(
-                                      //         image: AssetImage(
-                                      //             "assets/images/other/user-delete.png"),
-                                      //         width: 16,
-                                      //         color: Colors.black,
-                                      //       ),
-                                      //     ),
-                                      //     Expanded(
-                                      //       flex: 2,
-                                      //       child: Container(
-                                      //         child: Text(
-                                      //           'ลบบัญชี',
-                                      //           style: TextStyle(
-                                      //               fontFamily:
-                                      //                   FontStyles().FontFamily,
-                                      //               fontSize: 22),
-                                      //         ),
-                                      //       ),
-                                      //     ),
-                                      //   ],
-                                      // ),
-                                      Padding(padding: EdgeInsets.all(10)),
-                                      Visibility(
-                                        visible: _edit,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () {
-                                                if (_edit) {
-                                                  setState(() {
-                                                    _edit = false;
-                                                  });
-                                                }
-                                                print('ยกเลิก');
-                                              },
-                                              child: Container(
-                                                alignment: Alignment.center,
-                                                margin: EdgeInsets.only(
-                                                    left: 10, right: 10),
-                                                padding: EdgeInsets.only(
-                                                    left: 25, right: 25),
-                                                decoration: BoxDecoration(
-                                                  color: Color(0xFFC8C8C8),
-                                                  borderRadius:
-                                                      BorderRadius.circular(30),
-                                                ),
-                                                child: Text(
-                                                  'ยกเลิก',
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      color: Colors.black,
-                                                      fontSize: 26),
-                                                ),
-                                              ),
-                                            ),
-                                            GestureDetector(
-                                              onTap: () {
-                                                if (_formKey.currentState
-                                                        ?.validate() ??
-                                                    false) {
-                                                  print('ถัดไป');
-                                                  EasyLoading.show();
-                                                  onUpdateProfile();
-                                                  if (_edit) {
-                                                    setState(() {
-                                                      _edit = false;
-                                                    });
-                                                  }
-                                                }
-                                              },
-                                              child: Container(
-                                                alignment: Alignment.center,
-                                                margin: EdgeInsets.only(
-                                                    left: 10, right: 10),
-                                                padding: EdgeInsets.only(
-                                                    left: 25, right: 25),
-                                                decoration: BoxDecoration(
-                                                  color: Color(0xFF079CFD),
-                                                  borderRadius:
-                                                      BorderRadius.circular(30),
-                                                ),
-                                                child: Text(
-                                                  'ตกลง',
-                                                  style: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      color: Colors.white,
-                                                      fontSize: 26),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(padding: EdgeInsets.all(10)),
-                                Divider(),
-                                Padding(padding: EdgeInsets.all(10)),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => PasswordChange(),
-                                      ),
-                                    );
-                                  },
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (org_id != "1564")
-                                        Icon(
-                                          Icons.vpn_key,
-                                          color: Colors.blue,
-                                        ),
-                                      Padding(
-                                        padding: EdgeInsets.all(3),
-                                      ),
-                                      if (org_id != "1564")
-                                        Text(
-                                          'เปลี่ยนรหัสผ่าน',
-                                          style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 24,
-                                            color: Colors.blue,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(padding: EdgeInsets.all(5)),
-                                GestureDetector(
-                                  onTap: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (_) =>
-                                          UserDeleteDialog(key: UniqueKey()),
-                                    );
-                                    if (confirm == null || !confirm) {
-                                      return;
-                                    }
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            UserDeleteView(key: UniqueKey()),
-                                      ),
-                                    );
-                                  },
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.person_outlined,
-                                        color: Colors.red,
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.all(3),
-                                      ),
-                                      Text(
-                                        'ลบบัญชี',
-                                        style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontSize: 24,
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(padding: EdgeInsets.all(10)),
-                              ],
-                            ),
-                          ),
+                          // Profile Image
+                          _buildProfileImage(),
+                          SizedBox(height: 30),
+
+                          // Form Fields
+                          _buildFormFields(),
+
+                          SizedBox(height: 20),
+
+                          // Work Schedule Table
+                          if (dropdownValueTime != '0' && _schedule.isNotEmpty)
+                            _buildScheduleTable(),
+
+                          SizedBox(height: 30),
+
+                          // Action Buttons
+                          if (_edit) _buildActionButtons(),
+                          SizedBox(height: 40), // Bottom padding
                         ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Future<void> _handleClickFiles() async {
-    return showCupertinoModalPopup<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return CupertinoActionSheet(
-          title: Text('อัพโหลดรูป',
-              textScaleFactor: 1.0,
-              style: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold)),
-          actions: <Widget>[
-            CupertinoActionSheetAction(
-              child: Text(
-                'รูปภาพ',
-                textScaleFactor: 1.0,
-              ),
-              onPressed: () {
-                // _openFileImagesExplorer();
-                _imgFromGallery();
-                Navigator.pop(context);
-              },
-            ),
-            CupertinoActionSheetAction(
-              child: Text(
-                'กล้อง',
-                textScaleFactor: 1.0,
-              ),
-              onPressed: () {
-                // _openCameraExplorer(ImageSource.camera, context: context);
-                _imgFromCamera();
-                Navigator.pop(context);
-              },
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            isDefaultAction: true,
-            child: Text('ยกเลิก',
-                textScaleFactor: 1.0, style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        );
+  Widget _buildProfileImage() {
+    return GestureDetector(
+      onTap: () {
+        if (_edit) {
+          _handleClickFiles();
+        }
       },
+      child: Center(
+        child: Stack(
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey[200],
+                border: Border.all(color: Colors.white, width: 4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  )
+                ],
+              ),
+              child: ClipOval(
+                child: _getImageWidget(),
+              ),
+            ),
+            if (_edit)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF21CCD4),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
-  _imgFromCamera() async {
-    try {
-      final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        imageQuality: 50,
-      );
-      setState(() {
-        _imageFile = pickedFile;
-      });
-    } catch (e) {
-      setState(() {
-        _pickImageError = e;
-        print(_pickImageError.toString());
-      });
+  Widget _getImageWidget() {
+    if (_imageFile != null) {
+      return Image.file(File(_imageFile!.path), fit: BoxFit.cover);
+    } else if (avatar.isNotEmpty) {
+      return Image.network(Server.url + avatar, fit: BoxFit.cover);
+    } else {
+      return Icon(Icons.person, size: 60, color: Colors.grey[400]);
     }
   }
 
-  _imgFromGallery() async {
-    try {
-      final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 50,
-      );
-      setState(() {
-        _imageFile = pickedFile;
-      });
-    } catch (e) {
-      setState(() {
-        _pickImageError = e;
-        print(_pickImageError.toString());
-      });
-    }
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        // Row 1: Name | Lastname
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _inputName,
+                label: 'ชื่อ',
+                hint: 'ชื่อจริง',
+              ),
+            ),
+            SizedBox(width: 15),
+            Expanded(
+              child: _buildTextField(
+                controller: _inputLastname,
+                label: 'นามสกุล',
+                hint: 'นามสกุล',
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 15),
+
+        // Row 2: Nickname
+        _buildTextField(
+          controller: _inputNickname,
+          label: 'ชื่อเล่น',
+          hint: 'ชื่อเรียกในองค์กร',
+        ),
+        SizedBox(height: 15),
+
+        // Branch Dropdown
+        _buildDropdown(
+          label: 'สาขา',
+          value: validDepartmentValue,
+          items: _resultDepartment
+              .map((e) => DropdownMenuItem(value: e.ID, child: Text(e.SUBJECT)))
+              .toList(),
+          onChanged: (val) {
+            setState(() {
+              dropdownValueDepartment = val.toString();
+            });
+          },
+        ),
+        SizedBox(height: 15),
+
+        // Time Dropdown
+        _buildDropdown(
+          label: 'เวลาทำงาน',
+          value: validTimeValue,
+          items: _itemTime
+              .map((e) => DropdownMenuItem(value: e.ID, child: Text(e.SUBJECT)))
+              .toList(),
+          onChanged: (val) {
+            setState(() {
+              dropdownValueTime = val.toString();
+              _updateSchedule();
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: GoogleFonts.kanit(fontSize: 14, color: Colors.grey[600])),
+        SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
+          enabled: _edit, // Enable only in edit mode
+          style: GoogleFonts.kanit(fontSize: 16, color: Colors.black87),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: _edit
+                ? Colors.white
+                : Colors.grey[50], // Grey out when disabled
+            contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+            hintText: hint,
+            hintStyle: GoogleFonts.kanit(color: Colors.grey[400]),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            disabledBorder: OutlineInputBorder(
+              // Style for disabled state
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                  color: Colors
+                      .transparent), // Removing border for cleaner look in read-only
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Color(0xFF21CCD4), width: 2),
+            ),
+          ),
+          validator: (val) =>
+              val == null || val.isEmpty ? 'กรุณาระบุข้อมูล' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required Function(String?) onChanged,
+  }) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+                flex: 2,
+                child: Text(label,
+                    style: GoogleFonts.kanit(
+                        fontSize: 16, fontWeight: FontWeight.w500))),
+            Expanded(
+              flex: 3,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+                ),
+                child: _edit
+                    ? DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: value,
+                          items: items,
+                          onChanged: onChanged,
+                          icon: Icon(Icons.keyboard_arrow_down,
+                              color: Colors.grey),
+                          style: GoogleFonts.kanit(
+                              fontSize: 16, color: Colors.black87),
+                          isExpanded: true,
+                        ),
+                      )
+                    : Padding(
+                        // Read-only view for dropdown
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          items
+                                  .firstWhere((item) => item.value == value,
+                                      orElse: () => DropdownMenuItem(
+                                          value: '0', child: Text('-')))
+                                  .child is Text
+                              ? (items
+                                      .firstWhere((item) => item.value == value)
+                                      .child as Text)
+                                  .data!
+                              : '-',
+                          style: GoogleFonts.kanit(
+                              fontSize: 16, color: Colors.black87),
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScheduleTable() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50], // Light grey background for table area
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Expanded(
+                    flex: 2,
+                    child: Text('วัน',
+                        style: GoogleFonts.kanit(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[600]))),
+                Expanded(
+                    flex: 3,
+                    child: Center(
+                        child: Text('เข้างาน',
+                            style: GoogleFonts.kanit(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600])))),
+                Expanded(
+                    flex: 3,
+                    child: Center(
+                        child: Text('ออกงาน',
+                            style: GoogleFonts.kanit(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600])))),
+              ],
+            ),
+          ),
+          Divider(),
+          // Rows
+          ...List.generate(7, (index) {
+            // Find schedule for this day (index 0=Mon, ..., 6=Sun)
+            // Careful: API might use 0-6 or 1-7. check `itemTimeResultDayManage` usage in `org_timedatail_screen.dart`
+            // In `org_timedatail_screen.dart`: `_groupDayName` starts with Monday. `_inputTimeIn[_resultItemDay[i].DAY]`.
+            // `org_timedatail_screen.dart` uses `_groupDayName` index 0 for Monday.
+            // We will assume `ItemsTimeResultDayManage.DAY` corresponds to this index.
+
+            var daySchedule = _schedule.firstWhere((s) => s.DAY == index,
+                orElse: () => ItemsTimeResultDayManage(
+                    DAY: index, TIME_START: '', TIME_END: ''));
+
+            bool isHoliday =
+                daySchedule.TIME_START.isEmpty && daySchedule.TIME_END.isEmpty;
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                      flex: 2,
+                      child: Text(_dayNames[index],
+                          style: GoogleFonts.kanit(
+                              fontSize: 15, fontWeight: FontWeight.w600))),
+                  Expanded(
+                    flex: 6,
+                    child: isHoliday
+                        ? Center(
+                            child: Text('วันหยุด',
+                                style:
+                                    GoogleFonts.kanit(color: Colors.grey[400])))
+                        : Row(
+                            children: [
+                              Expanded(
+                                  child: Center(
+                                      child: Text(daySchedule.TIME_START,
+                                          style: GoogleFonts.kanit(
+                                              fontSize: 15)))),
+                              Text("-", style: TextStyle(color: Colors.grey)),
+                              Expanded(
+                                  child: Center(
+                                      child: Text(daySchedule.TIME_END,
+                                          style: GoogleFonts.kanit(
+                                              fontSize: 15)))),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        // Cancel Button
+        Expanded(
+          child: TextButton(
+            onPressed: () {
+              setState(() {
+                _edit = false;
+                _getData(); // Reset data
+              });
+            },
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.grey[400],
+              padding: EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
+            ),
+            child: Text(
+              'ยกเลิก',
+              style: GoogleFonts.kanit(
+                  fontSize: 18,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        SizedBox(width: 20),
+        // Confirm Button
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  colors: [Color(0xFF21CCD4), Color(0xFF0663F7)]),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: TextButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  onUpdateProfile();
+                }
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+              child: Text(
+                'ตกลง',
+                style: GoogleFonts.kanit(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

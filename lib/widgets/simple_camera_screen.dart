@@ -94,159 +94,86 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera Preview - 4:3 aspect ratio (Fixed Stretch)
-          if (_isCameraInitialized && _cameraController != null)
-            Center(
-              child: AspectRatio(
-                aspectRatio: 3 / 4, // Target Frame 3:4
-                child: ClipRect(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: _cameraController!.value.previewSize!.height,
-                      height: _cameraController!.value.previewSize!.width,
-                      child: CameraPreview(_cameraController!),
-                    ),
-                  ),
-                ),
+    var size = MediaQuery.of(context).size;
+    return ClipRRect(
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(30),
+        topRight: Radius.circular(30),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // 1. Camera Preview
+            if (_isCameraInitialized && _cameraController != null)
+              Container(
+                width: size.width,
+                height: size.height,
+                child: CameraPreview(_cameraController!),
               ),
-            ),
 
-          // Loading indicator
-          if (!_isCameraInitialized)
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: Colors.white),
-                  SizedBox(height: 16),
-                  Text(
-                    'กำลังเปิดกล้อง...',
-                    style: TextStyle(
-                      fontFamily: FontStyles().FontFamily,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+            // Loading indicator
+            if (!_isCameraInitialized)
+              Center(
+                child: CircularProgressIndicator(color: Colors.white),
               ),
-            ),
 
-          // Top Bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.7),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Expanded(
-                      child: Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    SizedBox(width: 48), // Balance the back button
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Bottom Controls
-          if (_isCameraInitialized)
+            // 2. Close Button (Top Right)
             Positioned(
-              bottom: 0,
+              top: 20,
+              right: 20,
+              child: SafeArea(
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white
+                          .withOpacity(0.8), // Semi-transparent white
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close, color: Colors.black, size: 24),
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. Shutter Button (Bottom Center)
+            Positioned(
+              bottom: 40,
               left: 0,
               right: 0,
-              child: SafeArea(
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 30),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.7),
-                        Colors.transparent,
-                      ],
+              child: Center(
+                child: GestureDetector(
+                  onTap: _isCapturing ? null : _capturePhoto,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
                     ),
-                  ),
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: _isCapturing ? null : _capturePhoto,
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          border: Border.all(
-                            color:
-                                _isCapturing ? Colors.grey : Color(0xFF4CAF50),
-                            width: 4,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 10,
-                              offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: _isCapturing
-                            ? Center(
-                                child: SizedBox(
-                                  width: 30,
-                                  height: 30,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 3,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF4CAF50),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : Icon(
-                                Icons.camera_alt,
-                                size: 35,
-                                color: Color(0xFF4CAF50),
-                              ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
                       ),
+                      child: _isCapturing
+                          ? Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.blue,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : SizedBox(),
                     ),
                   ),
                 ),
               ),
             ),
-
-          // Guide frame removed - plain camera view
-        ],
+          ],
+        ),
       ),
     );
   }

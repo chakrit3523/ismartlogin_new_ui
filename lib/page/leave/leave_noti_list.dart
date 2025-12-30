@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
 import 'package:ismart_login/server/server.dart';
@@ -20,15 +21,14 @@ class _LeaveNotiListScreenState extends State<LeaveNotiListScreen> {
   List data = [];
   String len = '0';
   List<ItemsMemberResultManage> _itemMember = [];
+  String tab = "1";
 
+  @override
   void initState() {
     onLoadListNotiLeaveManage();
     onLoadMemberManage();
     super.initState();
   }
-
-  String tab = "1";
-  String badge = "0"; 
 
   onLoadListNotiLeaveManage() async {
     Map map = {
@@ -44,13 +44,16 @@ class _LeaveNotiListScreenState extends State<LeaveNotiListScreen> {
       body: body,
     );
     data = json.decode(response.body);
-    print("onLoadListNotiLeaveManage : ${data}");
-    if (data[0]['status'] == true) {
-      len = data[0]['result'].length.toString();
+    if (data.isNotEmpty && data[0]['status'] == true) {
+      if (data[0]['result'] != null) {
+        len = data[0]['result'].length.toString();
+      } else {
+        len = '0';
+      }
     } else {
-      len = data[0]['result'].length.toString();
+      len = '0';
     }
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<bool> onLoadMemberManage() async {
@@ -59,286 +62,263 @@ class _LeaveNotiListScreenState extends State<LeaveNotiListScreen> {
       "uid": await SharedCashe.getItemsWay(name: 'id'),
     };
     await MemberManageFuture().apiGetMemberManageList(map).then((onValue) {
-      setState(() {
-        if (onValue[0].STATUS) {
-          _itemMember = onValue[0].RESULT;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (onValue[0].STATUS) {
+            _itemMember = onValue[0].RESULT;
+          }
+        });
+      }
     });
-    setState(() {});
     return true;
   }
 
   @override
   Widget build(BuildContext context) {
     List rs = [];
-    if (data.length > 0) {
+    if (data.length > 0 && data[0]['result'] != null) {
       rs = data[0]['result'];
     }
+
     return Scaffold(
       body: Container(
-        decoration: StylePage().background,
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: SafeArea(
-          child: GestureDetector(
-            onTap: () {
-              FocusScopeNode currentFocus = FocusScope.of(context);
-              if (!currentFocus.hasPrimaryFocus) {
-                currentFocus.unfocus();
-              }
-            },
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: Container(
-                color: Colors.white,
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
+          bottom: false,
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+                child: Row(
                   children: [
-                    AppBar(
-                      backgroundColor: Color(0xFF00B1FF),
-                      leading: IconButton(
-                        icon: Icon(
-                          Icons.arrow_back_ios,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => MainPage()),
-                          );
-                        },
-                      ),
-                      title: Text(
-                        'แจ้งเตือน',
-                        style: TextStyle(
-                            fontFamily: FontStyles().FontFamily,
-                            fontSize: 28,
-                            color: Colors.white,
-                            // height: 1,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      elevation: 0,
-                    ),
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  tab = "1";
-                                  onLoadListNotiLeaveManage();
-                                });
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: tab.toString() == "1"
-                                          ? Color(0xFF0A85BB)
-                                          : Colors.white, // สีของเส้น
-                                      width: 2.0, // ความหนาของเส้น
-                                    ),
-                                  ),
-                                ),
-                                child: Center(
-                                    child: Text(
-                                  "ทั้งหมด",
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      color: Color(0xFF616161),
-                                      fontWeight: FontWeight.bold),
-                                )),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  tab = "2";
-                                  onLoadListNotiLeaveManage();
-                                });
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: tab.toString() == "2"
-                                          ? Color(0xFF0A85BB)
-                                          : Colors.white, // สีของเส้น
-                                      width: 2.0, // ความหนาของเส้น
-                                    ),
-                                  ),
-                                ),
-                                child: Center(
-                                    child: Text(
-                                  "ยังไม่อ่าน",
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      color: Color(0xFF616161),
-                                      fontWeight: FontWeight.bold),
-                                )),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                     ),
                     Expanded(
-                      child: data.length > 0 && len != "0"
-                          ? Container(
-                              child: ListView.builder(
-                                  padding: EdgeInsets.all(8),
-                                  itemCount: rs.length,
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                    return GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                LeaveDetailScreen(
-                                              id: rs[index]['topic_id']
-                                                  .toString(),
-                                              loadData:
-                                                  onLoadListNotiLeaveManage,
-                                              loadListLeave:
-                                                  onLoadListNotiLeaveManage,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: rs[index]['status_noti'] == "0"
-                                              ? Color(0xFFF5FDFD)
-                                              : Colors.white,
-                                          border: Border(
-                                            bottom: BorderSide(
-                                              color: Color(0xFFEBEBEBC4),
-                                              width: 1,
-                                            ),
-                                          ),
-                                        ),
-                                        height: 80,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              child: Row(
-                                                children: [
-                                                  Container(
-                                                    width: 30,
-                                                    child: Center(
-                                                      child: Text(
-                                                        "●",
-                                                        style: TextStyle(
-                                                          height: 1.5,
-                                                          color: rs[index]['status_leave'] ==
-                                                                      "1" &&
-                                                                  rs[index]['status_noti'] ==
-                                                                      "0"
-                                                              ? Color(
-                                                                  0xFFFF7700)
-                                                              : rs[index]['status_leave'] ==
-                                                                          "2" &&
-                                                                      rs[index][
-                                                                              'status_noti'] ==
-                                                                          "0"
-                                                                  ? Color(
-                                                                      0xFF01BB50)
-                                                                  : rs[index]['status_leave'] ==
-                                                                              "3" &&
-                                                                          rs[index]['status_noti'] ==
-                                                                              "0"
-                                                                      ? Color(
-                                                                          0xFFFF0000)
-                                                                      : Color(
-                                                                          0xFF616161),
-                                                        ),
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        maxLines: 1,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    child: Text(
-                                                      rs[index]['subject']
-                                                          .toString(),
-                                                      style: TextStyle(
-                                                        fontSize: 19,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            Color(0xFF616161),
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      maxLines: 1,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Container(
-                                              height: 35,
-                                              child: Container(
-                                                margin:
-                                                    EdgeInsets.only(left: 30),
-                                                child: Text(
-                                                  rs[index]['create_date']
-                                                      .toString(),
-                                                  style: TextStyle(
-                                                      fontSize: 15,
-                                                      color: Color(0xFF0A85BB)),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(15.0),
-                                  child: Container(
-                                    height: 120,
-                                    child: Image.asset(
-                                      'assets/images/other/ic-send.png',
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  "ไม่มีการแจ้งเตือนขณะนี้",
-                                  style: TextStyle(fontSize: 24),
-                                )
-                              ],
-                            ),
+                      child: Center(
+                        child: Text(
+                          'แจ้งเตือน',
+                          style: GoogleFonts.kanit(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
+                    SizedBox(width: 48), // Balance back button
                   ],
                 ),
               ),
+
+              // Content Container
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(30)),
+                  ),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 10),
+                      // Custom Tab Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!)),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildTabItem("ทั้งหมด", "1"),
+                              _buildTabItem("ยังไม่อ่าน", "2"),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+
+                      // List
+                      Expanded(
+                        child: rs.length > 0
+                            ? ListView.builder(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 10),
+                                itemCount: rs.length,
+                                itemBuilder: (context, index) {
+                                  return _buildNotificationItem(rs[index]);
+                                },
+                              )
+                            : _buildEmptyState(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem(String title, String tabValue) {
+    bool isSelected = tab == tabValue;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            tab = tabValue;
+            onLoadListNotiLeaveManage();
+          });
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 15),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? Color(0xFF21CCD4) : Colors.transparent,
+                width: 3,
+              ),
+            ),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.kanit(
+              fontSize: 18,
+              color: isSelected ? Color(0xFF21CCD4) : Colors.grey[500],
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationItem(dynamic item) {
+    Color statusColor = Color(0xFF616161);
+    // status_leave: 1=Wait/Orange, 2=Approve/Green, 3=Reject/Red
+    if (item['status_noti'].toString() == "0") {
+      // If Unread
+      if (item['status_leave'].toString() == "1")
+        statusColor = Color(0xFFFF7700);
+      else if (item['status_leave'].toString() == "2")
+        statusColor = Color(0xFF01BB50);
+      else if (item['status_leave'].toString() == "3")
+        statusColor = Color(0xFFFF0000);
+    }
+
+    bool isUnread = item['status_noti'].toString() == "0";
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LeaveDetailScreen(
+              id: item['topic_id'].toString(),
+              loadData: onLoadListNotiLeaveManage,
+              loadListLeave: onLoadListNotiLeaveManage,
+            ),
+          ),
+        ).then((value) => onLoadListNotiLeaveManage());
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isUnread ? Color(0xFFF0FBFC) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+          border: isUnread
+              ? Border.all(color: Color(0xFF21CCD4).withOpacity(0.3))
+              : Border.all(color: Colors.grey[100]!),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Indicator Dot
+            Padding(
+              padding: const EdgeInsets.only(top: 6, right: 12),
+              child: Icon(Icons.circle, size: 12, color: statusColor),
+            ),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item['subject'].toString(),
+                    style: GoogleFonts.kanit(
+                        fontSize: 16,
+                        fontWeight:
+                            isUnread ? FontWeight.bold : FontWeight.normal,
+                        color: Colors.black87,
+                        height: 1.3),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    item['create_date'].toString(),
+                    style: GoogleFonts.kanit(
+                        fontSize: 14,
+                        color: Color(0xFF21CCD4),
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Opacity(
+            opacity: 0.5,
+            child: Image.asset(
+              'assets/images/other/ic-send.png',
+              height: 80,
+            ),
+          ),
+          SizedBox(height: 20),
+          Text(
+            "ไม่มีการแจ้งเตือน",
+            style: GoogleFonts.kanit(
+              fontSize: 18,
+              color: Colors.grey[400],
+            ),
+          )
+        ],
       ),
     );
   }

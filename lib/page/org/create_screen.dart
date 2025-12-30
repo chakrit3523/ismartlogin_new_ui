@@ -168,6 +168,24 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
     onLoadPostUpdateOrg(_map);
   }
 
+  _releaseDataWithLocation(
+      double lat, double lng, String address, int radius) async {
+    String _subject = _inputSubject.text;
+    Map _map = {
+      "subject": _subject,
+      "type": "insert",
+      "id": "0",
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "lat": lat.toString(),
+      "lng": lng.toString(),
+      "address": address,
+      "radius": radius.toString(),
+    };
+    print("Creating org with location: $_map");
+    alert(context, "กำลังสร้างทีม/องค์กร");
+    onLoadPostUpdateOrg(_map);
+  }
+
   _updateHistoryStatus(String status, String id) async {
     Map _map = {};
     _map.addAll({
@@ -610,25 +628,24 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_inputSubject.text == '') {
                             alert(context, 'กรุณาป้อนข้อมูลให้ครบถ้วน');
                           } else {
                             if (_formKey.currentState?.validate() ?? false) {
-                              // Navigate to setup screen instead of creating org directly
+                              // Navigate to setup screen with callback
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => OrgSetupScreen(
                                     orgName: _inputSubject.text,
-                                    orgId:
-                                        '0', // Will be assigned after creation
-                                    onComplete: () {
-                                      // After setup complete, create the organization
-                                      Navigator.pop(
-                                          context); // Pop setup screen
-                                      alert_new_org(context,
-                                          'คุณต้องการสร้างทีม/องค์กร\n"${_inputSubject.text}"\nใช่หรือไม่ ?');
+                                    onCreateOrg: (lat, lng, address, radius) {
+                                      _releaseDataWithLocation(
+                                        lat,
+                                        lng,
+                                        address,
+                                        radius,
+                                      );
                                     },
                                   ),
                                 ),

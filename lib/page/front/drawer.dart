@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/contact_dev/contactdev_screen.dart';
 import 'package:ismart_login/page/faq/faq_screen.dart';
 import 'package:ismart_login/page/front/future/relationship_future.dart';
@@ -31,7 +32,7 @@ import 'package:ismart_login/page/profile/vacation_screen.dart';
 import 'package:ismart_login/page/sign/signout_popup.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
+
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:location/location.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -67,9 +68,9 @@ class MenuDrawer extends StatefulWidget {
 
 class _MenuDrawerState extends State<MenuDrawer> {
   Location _location = new Location();
-  TextStyle _txt = TextStyle(
-    fontFamily: FontStyles().FontFamily,
-    fontSize: 22,
+  TextStyle _txt = GoogleFonts.kanit(
+    fontSize: 16,
+    color: Colors.black87,
   );
 //----
   String _org_id = '';
@@ -83,8 +84,12 @@ class _MenuDrawerState extends State<MenuDrawer> {
     locationSubscription =
         _location.onLocationChanged.listen((LocationData currentLocation) {
       setState(() {
-        latMain = currentLocation.latitude != null ? currentLocation.latitude!.toDouble() : 0.0;
-        logMain = currentLocation.longitude != null ? currentLocation.longitude!.toDouble() : 0.0;
+        latMain = currentLocation.latitude != null
+            ? currentLocation.latitude!.toDouble()
+            : 0.0;
+        logMain = currentLocation.longitude != null
+            ? currentLocation.longitude!.toDouble()
+            : 0.0;
       });
     });
   }
@@ -186,129 +191,91 @@ class _MenuDrawerState extends State<MenuDrawer> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
-          DrawerHeader(
-            child: Container(
-              child: Row(
-                children: [
-                  widget.images == ''
-                      ? Container(
-                          alignment: Alignment.center,
-                          width: 70,
-                          height: 70,
-                          decoration: new BoxDecoration(
-                            color: Color(0xFFF2F2F2),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.3),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset:
-                                    Offset(0, 0), // changes position of shadow
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 50,
-                          ),
-                        )
-                      : Container(
-                          alignment: Alignment.centerLeft,
-                          width: 70,
-                          height: 70,
-                          decoration: new BoxDecoration(
-                            color: Color(0xFFF2F2F2),
-                            image: DecorationImage(
-                              image: NetworkImage(Server.url + widget.images),
-                              fit: BoxFit.cover,
-                            ),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.3),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset:
-                                    Offset(0, 0), // changes position of shadow
-                              ),
-                            ],
-                          ),
-                        ),
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.only(left: 5),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: MediaQuery.of(context).size.width,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Container(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  widget.fullname,
-                                  style: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: MediaQuery.of(context).size.width,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Container(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  widget.org,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 24,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: MediaQuery.of(context).size.width,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Container(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  widget.org_sub,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 18,
-                                    color: Colors.black54,
-                                    height: 1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
+          // Custom Header with gradient
+          Container(
+            padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 20,
+                left: 20,
+                right: 20,
+                bottom: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF21CCD4), // Cyan
+                  Color(0xFF0663F7), // Deep Blue
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-            decoration: StylePage().background,
+            child: Row(
+              children: [
+                // Avatar
+                widget.images == ''
+                    ? Container(
+                        width: 65,
+                        height: 65,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.grey[600],
+                          size: 40,
+                        ),
+                      )
+                    : Container(
+                        width: 65,
+                        height: 65,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          image: DecorationImage(
+                            image: NetworkImage(Server.url + widget.images),
+                            fit: BoxFit.cover,
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                SizedBox(width: 12),
+                // Name and subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.fullname,
+                        style: GoogleFonts.kanit(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        widget.org,
+                        style: GoogleFonts.kanit(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                // Notification bell
+                IconButton(
+                  icon: Icon(Icons.notifications_none,
+                      color: Colors.white, size: 28),
+                  onPressed: () {
+                    // TODO: Handle notification tap
+                  },
+                ),
+              ],
+            ),
           ),
           ListTile(
             minLeadingWidth: 0.5,
@@ -340,12 +307,16 @@ class _MenuDrawerState extends State<MenuDrawer> {
                 children: [
                   Divider(), //here is a divider
                   if (widget.type_member != 'member')
-                    Text(
-                      " Administrator",
-                      style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
+                    Padding(
+                      padding: EdgeInsets.only(left: 16, top: 8, bottom: 4),
+                      child: Text(
+                        "Administrator",
+                        style: GoogleFonts.kanit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
+                      ),
                     ),
                   Container(
                     child: Column(
@@ -407,13 +378,12 @@ class _MenuDrawerState extends State<MenuDrawer> {
                                 onTap: () {
                                   Navigator.pop(context);
                                   Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            OrgDepartmentManage(
-                                                org_id: widget.org_id),
-                                      ),
-                                    );
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => OrgDepartmentManage(
+                                          org_id: widget.org_id),
+                                    ),
+                                  );
                                   // print("_resultDepartCount  : ${_resultDepartCount.length}");
                                   // if (_resultDepartCount.length > 1) {
                                   //   Navigator.push(
@@ -510,8 +480,8 @@ class _MenuDrawerState extends State<MenuDrawer> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => OrgLockTimeScreen()
-                                    ),
+                                        builder: (context) =>
+                                            OrgLockTimeScreen()),
                                   );
                                 },
                               ),
@@ -647,13 +617,16 @@ class _MenuDrawerState extends State<MenuDrawer> {
           ),
 
           Divider(), //here is a divider
-          Padding(padding: EdgeInsets.all(5)),
-          Text(
-            " อื่น ๆ",
-            style: TextStyle(
-                fontFamily: FontStyles().FontFamily,
-                fontSize: 18,
-                fontWeight: FontWeight.bold),
+          Padding(
+            padding: EdgeInsets.only(left: 16, top: 8, bottom: 4),
+            child: Text(
+              "อื่น ๆ",
+              style: GoogleFonts.kanit(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
           ),
           Container(
             child: Column(

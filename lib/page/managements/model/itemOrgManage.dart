@@ -3,16 +3,19 @@ import 'package:ismart_login/page/managements/model/itemOrgResultManage.dart';
 class ItemsOrgPostManage {
   final String MSG;
   final bool STATUS;
+  final String? ID;
 
   ItemsOrgPostManage({
     required this.MSG,
     required this.STATUS,
+    this.ID,
   });
 
   factory ItemsOrgPostManage.fromJson(Map<String, dynamic> json) {
     return ItemsOrgPostManage(
       MSG: json['msg'],
       STATUS: json['status'],
+      ID: json['id']?.toString(),
     );
   }
 }

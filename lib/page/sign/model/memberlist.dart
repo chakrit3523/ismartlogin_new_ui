@@ -23,15 +23,15 @@ class ItemsMemberList {
 
   factory ItemsMemberList.fromJson(Map<String, dynamic> json) {
     return ItemsMemberList(
-      ID: json['id'],
-      USERNAME: json['username'],
-      PASSWORD: json['password'],
-      FULLNAME: json['fullname'],
-      AVATAR: json['avatar'],
-      ORG_ID: json['org_id'],
-      ORG_NAME: json['org_name'],
-      PHONE: json['phone'],
-      TIME_ID: json['time_id'],
+      ID: json['id'] ?? '',
+      USERNAME: json['username'] ?? '',
+      PASSWORD: json['password'] ?? '',
+      FULLNAME: json['fullname'] ?? '',
+      AVATAR: json['avatar'] ?? '',
+      ORG_ID: json['org_id'] ?? '',
+      ORG_NAME: json['org_name'] ?? '',
+      PHONE: json['phone'] ?? '',
+      TIME_ID: json['time_id'] ?? '',
     );
   }
 }

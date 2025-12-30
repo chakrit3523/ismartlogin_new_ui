@@ -115,15 +115,29 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
 
           // Extract reference code from API response if available
           String refCode = '';
-          if (_resultOtp[0].MSG is Map) {
-            refCode = _resultOtp[0].MSG['token']?.toString() ??
-                _resultOtp[0].MSG['ref']?.toString() ??
-                _resultOtp[0].MSG['refCode']?.toString() ??
+          var msgData = _resultOtp[0].MSG;
+          print('=== MSG Analysis ===');
+          print('MSG Type: ${msgData.runtimeType}');
+          print('MSG Value: $msgData');
+
+          if (msgData is Map) {
+            print('MSG Keys: ${msgData.keys.toList()}');
+            // Try common SMS provider keys
+            refCode = msgData['token']?.toString() ??
+                msgData['ref']?.toString() ??
+                msgData['refCode']?.toString() ??
+                msgData['reference']?.toString() ??
+                msgData['code']?.toString() ??
+                msgData['otp_ref']?.toString() ??
+                msgData['data']?['ref']?.toString() ??
+                msgData['data']?['token']?.toString() ??
                 '';
-          } else if (_resultOtp[0].MSG is String) {
-            refCode = _resultOtp[0].MSG;
+            print('Extracted refCode from Map: $refCode');
+          } else if (msgData is String) {
+            refCode = msgData;
+            print('Using MSG string as refCode: $refCode');
           }
-          print('Reference Code: $refCode');
+          print('Final Reference Code: $refCode');
 
           // Navigate to OTP Screen
           Navigator.push(

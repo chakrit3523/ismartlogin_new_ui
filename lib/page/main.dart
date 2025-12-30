@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/front/front_screen.dart';
 import 'package:ismart_login/page/history/history_screen.dart';
 import 'package:ismart_login/page/leave/leave_screen.dart';
+import 'package:ismart_login/page/profile/profile_screen.dart';
+import 'package:ismart_login/page/menu/menu_screen.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';
@@ -22,6 +24,8 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   ///--
   int selectedIndex = 1;
 
@@ -49,73 +53,219 @@ class _MainPageState extends State<MainPage> {
     setState(() {});
     return true;
   }
-  List _widgetOptions = [
-    LeaveScreen(),
-    FrontScreen(),
-    HistoryScreen(),
-  ];
-  List _widgetFreeOptions = [
-    LeaveFreeScreen(),
-    FrontScreen(),
-    HistoryScreen(),
-  ];
 
+  List<Widget> _getWidgetOptions() {
+    return [
+      LeaveScreen(),
+      FrontScreen(),
+      HistoryScreen(),
+      Container(), // Index 3: Profile (Pushed)
+      MenuScreen(
+        itemMember: _itemMember,
+        onBadgeUpdate: onLoadMemberManage,
+      ), // Index 4: Menu
+    ];
+  }
+
+  List<Widget> _getWidgetFreeOptions() {
+    return [
+      LeaveFreeScreen(),
+      FrontScreen(),
+      HistoryScreen(),
+      Container(), // Index 3: Profile (Pushed)
+      MenuScreen(
+        itemMember: _itemMember,
+        onBadgeUpdate: onLoadMemberManage,
+      ), // Index 4: Menu
+    ];
+  }
+
+  @override
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: alert_back_system,
       child: Scaffold(
+        key: _scaffoldKey,
+        extendBody: true,
         body: _itemMember.isNotEmpty && _itemMember[0].LEAVE == "1"
-            ? _widgetOptions.elementAt(selectedIndex)
-            : _widgetFreeOptions.elementAt(selectedIndex),
-        bottomNavigationBar: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: GNav(
-            gap: 8,
-            backgroundColor: Colors.white,
-            color: const Color(0xFF4EA9FB), // unselected icon/text
-            activeColor: Colors.white, // selected icon/text
-            tabBackgroundColor: const Color(0xFF4EA9FB), // selected background
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            selectedIndex: selectedIndex,
-            onTabChange: (index) async {
-              print("wittawat index : $index");
-
-              if (index == 0) {
-                var org_id = await SharedCashe.getItemsWay(name: 'org_id');
-                print("wittawat org : $org_id");
-                if (org_id == "1564") {
-                  var usr = await SharedCashe.getItemsWay(name: 'username');
-                  var pwd = await SharedCashe.getItemsWay(name: 'password');
-                  var url =
-                      "https://yalacity.go.th/hr/app_api_v1/authenticationIsmarLogin/$usr/$pwd";
-                  print('wit Go to Leave org_id : $url');
-                  _launchInBrowser(url);
-                  return;
-                }
-              }
-
-              setState(() {
-                selectedIndex = index;
-              });
-            },
-            tabs: const [
-              GButton(
-                icon: FontAwesomeIcons.envelope,
-                text: 'ลา',
-              ),
-              GButton(
-                icon: FontAwesomeIcons.clock,
-                text: 'ลงเวลา',
-              ),
-              GButton(
-                icon: FontAwesomeIcons.history,
-                text: 'ประวัติ',
+            ? _getWidgetOptions().elementAt(selectedIndex)
+            : _getWidgetFreeOptions().elementAt(selectedIndex),
+        floatingActionButton: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            shape: BoxShape.rectangle,
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF21CCD4), // Light Blue
+                Color(0xFF0663F7), // Deep Blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.3),
+                blurRadius: 8,
+                spreadRadius: 2,
+                offset: Offset(0, 4),
               ),
             ],
           ),
+          child: FloatingActionButton(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            onPressed: () {
+              setState(() {
+                selectedIndex = 1;
+              });
+            },
+            child: Image.asset(
+              'assets/images/other/clock-plus.png',
+              width: 32,
+              height: 32,
+              color: Colors.white,
+            ),
+          ),
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(25),
+              topRight: Radius.circular(25),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                spreadRadius: 5,
+                offset: Offset(0, -10),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Container(
+              height: 65,
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left Side
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMaterialNavItem(
+                        icon: FontAwesomeIcons.envelope,
+                        label: 'ลา',
+                        index: 0,
+                      ),
+                      _buildMaterialNavItem(
+                        icon: FontAwesomeIcons.user,
+                        label: 'โปรไฟล์',
+                        index: 3,
+                      ),
+                    ],
+                  ),
+                  // Center - space for FAB
+                  SizedBox(width: 60),
+                  // Right Side
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMaterialNavItem(
+                        icon: FontAwesomeIcons.history,
+                        label: 'ประวัติ',
+                        index: 2,
+                      ),
+                      _buildMaterialNavItem(
+                        icon: FontAwesomeIcons.thLarge,
+                        label: 'เมนู',
+                        index: 4,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMaterialNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    bool isSelected = selectedIndex == index;
+    return MaterialButton(
+      minWidth: 40,
+      onPressed: () async {
+        if (index == 0) {
+          // Keep yala redirect logic
+          var org_id = await SharedCashe.getItemsWay(name: 'org_id');
+          if (org_id == "1564") {
+            var usr = await SharedCashe.getItemsWay(name: 'username');
+            var pwd = await SharedCashe.getItemsWay(name: 'password');
+            var url =
+                "https://yalacity.go.th/hr/app_api_v1/authenticationIsmarLogin/$usr/$pwd";
+            _launchInBrowser(url);
+            return;
+          }
+        }
+
+        // Profile button
+        if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ProfileScreen()),
+          );
+          return;
+        }
+
+        // Menu button - Show full-screen menu sliding from bottom
+        if (index == 4) {
+          setState(() {
+            selectedIndex = index;
+          });
+          return;
+        }
+
+        if (index < 3) {
+          // Only update state for valid tab indices in _widgetOptions
+          setState(() {
+            selectedIndex = index;
+          });
+        }
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? Color(0xFF4EA9FB) : Colors.grey,
+            size: 24,
+          ),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.kanit(
+              textStyle: TextStyle(
+                color: isSelected ? Color(0xFF4EA9FB) : Colors.grey,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
