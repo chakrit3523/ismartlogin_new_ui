@@ -1,24 +1,17 @@
 import 'dart:convert';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:ismart_login/page/managements/future/time_manage_future.dart';
-import 'package:ismart_login/page/managements/model/itemTimeManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
-import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
-import 'package:ismart_login/page/managements/org_time_screen.dart';
-import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
-import 'package:ismart_login/style/text_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:ismart_login/system/widht_device.dart';
 
 class OrgTimeDetailManage extends StatefulWidget {
   final String id;
   final String org_id;
   final String type;
   final Function? updateLoadTime;
+
   OrgTimeDetailManage({
     super.key,
     required this.id,
@@ -26,521 +19,465 @@ class OrgTimeDetailManage extends StatefulWidget {
     required this.type,
     this.updateLoadTime,
   });
+
   @override
   _OrgTimeDetailManageState createState() => _OrgTimeDetailManageState();
 }
 
 class _OrgTimeDetailManageState extends State<OrgTimeDetailManage> {
-  final _formKey = GlobalKey<FormState>();
-  TextStyle _txtDay =
-      TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 20, height: 1);
+  final TextEditingController _inputSubject = TextEditingController();
 
-  ///----
-  List<TextEditingController> _inputTimeIn = [
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-  ];
-  List<TextEditingController> _inputTimeOut = [
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-    TextEditingController(),
-  ];
-  FocusNode _focusDegree = FocusNode();
-  TimeOfDay _timeOfDay = TimeOfDay.now();
-  TextEditingController _inputSubject = TextEditingController();
-  FocusNode _focusSubject = FocusNode();
-
-  ///-----
-  List<bool> _groupDay = [
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-  ];
-  List<String> _groupDayName = [
+  final List<String> _dayNames = [
     'จันทร์',
     'อังคาร',
     'พุธ',
     'พฤหัสบดี',
     'ศุกร์',
     'เสาร์',
-    'อาทิตย์',
+    'อาทิตย์'
   ];
-  List<int> _daySelect = [];
 
-  ///-----
-  _setDetailDayToJson() async {
-    EasyLoading.show();
-    _daySelect.sort();
-    List time = [];
-    for (int i = 0; i < _daySelect.length; i++) {
-      time.add({
-        "day": _daySelect[i],
-        "time_start": _inputTimeIn[_daySelect[i]].text,
-        "time_end": _inputTimeOut[_daySelect[i]].text
-      });
-    }
-    print("_setDetailDayToJson : ");
-    Map map = {
-      "subject": _inputSubject.text,
-      "org_id": widget.org_id != ''
-          ? widget.org_id
-          : await SharedCashe.getItemsWay(name: 'org_id'),
-      "description": json.encode(time),
-      "status": "1",
-      "id": widget.id,
-      "type": widget.type,
-    };
-    print("_setDetailDayToJson : ${json.encode(map).toString()}");
-    // EasyLoading.showError('ล้มเหลว');
-    onLoadPostTime(map);
-  }
+  // Store UI state: { enabled: bool, checkIn: "8.30 น.", checkOut: "17.30 น." }
+  List<Map<String, dynamic>> _daySettings = [];
 
-  ///---- INSER/UPDATE -----
-  List<ItemsTimeManagePostUpdate> _result = [];
-  Future<bool> onLoadPostTime(Map map) async {
-    await TimeManageFuture().apiPostTimeManageList(map).then((onValue) {
-      print(onValue[0].STATUS);
-      print(onValue[0].MSG);
-      if (onValue[0].STATUS == true) {
-        EasyLoading.showSuccess('บันทึกแล้ว');
-        print("updateLoadTime : ${widget.updateLoadTime}");
-        if (widget.updateLoadTime != null) {
-          widget.updateLoadTime!();
-        }
-        if (widget.type == 'insert') {
-          Navigator.pop(context);
-        }
-      } else {
-        EasyLoading.showError('ล้มเหลว');
-      }
-    });
-    return true;
-  }
-
-  ///----  / GET -----
-  List<ItemsTimeResultManage> _resultItem = [];
-  List<ItemsTimeResultDayManage> _resultItemDay = [];
-  Future<bool> onLoadGetTime() async {
-    _resultItemDay.clear();
-    Map map = {"org_id": widget.org_id, "id": widget.id};
-    print(map);
-    await TimeManageFuture().apiGetTimeManageList(map).then((onValue) {
-      if (onValue[0].STATUS == true) {
-        _resultItem = onValue[0].RESULT;
-        print(_resultItem.length);
-        _resultItemDay = List.from(json
-            .decode(_resultItem[0].DESCRIPTION)
-            .map((m) => ItemsTimeResultDayManage.fromJson(m)));
-      }
-    });
-    _setShowValue();
-    EasyLoading.dismiss();
-    return true;
-  }
-
-  _setShowValue() {
-    _inputSubject.text = _resultItem[0].SUBJECT;
-    for (int i = 0; i < _resultItemDay.length; i++) {
-      setState(() {
-        _inputTimeIn[_resultItemDay[i].DAY].text = _resultItemDay[i].TIME_START;
-        _inputTimeOut[_resultItemDay[i].DAY].text = _resultItemDay[i].TIME_END;
-        _groupDay[_resultItemDay[i].DAY] = true;
-        _daySelect.add(_resultItemDay[i].DAY);
-      });
-    }
-  }
-
-  ///----------
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    EasyLoading.dismiss();
-    print(widget.type);
+    _initializeDefaultSettings();
+
     if (widget.type == 'update') {
       onLoadGetTime();
     }
   }
 
-  ///-----
+  void _initializeDefaultSettings() {
+    _daySettings = [];
+    for (int i = 0; i < 7; i++) {
+      _daySettings.add({
+        'enabled': i < 5, // Default Mon-Fri
+        'checkIn': '8.30 น.',
+        'checkOut': '17.30 น.',
+      });
+    }
+  }
+
+  /// Convert API time ("08:30:00") to UI format ("8.30 น.")
+  String _apiToUiTime(String apiTime) {
+    try {
+      List<String> parts = apiTime.split(':');
+      int h = int.parse(parts[0]);
+      int m = int.parse(parts[1]);
+      return '$h.${m.toString().padLeft(2, '0')} น.';
+    } catch (e) {
+      return apiTime; // Fallback
+    }
+  }
+
+  /// Convert UI format ("8.30 น.") to API time ("08:30:00")
+  String _uiToApiTime(String uiTime) {
+    try {
+      String t = uiTime.replaceAll(' น.', '');
+      List<String> parts = t.split('.');
+      String h = parts[0].padLeft(2, '0');
+      String m = parts.length > 1 ? parts[1].padLeft(2, '0') : '00';
+      return "$h:$m:00";
+    } catch (e) {
+      return "00:00:00";
+    }
+  }
+
+  Future<void> onLoadGetTime() async {
+    EasyLoading.show(status: 'กำลังโหลด...');
+    Map map = {"org_id": widget.org_id, "id": widget.id};
+
+    await TimeManageFuture().apiGetTimeManageList(map).then((onValue) {
+      if (onValue.isNotEmpty && onValue[0].STATUS == true) {
+        var item = onValue[0].RESULT[0];
+        _inputSubject.text = item.SUBJECT;
+
+        List<ItemsTimeResultDayManage> days = List.from(json
+            .decode(item.DESCRIPTION)
+            .map((m) => ItemsTimeResultDayManage.fromJson(m)));
+
+        setState(() {
+          // Reset all to disabled first
+          for (var day in _daySettings) {
+            day['enabled'] = false;
+          }
+
+          // Enable days found in API response
+          for (var d in days) {
+            if (d.DAY >= 0 && d.DAY < 7) {
+              _daySettings[d.DAY]['enabled'] = true;
+              _daySettings[d.DAY]['checkIn'] = _apiToUiTime(d.TIME_START);
+              _daySettings[d.DAY]['checkOut'] = _apiToUiTime(d.TIME_END);
+            }
+          }
+        });
+      }
+    });
+    EasyLoading.dismiss();
+  }
+
+  Future<void> _saveData() async {
+    if (_inputSubject.text.isEmpty) {
+      EasyLoading.showError('กรุณาระบุชื่อเวลา');
+      return;
+    }
+
+    EasyLoading.show(status: 'กำลังบันทึก...');
+
+    List<Map<String, dynamic>> scheduleList = [];
+    for (int i = 0; i < 7; i++) {
+      if (_daySettings[i]['enabled']) {
+        scheduleList.add({
+          "day": i,
+          "time_start": _uiToApiTime(_daySettings[i]['checkIn']),
+          "time_end": _uiToApiTime(_daySettings[i]['checkOut'])
+        });
+      }
+    }
+
+    if (scheduleList.isEmpty) {
+      EasyLoading.showError('กรุณาเลือกวันทำงานอย่างน้อย 1 วัน');
+      return;
+    }
+
+    Map map = {
+      "subject": _inputSubject.text,
+      "org_id": widget.org_id != ''
+          ? widget.org_id
+          : await SharedCashe.getItemsWay(name: 'org_id'),
+      "description": json.encode(scheduleList),
+      "status": "1",
+      "id": widget.id,
+      "type": widget.type,
+      // "uid": uid // API might need UID for logs, but old code didn't send it here for update?
+      // Checking old code: old code didn't send UID in _setDetailDayToJson.
+      // It sent subject, org_id, description, status, id, type.
+    };
+
+    await TimeManageFuture().apiPostTimeManageList(map).then((onValue) {
+      if (onValue.isNotEmpty && onValue[0].STATUS == true) {
+        EasyLoading.showSuccess('บันทึกสำเร็จ');
+        if (widget.updateLoadTime != null) {
+          widget.updateLoadTime!();
+        }
+        Navigator.pop(context, true);
+      } else {
+        EasyLoading.showError(
+            onValue.isNotEmpty ? onValue[0].MSG : 'บันทึกไม่สำเร็จ');
+      }
+    });
+  }
+
+  Future<void> _showTimePicker(int dayIndex, String timeType) async {
+    final day = _daySettings[dayIndex];
+    final currentTimeStr = day[timeType] as String;
+
+    // Parse "8.30 น." -> Hour 8, Minute 30
+    final t = currentTimeStr.replaceAll(' น.', '');
+    final parts = t.split('.');
+    final hour = int.tryParse(parts[0]) ?? 8;
+    final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: hour, minute: minute),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color(0xFF03A9F4),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        final formattedTime =
+            '${picked.hour}.${picked.minute.toString().padLeft(2, '0')} น.';
+        _daySettings[dayIndex][timeType] = formattedTime;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        decoration: StylePage().background,
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+          ),
+        ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  AppBar(
-                    centerTitle: true,
-                    leading: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                      onPressed: () => Navigator.pop(context, true),
-                    ),
-                    actions: [
-                      // action button
-                      IconButton(
-                        icon: Icon(Icons.add),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OrgTimeDetailManage(
-                                id: '0',
-                                org_id: widget.org_id,
-                                type: 'insert',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                    title: Text(
-                      'วันเวลาทำงาน',
-                      style: StylesText.titleAppBar,
-                    ),
-                    backgroundColor: Colors.white.withOpacity(0),
-                    elevation: 0,
-                  ),
-                  SingleChildScrollView(
-                    child: Container(
-                      padding: EdgeInsets.only(left: 20, right: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Custom Header
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    UnconstrainedBox(
                       child: Container(
-                        padding:
-                            EdgeInsets.only(left: 10, right: 10, bottom: 20),
-                        width: WidhtDevice().widht(context),
-                        decoration: StylePage().boxWhite,
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              TextFormField(
-                                controller: _inputSubject,
-                                focusNode: _focusSubject,
-                                keyboardType: TextInputType.text,
-                                style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 24),
-                                decoration: InputDecoration(
-                                  hintText: 'ชื่อเวลา',
-                                  hintStyle: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 24),
-                                  prefixIcon: Padding(
-                                    padding: EdgeInsets.all(
-                                        0), // add padding to adjust icon
-                                    child: Icon(
-                                      Icons.access_time_outlined,
-                                      size: 26,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.all(5),
-                              ),
-                              Container(
-                                child: ListView.builder(
-                                  physics: NeverScrollableScrollPhysics(),
-                                  shrinkWrap: true,
-                                  itemCount: _groupDay.length,
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                    return Container(
-                                      // child: Text(index.toString()),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  if (_groupDay[index]) {
-                                                    _groupDay[index] = false;
-                                                    _inputTimeIn[index].text =
-                                                        '';
-                                                    _inputTimeOut[index].text =
-                                                        '';
-                                                  } else {
-                                                    _groupDay[index] = true;
-                                                  }
-                                                });
-                                                _selectDay(
-                                                    index, _groupDay[index]);
-                                              },
-                                              child: Row(
-                                                children: [
-                                                  Container(
-                                                    alignment: Alignment.center,
-                                                    height: 25,
-                                                    width: 25,
-                                                    child: Icon(
-                                                      Icons.done,
-                                                      size: 20,
-                                                      color: Colors.white,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: _groupDay[index]
-                                                          ? Colors.blue
-                                                          : Colors.white,
-                                                      border: Border.all(
-                                                          color: Colors.blue,
-                                                          width: 3),
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    child: Text(
-                                                      ' ' +
-                                                          _groupDayName[index],
-                                                      style: _txtDay,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                if (_groupDay[index]) {
-                                                  alert_time(context, 1, index);
-                                                }
-                                              },
-                                              child: TextFormField(
-                                                controller: _inputTimeIn[index],
-                                                enabled: false,
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    fontSize: 24),
-                                                decoration: InputDecoration(
-                                                  hintText: 'เข้า',
-                                                  hintStyle: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 18),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Text('-'),
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                if (_groupDay[index]) {
-                                                  alert_time(context, 2, index);
-                                                }
-                                              },
-                                              child: TextFormField(
-                                                controller:
-                                                    _inputTimeOut[index],
-                                                enabled: false,
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    fontSize: 24),
-                                                decoration: InputDecoration(
-                                                  hintText: 'ออก',
-                                                  hintStyle: TextStyle(
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 18),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.all(5),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.all(5),
-                              ),
-                              Visibility(
-                                visible: _daySelect.length > 0 ? true : false,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    _setDetailDayToJson();
-                                  },
-                                  child: Container(
-                                    padding:
-                                        EdgeInsets.only(left: 25, right: 25),
-                                    decoration: BoxDecoration(
-                                      color: Color(0xFF079CFD),
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    child: Text(
-                                      'บันทึก',
-                                      style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          color: Colors.white,
-                                          fontSize: 26),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                            size: 20,
                           ),
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        widget.type == 'insert'
+                            ? 'เพิ่มตารางเวลา'
+                            : 'แก้ไขตารางเวลา',
+                        style: GoogleFonts.kanit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    // Save Button (Icon style or Text)
+                    // Let's use a nice Text button or Icon
+                  ],
+                ),
               ),
-            ),
+
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(top: 10),
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Subject Input
+                      TextFormField(
+                        controller: _inputSubject,
+                        style: GoogleFonts.kanit(fontSize: 18),
+                        decoration: InputDecoration(
+                          labelText: 'ชื่อเวลา (เช่น เวลาทำการ, กะเช้า)',
+                          labelStyle:
+                              GoogleFonts.kanit(color: Colors.grey[600]),
+                          prefixIcon: Icon(Icons.access_time_filled,
+                              color: Color(0xFF03A9F4)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(color: Color(0xFF03A9F4)),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+
+                      // Table Header
+                      Row(
+                        children: [
+                          SizedBox(
+                              width: 80,
+                              child: Text('วัน',
+                                  style: GoogleFonts.kanit(
+                                      color: Color(0xFF03A9F4),
+                                      fontWeight: FontWeight.bold))),
+                          Expanded(
+                              child: Text('เข้างาน - ออกงาน',
+                                  style: GoogleFonts.kanit(
+                                      color: Color(0xFF03A9F4),
+                                      fontWeight: FontWeight.bold))),
+                          SizedBox(
+                              width: 50,
+                              child: Text(
+                                'สถานะ',
+                                style: GoogleFonts.kanit(
+                                    color: Color(0xFF03A9F4),
+                                    fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.end,
+                              )),
+                        ],
+                      ),
+                      Divider(),
+
+                      // Days List
+                      Expanded(
+                        child: _daySettings.isEmpty
+                            ? Center(child: CircularProgressIndicator())
+                            : ListView.builder(
+                                itemCount: 7,
+                                itemBuilder: (context, index) =>
+                                    _buildDayRow(index),
+                              ),
+                      ),
+
+                      SizedBox(height: 20),
+
+                      // Save Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _saveData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                          ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF4FC3F7), Color(0xFF03A9F4)],
+                              ),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Container(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'บันทึก',
+                                style: GoogleFonts.kanit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  _selectDay(int _numday, bool _status) {
-    setState(() {
-      if (_status) {
-        _daySelect.add(_numday);
-        _inputTimeIn[_numday].text = _inputTimeIn[_daySelect[0]].text;
-        _inputTimeOut[_numday].text = _inputTimeOut[_daySelect[0]].text;
-      } else {
-        _daySelect.remove(_numday);
-      }
-    });
-    print(_daySelect);
-  }
+  Widget _buildDayRow(int index) {
+    final day = _daySettings[index];
+    final isEnabled = day['enabled'] as bool;
 
-  alert_time(BuildContext context, int _status, int _day) async {
-    String _time = '0000-00-00 00:00:00';
-    return showDialog(
-      barrierDismissible: true,
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(20.0))),
-          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-          content: Container(
-            width: WidhtDevice().widht(context),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  height: MediaQuery.of(context).size.height / 3,
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.time,
-                    initialDateTime:
-                        DateTime(_timeOfDay.hour, _timeOfDay.minute),
-                    onDateTimeChanged: (DateTime newDateTime) {
-                      var newTod = TimeOfDay.fromDateTime(newDateTime);
-                      final now = new DateTime.now();
-                      print(DateTime(now.year, now.month, now.day, newTod.hour,
-                          newTod.minute));
-                      _time = DateTime(now.year, now.month, now.day,
-                              newTod.hour, newTod.minute)
-                          .toString();
-                    },
-                    use24hFormat: true,
-                    minuteInterval: 1,
-                  ),
-                ),
-                Container(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.0),
-                              ),
-                            ),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'ปิด',
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(context, _time);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.green[100],
-                              borderRadius: BorderRadius.only(
-                                bottomRight: Radius.circular(20.0),
-                              ),
-                            ),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'ตกลง',
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              _dayNames[index],
+              style: GoogleFonts.kanit(fontSize: 16),
             ),
           ),
-        );
-      },
-    ).then((value) {
-      if (value != null) {
-        print(value.toString());
-        setState(() {
-          if (_status == 1) {
-            _inputTimeIn[_day].text = value.toString().substring(11, 19);
-          } else {
-            _inputTimeOut[_day].text = value.toString().substring(11, 19);
-          }
-        });
-      }
-    });
+          if (isEnabled) ...[
+            Expanded(
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: () => _showTimePicker(index, 'checkIn'),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        day['checkIn'],
+                        style: GoogleFonts.kanit(color: Colors.blue[800]),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child:
+                        Text('-', style: GoogleFonts.kanit(color: Colors.grey)),
+                  ),
+                  InkWell(
+                    onTap: () => _showTimePicker(index, 'checkOut'),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        day['checkOut'],
+                        style: GoogleFonts.kanit(color: Colors.orange[900]),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Expanded(
+              child: Text('วันหยุด',
+                  style: GoogleFonts.kanit(
+                      color: Colors.grey[400], fontStyle: FontStyle.italic)),
+            ),
+          ],
+          Switch(
+            value: isEnabled,
+            onChanged: (val) {
+              setState(() {
+                _daySettings[index]['enabled'] = val;
+              });
+            },
+            activeColor: Color(0xFF4CAF50),
+            activeTrackColor: Color(0xFF4CAF50).withOpacity(0.4),
+            inactiveThumbColor: Colors.grey[300],
+            inactiveTrackColor: Colors.grey[200],
+          ),
+        ],
+      ),
+    );
   }
 }

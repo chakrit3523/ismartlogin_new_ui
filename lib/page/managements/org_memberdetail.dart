@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -17,9 +18,7 @@ import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart'
 import 'package:ismart_login/page/managements/model/itemMemberStatusManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/profile/future/profile_future.dart';
-import 'package:ismart_login/page/profile/password_screen.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/develop_blank.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
@@ -289,30 +288,41 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
               children: [
                 AppBar(
                   centerTitle: true,
-                  leading: IconButton(
-                    icon: Icon(
-                      Icons.arrow_back_ios,
-                      color: Colors.white,
-                      size: 26,
+                  leading: UnconstrainedBox(
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                      ),
                     ),
-                    onPressed: () => Navigator.pop(context, true),
                   ),
                   title: Text(
                     widget.title,
                     style: StylesText.titleAppBar,
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.transparent,
                   elevation: 0,
                 ),
                 SingleChildScrollView(
                   scrollDirection: Axis.vertical,
                   child: Container(
-                    padding: EdgeInsets.only(left: 20, right: 20, top: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                     child: Column(
                       children: [
                         Container(
-                          padding: EdgeInsets.only(
-                              left: 10, right: 10, top: 10, bottom: 20),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 30),
                           width: WidhtDevice().widht(context),
                           decoration: StylePage().boxWhite,
                           child: Column(
@@ -322,30 +332,35 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                 child: Container(
                                   alignment: Alignment.centerRight,
                                   width: WidhtDevice().widht(context),
-                                  child: GestureDetector(
-                                    onTap: () {
+                                  child: TextButton.icon(
+                                    onPressed: () {
                                       if (!_edit) {
                                         setState(() {
                                           _edit = true;
                                         });
                                       }
                                     },
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        FaIcon(
-                                          FontAwesomeIcons.userEdit,
-                                          size: 18,
-                                        ),
-                                        Padding(padding: EdgeInsets.all(3)),
-                                        Text(
-                                          'แก้ไข',
-                                          style: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontFamily,
-                                              fontSize: 22),
-                                        )
-                                      ],
+                                    icon: FaIcon(
+                                      FontAwesomeIcons.userEdit,
+                                      size: 16,
+                                      color: Color(0xFF079CFD),
+                                    ),
+                                    label: Text(
+                                      'แก้ไข',
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF079CFD),
+                                      ),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor:
+                                          Color(0xFF079CFD).withOpacity(0.1),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -361,55 +376,58 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                         }
                                       },
                                       child: Container(
-                                        margin: EdgeInsets.only(top: 10),
-                                        child: Center(
+                                        margin: EdgeInsets.only(
+                                            top: 20, bottom: 10),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Color(0xFF18C0FF),
+                                              Color(0xFF079CFD)
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Color(0xFF079CFD)
+                                                  .withOpacity(0.3),
+                                              blurRadius: 15,
+                                              offset: Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+                                        padding:
+                                            EdgeInsets.all(4), // Border width
+                                        child: ClipOval(
                                           child: Container(
-                                            child: ClipOval(
-                                              child: Container(
-                                                width: 150,
-                                                height: 150,
-                                                color: Color(0xFFA6D6F2),
-                                                child: Column(
-                                                  children: <Widget>[
-                                                    Expanded(
-                                                      child: Container(
-                                                        child: Center(
-                                                          child: avatar != ''
-                                                              ? Image.network(
-                                                                  Server.url +
-                                                                      avatar,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  width: 300.0,
-                                                                  height: 300.0,
-                                                                )
-                                                              : _imageFile ==
-                                                                      null
-                                                                  ? Icon(
-                                                                      Icons
-                                                                          .person,
-                                                                      size: 140,
-                                                                      color: Colors
-                                                                          .white,
-                                                                    )
-                                                                  : Image.file(
-                                                                      File(_imageFile
-                                                                              ?.path ??
-                                                                          ''),
-                                                                      fit: BoxFit
-                                                                          .cover,
-                                                                      width:
-                                                                          300.0,
-                                                                      height:
-                                                                          300.0,
-                                                                    ),
+                                            width: 150,
+                                            height: 150,
+                                            color: Colors.white,
+                                            child: avatar != ''
+                                                ? Image.network(
+                                                    Server.url + avatar,
+                                                    fit: BoxFit.cover,
+                                                    width: 150.0,
+                                                    height: 150.0,
+                                                  )
+                                                : _imageFile != null
+                                                    ? Image.file(
+                                                        File(_imageFile?.path ??
+                                                            ''),
+                                                        fit: BoxFit.cover,
+                                                        width: 150.0,
+                                                        height: 150.0,
+                                                      )
+                                                    : Container(
+                                                        color: Colors.grey[100],
+                                                        child: Icon(
+                                                          Icons.person,
+                                                          size: 80,
+                                                          color:
+                                                              Colors.grey[400],
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
                                           ),
                                         ),
                                       ),
@@ -418,80 +436,165 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: SizedBox(
-                                            child: TextFormField(
-                                              enabled: _edit,
-                                              controller: _inputName,
-                                              keyboardType: TextInputType.name,
-                                              validator: (value) {
-                                                if (value == null ||
-                                                    value.isEmpty) {
-                                                  return 'กรุณากรอกข้อมูล';
-                                                }
-                                                return null;
-                                              },
-                                              style: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 24,
+                                          child: TextFormField(
+                                            enabled: _edit,
+                                            controller: _inputName,
+                                            keyboardType: TextInputType.name,
+                                            validator: (value) {
+                                              if (value == null ||
+                                                  value.isEmpty) {
+                                                return 'กรุณากรอกข้อมูล';
+                                              }
+                                              return null;
+                                            },
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 16,
+                                              color: Colors.grey[800],
+                                            ),
+                                            decoration: InputDecoration(
+                                              labelText: 'ชื่อ',
+                                              labelStyle: GoogleFonts.kanit(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
                                               ),
-                                              decoration: InputDecoration(
-                                                alignLabelWithHint: true,
-                                                hintText: 'ชื่อ',
-                                                hintStyle: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontThaiSans,
-                                                  fontSize: 24,
-                                                ),
+                                              filled: true,
+                                              fillColor: _edit
+                                                  ? Colors.grey[50]
+                                                  : Colors.grey[100],
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[300]!),
                                               ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[300]!),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Color(0xFF079CFD),
+                                                    width: 2),
+                                              ),
+                                              disabledBorder:
+                                                  OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 14),
                                             ),
                                           ),
                                         ),
-                                        Padding(
-                                          padding: EdgeInsets.all(10),
-                                        ),
+                                        SizedBox(width: 12),
                                         Expanded(
-                                          child: SizedBox(
-                                            child: TextFormField(
-                                              enabled: _edit,
-                                              keyboardType: TextInputType.name,
-                                              controller: _inputLastname,
-                                              style: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 24,
+                                          child: TextFormField(
+                                            enabled: _edit,
+                                            keyboardType: TextInputType.name,
+                                            controller: _inputLastname,
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 16,
+                                              color: Colors.grey[800],
+                                            ),
+                                            decoration: InputDecoration(
+                                              labelText: 'นามสกุล',
+                                              labelStyle: GoogleFonts.kanit(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
                                               ),
-                                              decoration: InputDecoration(
-                                                  alignLabelWithHint: true,
-                                                  hintText: 'นามสกุล',
-                                                  hintStyle: TextStyle(
-                                                    fontFamily: FontStyles()
-                                                        .FontThaiSans,
-                                                    fontSize: 24,
-                                                  )),
+                                              filled: true,
+                                              fillColor: _edit
+                                                  ? Colors.grey[50]
+                                                  : Colors.grey[100],
+                                              border: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[300]!),
+                                              ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[300]!),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Color(0xFF079CFD),
+                                                    width: 2),
+                                              ),
+                                              disabledBorder:
+                                                  OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                borderSide: BorderSide(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 14),
                                             ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    Padding(padding: EdgeInsets.all(2)),
-                                    SizedBox(
-                                      child: TextFormField(
-                                        enabled: _edit,
-                                        keyboardType: TextInputType.name,
-                                        controller: _inputNickname,
-                                        style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontSize: 24,
+                                    SizedBox(height: 12),
+                                    TextFormField(
+                                      enabled: _edit,
+                                      keyboardType: TextInputType.name,
+                                      controller: _inputNickname,
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 16,
+                                        color: Colors.grey[800],
+                                      ),
+                                      decoration: InputDecoration(
+                                        labelText: 'ชื่อเล่น',
+                                        labelStyle: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
                                         ),
-                                        decoration: InputDecoration(
-                                            alignLabelWithHint: true,
-                                            hintText: 'ชื่อเรียกในองค์กร',
-                                            hintStyle: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontThaiSans,
-                                              fontSize: 24,
-                                            )),
+                                        filled: true,
+                                        fillColor: _edit
+                                            ? Colors.grey[50]
+                                            : Colors.grey[100],
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                              color: Colors.grey[300]!),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                              color: Colors.grey[300]!),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                              color: Color(0xFF079CFD),
+                                              width: 2),
+                                        ),
+                                        disabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 14),
                                       ),
                                     ),
                                     Padding(padding: EdgeInsets.all(2)),
@@ -728,69 +831,98 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              if (_edit) {
-                                                setState(() {
-                                                  _edit = false;
-                                                });
-                                              }
-                                              print('ยกเลิก');
-                                            },
+                                          // Cancel Button
+                                          Expanded(
                                             child: Container(
-                                              alignment: Alignment.center,
-                                              margin: EdgeInsets.only(
-                                                  left: 10, right: 10),
-                                              padding: EdgeInsets.only(
-                                                  left: 25, right: 25),
+                                              height: 48,
+                                              margin: EdgeInsets.only(right: 6),
                                               decoration: BoxDecoration(
-                                                color: Color(0xFFC8C8C8),
+                                                color: Colors.grey[300],
                                                 borderRadius:
-                                                    BorderRadius.circular(30),
+                                                    BorderRadius.circular(24),
                                               ),
-                                              child: Text(
-                                                'ยกเลิก',
-                                                style: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    color: Colors.black,
-                                                    fontSize: 26),
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                  onTap: () {
+                                                    if (_edit) {
+                                                      setState(() {
+                                                        _edit = false;
+                                                      });
+                                                    }
+                                                  },
+                                                  child: Center(
+                                                    child: Text(
+                                                      'ยกเลิก',
+                                                      style: GoogleFonts.kanit(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: Colors.grey[700],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              if (_formKey.currentState
-                                                      ?.validate() ??
-                                                  false) {
-                                                print('ถัดไป');
-                                                EasyLoading.show();
-                                                onUpdateProfile();
-                                                if (_edit) {
-                                                  setState(() {
-                                                    _edit = false;
-                                                  });
-                                                }
-                                              }
-                                            },
+                                          // Confirm Button
+                                          Expanded(
                                             child: Container(
-                                              alignment: Alignment.center,
-                                              margin: EdgeInsets.only(
-                                                  left: 10, right: 10),
-                                              padding: EdgeInsets.only(
-                                                  left: 25, right: 25),
+                                              height: 48,
+                                              margin: EdgeInsets.only(left: 6),
                                               decoration: BoxDecoration(
-                                                color: Color(0xFF079CFD),
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Color(0xFF18C0FF),
+                                                    Color(0xFF079CFD)
+                                                  ],
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                ),
                                                 borderRadius:
-                                                    BorderRadius.circular(30),
+                                                    BorderRadius.circular(24),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Color(0xFF079CFD)
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: Offset(0, 4),
+                                                  ),
+                                                ],
                                               ),
-                                              child: Text(
-                                                'ตกลง',
-                                                style: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    color: Colors.white,
-                                                    fontSize: 26),
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                  onTap: () {
+                                                    if (_formKey.currentState
+                                                            ?.validate() ??
+                                                        false) {
+                                                      EasyLoading.show();
+                                                      onUpdateProfile();
+                                                      if (_edit) {
+                                                        setState(() {
+                                                          _edit = false;
+                                                        });
+                                                      }
+                                                    }
+                                                  },
+                                                  child: Center(
+                                                    child: Text(
+                                                      'ตกลง',
+                                                      style: GoogleFonts.kanit(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -814,30 +946,29 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                             children: [
                               Padding(padding: EdgeInsets.all(2)),
                               Container(
+                                padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Row(
                                   children: [
                                     Expanded(
                                         child: Container(
                                       child: Text(
                                         'SUPER ADMIN',
-                                        style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 22),
+                                        style: GoogleFonts.kanit(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey[800]),
                                       ),
                                     )),
                                     FlutterSwitch(
                                       value: _switchSuperAdmin ? true : false,
-                                      width: 100.0,
-                                      height: 40.0,
-                                      valueFontSize: 16.0,
-                                      toggleSize: 30.0,
+                                      width: 50.0,
+                                      height: 30.0,
+                                      toggleSize: 26.0,
                                       borderRadius: 20.0,
-                                      padding: 5.0,
-                                      showOnOff: true,
-                                      activeText: 'ใช่',
-                                      activeColor: Colors.green,
-                                      inactiveText: 'ไม่',
-                                      inactiveColor: Colors.grey,
+                                      padding: 2.0,
+                                      showOnOff: false,
+                                      activeColor: Color(0xFF4CAF50),
+                                      inactiveColor: Colors.grey[300]!,
                                       onToggle: (state) {
                                         setState(() {
                                           _switchSuperAdmin = state;
@@ -861,30 +992,29 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                               ),
                               Padding(padding: EdgeInsets.all(2)),
                               Container(
+                                padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Row(
                                   children: [
                                     Expanded(
                                         child: Container(
                                       child: Text(
                                         'แอดมินสาขา',
-                                        style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 22),
+                                        style: GoogleFonts.kanit(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey[800]),
                                       ),
                                     )),
                                     FlutterSwitch(
                                       value: _switchAdminBranch ? true : false,
-                                      width: 100.0,
-                                      height: 40.0,
-                                      valueFontSize: 16.0,
-                                      toggleSize: 30.0,
+                                      width: 50.0,
+                                      height: 30.0,
+                                      toggleSize: 26.0,
                                       borderRadius: 20.0,
-                                      padding: 5.0,
-                                      showOnOff: true,
-                                      activeText: 'ใช่',
-                                      activeColor: Colors.green,
-                                      inactiveText: 'ไม่',
-                                      inactiveColor: Colors.grey,
+                                      padding: 2.0,
+                                      showOnOff: false,
+                                      activeColor: Color(0xFF4CAF50),
+                                      inactiveColor: Colors.grey[300]!,
                                       onToggle: (state) {
                                         setState(() {
                                           _switchAdminBranch = state;
@@ -915,91 +1045,78 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                 visible:
                                     widget.id_member == uid_my ? false : true,
                                 child: Container(
-                                  child: Column(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
                                     children: [
-                                      Container(
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                                child: Container(
-                                              child: Text(
-                                                'บทบาทในองค์กร',
-                                                style: TextStyle(
-                                                    fontFamily:
-                                                        FontStyles().FontFamily,
-                                                    fontSize: 22),
-                                              ),
-                                            )),
-                                            FlutterSwitch(
-                                              value:
-                                                  _switchAdmin ? true : false,
-                                              width: 100.0,
-                                              height: 40.0,
-                                              valueFontSize: 12.0,
-                                              toggleSize: 30.0,
-                                              borderRadius: 20.0,
-                                              padding: 5.0,
-                                              showOnOff: true,
-                                              activeText: 'ADMIN',
-                                              activeColor: Colors.amber,
-                                              inactiveText: 'MEMBER',
-                                              inactiveColor: Colors.grey,
-                                              onToggle: (state) {
-                                                setState(() {
-                                                  _switchAdmin = state;
-                                                  Map _map = {
-                                                    "uid": widget.id_member,
-                                                    "key": "type",
-                                                    "value":
-                                                        _switchAdmin.toString(),
-                                                  };
-                                                  print(_map);
-                                                  onLoadMemberStatusManage(
-                                                      _map);
-                                                });
-                                              },
-                                            ),
-                                          ],
+                                      Expanded(
+                                          child: Container(
+                                        child: Text(
+                                          'บทบาทในองค์กร',
+                                          style: GoogleFonts.kanit(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[800]),
                                         ),
+                                      )),
+                                      FlutterSwitch(
+                                        value: _switchAdmin ? true : false,
+                                        width: 50.0,
+                                        height: 30.0,
+                                        toggleSize: 26.0,
+                                        borderRadius: 20.0,
+                                        padding: 2.0,
+                                        showOnOff: false,
+                                        activeColor: Color(0xFF4CAF50),
+                                        inactiveColor: Colors.grey[300]!,
+                                        onToggle: (state) {
+                                          setState(() {
+                                            _switchAdmin = state;
+                                            Map _map = {
+                                              "uid": widget.id_member,
+                                              "key": "type",
+                                              "value": _switchAdmin.toString(),
+                                            };
+                                            print(_map);
+                                            onLoadMemberStatusManage(_map);
+                                          });
+                                        },
                                       ),
-                                      Padding(padding: EdgeInsets.all(2)),
                                     ],
                                   ),
                                 ),
                               ),
                               Padding(padding: EdgeInsets.all(2)),
                               Container(
+                                padding: EdgeInsets.symmetric(vertical: 8),
                                 child: Row(
                                   children: [
                                     Expanded(
                                         child: Container(
                                       child: Text(
                                         'รายงานประจำวันในประวัติ',
-                                        style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 22),
+                                        style: GoogleFonts.kanit(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey[800]),
                                       ),
                                     )),
                                     FlutterSwitch(
                                       value: _switchStat ? true : false,
-                                      width: 100.0,
-                                      height: 40.0,
-                                      valueFontSize: 16.0,
-                                      toggleSize: 30.0,
+                                      width: 50.0,
+                                      height: 30.0,
+                                      toggleSize: 26.0,
                                       borderRadius: 20.0,
-                                      padding: 5.0,
-                                      showOnOff: true,
-                                      activeText: 'ปกติ',
-                                      activeColor: Colors.green,
-                                      inactiveText: 'ไม่',
-                                      inactiveColor: Colors.red,
+                                      padding: 2.0,
+                                      showOnOff: false,
+                                      activeColor: Color(0xFF4CAF50),
+                                      inactiveColor: Colors.grey[300]!,
                                       onToggle: (state) {
                                         setState(() {
                                           _switchStat = state;
                                           Map _map = {
                                             "uid": widget.id_member,
                                             "key": "stat",
-                                            "value": _switchStat.toString(),
+                                            "value": state.toString(),
                                           };
                                           print(_map);
                                           onLoadMemberStatusManage(_map);
@@ -1028,17 +1145,14 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                       )),
                                       FlutterSwitch(
                                         value: _switchStatus ? true : false,
-                                        width: 100.0,
-                                        height: 40.0,
-                                        valueFontSize: 16.0,
-                                        toggleSize: 30.0,
+                                        width: 50.0,
+                                        height: 30.0,
+                                        toggleSize: 26.0,
                                         borderRadius: 20.0,
-                                        padding: 5.0,
-                                        showOnOff: true,
-                                        activeText: 'ใช้งาน',
-                                        activeColor: Colors.green,
-                                        inactiveText: 'ระงับ',
-                                        inactiveColor: Colors.red,
+                                        padding: 2.0,
+                                        showOnOff: false,
+                                        activeColor: Color(0xFF4CAF50),
+                                        inactiveColor: Colors.grey[300]!,
                                         onToggle: (state) {
                                           setState(() {
                                             _switchStatus = state;

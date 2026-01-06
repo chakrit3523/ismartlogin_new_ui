@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ismart_login/page/managements/future/department_manage_future.dart';
@@ -97,6 +98,47 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
   }
 
   //----
+  Widget _buildFilterChip(String text, int value) {
+    bool isSelected = status == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          status = value;
+          EasyLoading.show();
+          onLoadMemberManage(value.toString());
+        });
+      },
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? null
+              : Border.all(color: Colors.white.withOpacity(0.4)),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  )
+                ]
+              : [],
+        ),
+        child: Text(
+          text,
+          style: GoogleFonts.kanit(
+            fontSize: 14,
+            color: isSelected ? Color(0xFF079CFD) : Colors.white,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -133,49 +175,19 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         actions: [
-                          PopupMenuButton(
-                            icon: FaIcon(FontAwesomeIcons
-                                .filter), //don't specify icon if you want 3 dot menu
-                            color: Colors.white,
-                            itemBuilder: (context) => [
-                              PopupMenuItem<int>(
-                                value: 0,
-                                child: Text(
-                                  "ทั้งหมด",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 22),
-                                ),
+                          // Removed redundant PopupMenuButton as we now have filter chips
+                          Container(
+                            margin: EdgeInsets.only(right: 16),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                              child: IconButton(
+                                icon: FaIcon(FontAwesomeIcons.magnifyingGlass,
+                                    size: 18, color: Colors.white),
+                                onPressed: () {
+                                  // TODO: Implement search functionality
+                                },
                               ),
-                              PopupMenuItem<int>(
-                                value: 1,
-                                child: Text(
-                                  "เข้าใช้งานได้",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 22),
-                                ),
-                              ),
-                              PopupMenuItem<int>(
-                                value: 2,
-                                child: Text(
-                                  "ระงับการใช้งาน",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 22),
-                                ),
-                              ),
-                            ],
-                            onSelected: (item) {
-                              setState(() {
-                                EasyLoading.show();
-                                onLoadMemberManage(item.toString());
-                                status = item;
-                              });
-                            },
+                            ),
                           )
                         ],
                         title: Text(
@@ -187,43 +199,51 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                       ),
                       Container(
                         width: WidhtDevice().widht(context),
-                        padding:
-                            EdgeInsets.only(left: 20, right: 20, bottom: 5),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        padding: EdgeInsets.fromLTRB(20, 10, 20, 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              child: Text(
-                                status == 0
-                                    ? 'ทั้งหมด'
-                                    : status == 1
-                                        ? 'ใช้งานปกติ'
-                                        : 'ระงับการใช้งาน',
-                                style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 18),
-                              ),
-                            ),
-                            Container(
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
                               child: Row(
                                 children: [
-                                  Text(
-                                    _item.length.toString(),
-                                    style: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Padding(padding: EdgeInsets.all(2)),
-                                  Text(
-                                    'คน',
-                                    style: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 18),
-                                  )
+                                  _buildFilterChip('ทั้งหมด', 0),
+                                  SizedBox(width: 10),
+                                  _buildFilterChip('เข้าใช้งานปกติ', 1),
+                                  SizedBox(width: 10),
+                                  _buildFilterChip('ระงับการใช้งาน', 2),
                                 ],
                               ),
-                            )
+                            ),
+                            SizedBox(height: 15),
+                            Row(
+                              children: [
+                                Text(
+                                  'จำนวนสมาชิก',
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 16,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
+                                ),
+                                Spacer(),
+                                Text(
+                                  _item.length.toString(),
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'คน',
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 16,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -244,7 +264,8 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 OrgMemberDetailScreen(
-                                              title: _item[index].FULLNAME ?? '',
+                                              title:
+                                                  _item[index].FULLNAME ?? '',
                                               id_member:
                                                   _item[index].ID.toString(),
                                               status: _item[index].STATUS == '1'
@@ -259,305 +280,225 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                         });
                                       },
                                       child: Container(
-                                        margin: EdgeInsets.only(bottom: 10),
+                                        margin: EdgeInsets.only(bottom: 15),
                                         width: WidhtDevice().widht(context),
                                         decoration: BoxDecoration(
-                                          color: _item[index].STATUS == '1'
-                                              ? Colors.green[200]
-                                              : Colors.red[200],
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(10.0),
-                                            topRight: Radius.circular(15.0),
-                                            bottomLeft: Radius.circular(10.0),
-                                            bottomRight: Radius.circular(15.0),
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                          border: Border(
+                                            left: BorderSide(
+                                              color: _item[index].STATUS == '1'
+                                                  ? Color(0xFF4CAF50)
+                                                  : Color(0xFFEF5350),
+                                              width: 5,
+                                            ),
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  Colors.grey.withOpacity(0.5),
-                                              spreadRadius: 5,
-                                              blurRadius: 7,
-                                              offset: Offset(3,
-                                                  0), // changes position of shadow
+                                              color: Colors.black
+                                                  .withOpacity(0.08),
+                                              blurRadius: 10,
+                                              offset: Offset(0, 4),
                                             ),
                                           ],
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Padding(padding: EdgeInsets.all(5)),
-                                            Expanded(
-                                                child: Stack(
-                                              children: [
-                                                Container(
-                                                  padding: EdgeInsets.all(5),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.only(
-                                                      topRight:
-                                                          Radius.circular(15.0),
-                                                      bottomRight:
-                                                          Radius.circular(15.0),
-                                                    ),
+                                        child: Padding(
+                                          padding: EdgeInsets.all(12),
+                                          child: Row(
+                                            children: [
+                                              // Avatar with gradient
+                                              Container(
+                                                width: 60,
+                                                height: 60,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Color(0xFF18C0FF),
+                                                      Color(0xFF079CFD)
+                                                    ],
+                                                    begin: Alignment.topLeft,
+                                                    end: Alignment.bottomRight,
                                                   ),
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      _item[index].AVATAR ==
-                                                                  null ||
-                                                              _item[index]
-                                                                      .AVATAR ==
-                                                                  ''
-                                                          ? Container(
-                                                              alignment:
-                                                                  Alignment
-                                                                      .center,
-                                                              width: 50,
-                                                              height: 50,
-                                                              decoration:
-                                                                  new BoxDecoration(
-                                                                color: Color(
-                                                                    0xFFF2F2F2),
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                                border: Border.all(
-                                                                    color: Colors
-                                                                        .white,
-                                                                    width: 2),
-                                                                boxShadow: [
-                                                                  BoxShadow(
-                                                                    color: Colors
-                                                                        .grey
-                                                                        .withOpacity(
-                                                                            0.3),
-                                                                    spreadRadius:
-                                                                        2,
-                                                                    blurRadius:
-                                                                        5,
-                                                                    offset: Offset(
-                                                                        0,
-                                                                        0), // changes position of shadow
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              child: Icon(
-                                                                Icons.person,
-                                                                color: Colors
-                                                                    .white,
-                                                                size: 40,
-                                                              ),
-                                                            )
-                                                          : Container(
-                                                              alignment:
-                                                                  Alignment
-                                                                      .center,
-                                                              width: 50,
-                                                              height: 50,
-                                                              decoration:
-                                                                  new BoxDecoration(
-                                                                color: Color(
-                                                                    0xFFF2F2F2),
-                                                                image:
-                                                                    DecorationImage(
-                                                                  image: NetworkImage(Server
-                                                                          .url +
-                                                                      (_item[index].AVATAR ?? '')),
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                ),
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                                border: Border.all(
-                                                                    color: Colors
-                                                                        .white,
-                                                                    width: 2),
-                                                                boxShadow: [
-                                                                  BoxShadow(
-                                                                    color: Colors
-                                                                        .grey
-                                                                        .withOpacity(
-                                                                            0.3),
-                                                                    spreadRadius:
-                                                                        2,
-                                                                    blurRadius:
-                                                                        5,
-                                                                    offset: Offset(
-                                                                        0,
-                                                                        0), // changes position of shadow
-                                                                  ),
-                                                                ],
-                                                              ),
+                                                  shape: BoxShape.circle,
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Color(0xFF18C0FF)
+                                                          .withOpacity(0.3),
+                                                      blurRadius: 8,
+                                                      offset: Offset(0, 3),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: _item[index].AVATAR ==
+                                                            null ||
+                                                        _item[index].AVATAR ==
+                                                            ''
+                                                    ? Icon(
+                                                        Icons.person,
+                                                        color: Colors.white,
+                                                        size: 35,
+                                                      )
+                                                    : ClipOval(
+                                                        child: Image.network(
+                                                          Server.url +
+                                                              (_item[index]
+                                                                      .AVATAR ??
+                                                                  ''),
+                                                          fit: BoxFit.cover,
+                                                          width: 60,
+                                                          height: 60,
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            return Icon(
+                                                              Icons.person,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 35,
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                              ),
+                                              SizedBox(width: 12),
+                                              // Content
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    // Name with ADMIN badge
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            _subFullname(_item[
+                                                                        index]
+                                                                    .FULLNAME ??
+                                                                ''),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style: GoogleFonts
+                                                                .kanit(
+                                                              fontSize: 18,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: Colors
+                                                                  .grey[800],
                                                             ),
-                                                      Expanded(
-                                                        child: Container(
-                                                          child: Column(
-                                                            children: [
-                                                              Row(
-                                                                children: [
-                                                                  Padding(
-                                                                      padding:
-                                                                          EdgeInsets.all(
-                                                                              2)),
-                                                                  Expanded(
-                                                                    child:
-                                                                        Container(
-                                                                      padding: EdgeInsets.only(
-                                                                          left:
-                                                                              3,
-                                                                          right:
-                                                                              3),
-                                                                      child:
-                                                                          Text(
-                                                                        _subFullname(
-                                                                            _item[index].FULLNAME ?? ''),
-                                                                        overflow:
-                                                                            TextOverflow.ellipsis,
-                                                                        style:
-                                                                            TextStyle(
-                                                                          fontFamily:
-                                                                              FontStyles().FontFamily,
-                                                                          fontSize:
-                                                                              24,
-                                                                          height:
-                                                                              1,
-                                                                          color:
-                                                                              Colors.black,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              Padding(
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .all(
-                                                                              2)),
-                                                              Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .end,
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .end,
-                                                                children: [
-                                                                  Padding(
-                                                                      padding:
-                                                                          EdgeInsets.all(
-                                                                              2)),
-                                                                  Expanded(
-                                                                    child:
-                                                                        Container(
-                                                                      child:
-                                                                          Row(
-                                                                        children: [
-                                                                          FaIcon(
-                                                                            FontAwesomeIcons.streetView,
-                                                                            size:
-                                                                                16,
-                                                                            color:
-                                                                                Colors.grey[400],
-                                                                          ),
-                                                                          Expanded(
-                                                                              child: Container(
-                                                                            alignment:
-                                                                                Alignment.centerLeft,
-                                                                            child:
-                                                                                SingleChildScrollView(
-                                                                              scrollDirection: Axis.horizontal,
-                                                                              child: Text(
-                                                                                _item[index].ORG_SUB_ID == null || _item[index].ORG_SUB_ID == '' ? ' - ไม่มีข้อมูล -' : _getSubjectDepartment(int.parse(_item[index].ORG_SUB_ID ?? '0')),
-                                                                                style: TextStyle(
-                                                                                  fontFamily: FontStyles().FontFamily,
-                                                                                  fontSize: 18,
-                                                                                  height: 1,
-                                                                                  color: Colors.grey,
-                                                                                ),
-                                                                              ),
-                                                                            ),
-                                                                          ))
-                                                                        ],
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  Padding(
-                                                                      padding:
-                                                                          EdgeInsets.all(
-                                                                              2)),
-                                                                  Container(
-                                                                    child: Row(
-                                                                      children: [
-                                                                        FaIcon(
-                                                                          FontAwesomeIcons
-                                                                              .businessTime,
-                                                                          size:
-                                                                              16,
-                                                                          color:
-                                                                              Colors.grey[400],
-                                                                        ),
-                                                                        Container(
-                                                                          child:
-                                                                              Text(
-                                                                            _item[index].TIME_ID == null || _item[index].TIME_ID == ''
-                                                                                ? ' - ไม่มีข้อมูล -'
-                                                                                : _getSubjectTime(int.parse(_item[index].TIME_ID ?? '0')),
-                                                                            style:
-                                                                                TextStyle(
-                                                                              fontFamily: FontStyles().FontFamily,
-                                                                              fontSize: 18,
-                                                                              height: 1,
-                                                                              color: Colors.grey,
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                  Padding(
-                                                                    padding:
-                                                                        EdgeInsets
-                                                                            .all(2),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ],
                                                           ),
                                                         ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Visibility(
-                                                  visible: _item[index]
-                                                              .MEMBER_TYPE ==
-                                                          'admin'
-                                                      ? true
-                                                      : false,
-                                                  child: Positioned(
-                                                    right: 0,
-                                                    top: 0,
-                                                    child: Container(
-                                                      padding: EdgeInsets.only(
-                                                          left: 2, right: 2),
-                                                      color: Colors.amber,
-                                                      child: Text(
-                                                        'ADMIN',
-                                                        style: TextStyle(
-                                                          fontFamily:
-                                                              FontStyles()
-                                                                  .FontFamily,
-                                                          fontSize: 14,
-                                                          height: 1,
-                                                        ),
-                                                      ),
+                                                        if (_item[index]
+                                                                .MEMBER_TYPE ==
+                                                            'admin')
+                                                          Container(
+                                                            padding: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        8,
+                                                                    vertical:
+                                                                        2),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color:
+                                                                  Colors.amber,
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          12),
+                                                            ),
+                                                            child: Text(
+                                                              'ADMIN',
+                                                              style: GoogleFonts
+                                                                  .kanit(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                      ],
                                                     ),
-                                                  ),
+                                                    SizedBox(height: 6),
+                                                    // Department
+                                                    Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .business_outlined,
+                                                          size: 14,
+                                                          color:
+                                                              Colors.grey[500],
+                                                        ),
+                                                        SizedBox(width: 4),
+                                                        Expanded(
+                                                          child: Text(
+                                                            _item[index].ORG_SUB_ID ==
+                                                                        null ||
+                                                                    _item[index]
+                                                                            .ORG_SUB_ID ==
+                                                                        ''
+                                                                ? '- ไม่มีข้อมูล -'
+                                                                : _getSubjectDepartment(
+                                                                    int.parse(
+                                                                        _item[index].ORG_SUB_ID ??
+                                                                            '0')),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style: GoogleFonts
+                                                                .kanit(
+                                                              fontSize: 13,
+                                                              color: Colors
+                                                                  .grey[600],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    SizedBox(height: 4),
+                                                    // Time
+                                                    Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.access_time,
+                                                          size: 14,
+                                                          color:
+                                                              Colors.grey[500],
+                                                        ),
+                                                        SizedBox(width: 4),
+                                                        Text(
+                                                          _item[index].TIME_ID ==
+                                                                      null ||
+                                                                  _item[index]
+                                                                          .TIME_ID ==
+                                                                      ''
+                                                              ? '- ไม่มีข้อมูล -'
+                                                              : _getSubjectTime(
+                                                                  int.parse(
+                                                                      _item[index]
+                                                                              .TIME_ID ??
+                                                                          '0')),
+                                                          style:
+                                                              GoogleFonts.kanit(
+                                                            fontSize: 13,
+                                                            color: Colors
+                                                                .grey[600],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
-                                            )),
-                                          ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     );
