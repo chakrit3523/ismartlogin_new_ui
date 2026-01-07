@@ -30,7 +30,6 @@ import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/outside/outside_screen.dart';
 import 'package:ismart_login/widgets/atom_orbit_widget.dart';
-import 'package:ismart_login/widgets/curved_white_panel_clipper.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -697,7 +696,7 @@ class _FrontScreenState extends State<FrontScreen>
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 15,
               spreadRadius: 2,
             ),
@@ -778,7 +777,7 @@ class _FrontScreenState extends State<FrontScreen>
                   (index) => Container(
                         width: 2,
                         height: 3,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                       )),
             ),
           ),
@@ -975,7 +974,7 @@ class _FrontScreenState extends State<FrontScreen>
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 10,
                   spreadRadius: 1,
                   offset: Offset(0, 4),

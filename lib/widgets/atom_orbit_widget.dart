@@ -234,7 +234,7 @@ class ExactCSSAtomPainter extends CustomPainter {
         // Electron dasharray 1 289
         _drawDashedPath(canvas, metric, length, offset, [1, 289], paint);
       } else {
-        paint.color = color.withOpacity(orbit.opacity);
+        paint.color = color.withValues(alpha: orbit.opacity);
         paint.strokeWidth = 4;
 
         if (orbit.isSolid) {

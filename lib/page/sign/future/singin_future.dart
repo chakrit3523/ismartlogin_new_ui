@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:ismart_login/page/sign/model/memberlist.dart';
-import 'package:ismart_login/page/sign/model/memberresult.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:http/http.dart' as http;
 

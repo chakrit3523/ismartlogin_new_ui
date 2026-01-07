@@ -1,11 +1,8 @@
 import 'dart:convert';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:ismart_login/page/front/model/attendOutsideDescriptionPop.dart';
-import 'package:ismart_login/page/front/model/sumaryToDay_ontime.dart';
 import 'package:ismart_login/page/front/model/sumaryToDay_outside.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -51,7 +48,7 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Colors.white.withOpacity(0),
+                backgroundColor: Colors.white.withValues(alpha: 0),
                 elevation: 0,
               ),
               Expanded(
@@ -281,8 +278,8 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                                                       _items[index]
                                                           .START_LONGITUDE +
                                                       '';
-                                              if (await canLaunch(url)) {
-                                                await launch(url);
+                                              final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                                                await launchUrl(Uri.parse(url));
                                               } else {
                                                 throw 'Could not launch $url';
                                               }
@@ -343,7 +340,7 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
 
   _getStatusLocation(String _status) {
     String _txt = '';
-    if (_status != '' && _status != null) {
+    if (_status != '') {
       List _list = json.decode(_status);
       List _checkboxListTile = ['โปรแกรมระบุตำแหน่งผิดพลาด', 'ทำงานนอกสถานที่'];
       if (_list.length > 0) {

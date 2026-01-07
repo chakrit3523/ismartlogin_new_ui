@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:ismart_login/page/managements/org_departmentdetail_screen.dart';
-import 'package:ismart_login/page/managements/org_timedatail_screen.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
@@ -65,7 +63,7 @@ class _OrgManageState extends State<OrgManage> {
                       'จัดการทีม/องค์กร',
                       style: StylesText.titleAppBar,
                     ),
-                    backgroundColor: Colors.white.withOpacity(0),
+                    backgroundColor: Colors.white.withValues(alpha: 0),
                     elevation: 0,
                   ),
                   SingleChildScrollView(

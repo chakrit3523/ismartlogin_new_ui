@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/repassword/future/repassword_future.dart';
@@ -82,7 +80,7 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                   actions: [
                     IconButton(
@@ -158,7 +156,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                   Container(
                                     child: GestureDetector(
                                       onTap: () {
-                                        if (_formKey.currentState?.validate() ?? false) {
+                                        if (_formKey.currentState?.validate() ??
+                                            false) {
                                           onLoadGetMember();
                                         }
                                       },
@@ -219,7 +218,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                                     boxShadow: [
                                                       BoxShadow(
                                                         color: Colors.grey
-                                                            .withOpacity(0.3),
+                                                            .withValues(
+                                                                alpha: 0.3),
                                                         spreadRadius: 2,
                                                         blurRadius: 5,
                                                         offset: Offset(0,
@@ -250,8 +250,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                                         boxShadow: [
                                                           BoxShadow(
                                                             color: Colors.grey
-                                                                .withOpacity(
-                                                                    0.3),
+                                                                .withValues(
+                                                                    alpha: 0.3),
                                                             spreadRadius: 2,
                                                             blurRadius: 5,
                                                             offset: Offset(0,
@@ -288,8 +288,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                                         boxShadow: [
                                                           BoxShadow(
                                                             color: Colors.grey
-                                                                .withOpacity(
-                                                                    0.3),
+                                                                .withValues(
+                                                                    alpha: 0.3),
                                                             spreadRadius: 2,
                                                             blurRadius: 5,
                                                             offset: Offset(0,

@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/contact_dev/contactdev_screen.dart';
 import 'package:ismart_login/page/faq/faq_screen.dart';
 import 'package:ismart_login/page/front/future/relationship_future.dart';
-import 'package:ismart_login/page/front/model/itemMemberRelationship.dart';
 import 'package:ismart_login/page/front/model/itemMemberResultRelationship.dart';
 import 'package:ismart_login/page/leave/leave_list.dart';
 import 'package:ismart_login/page/leave/leave_settings.dart';
@@ -17,18 +16,13 @@ import 'package:ismart_login/page/managements/future/department_manage_future.da
 import 'package:ismart_login/page/managements/future/time_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemDepartmentResultManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
-import 'package:ismart_login/page/managements/model/org_map.dart';
 import 'package:ismart_login/page/managements/org_department_screen.dart';
-import 'package:ismart_login/page/managements/org_departmentdetail_screen.dart';
-import 'package:ismart_login/page/managements/org_holiday_screen.dart';
 import 'package:ismart_login/page/managements/org_lock_time.dart';
 import 'package:ismart_login/page/managements/org_member_screen.dart';
 import 'package:ismart_login/page/managements/org_screen.dart';
 import 'package:ismart_login/page/managements/org_time_screen.dart';
 import 'package:ismart_login/page/managements/org_timedatail_screen.dart';
-import 'package:ismart_login/page/org/create_screen.dart';
 import 'package:ismart_login/page/profile/profile_screen.dart';
-import 'package:ismart_login/page/profile/vacation_screen.dart';
 import 'package:ismart_login/page/sign/signout_popup.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -259,7 +253,7 @@ class _MenuDrawerState extends State<MenuDrawer> {
                         widget.org,
                         style: GoogleFonts.kanit(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),

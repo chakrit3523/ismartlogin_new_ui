@@ -41,8 +41,12 @@ class _ProtectAppState extends State<ProtectApp> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _onWillPop();
+      },
       child: Scaffold(
         body: Container(
           width: MediaQuery.of(context).size.width,
@@ -137,7 +141,9 @@ class _ProtectAppState extends State<ProtectApp> {
                                         visible: _display,
                                         child: GestureDetector(
                                           onTap: () {
-                                            if (_formKey.currentState?.validate() ?? false) {
+                                            if (_formKey.currentState
+                                                    ?.validate() ??
+                                                false) {
                                               _setValue();
                                             }
                                           },
@@ -207,7 +213,8 @@ class _ProtectAppState extends State<ProtectApp> {
                                             ),
                                             GestureDetector(
                                               onTap: () {
-                                                launch("tel:+66864908961");
+                                                launchUrl(Uri.parse(
+                                                    "tel:+66864908961"));
                                               },
                                               child: Text(
                                                 '086-4908961 (คุณมิน)',

@@ -1,14 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:crypto/crypto.dart';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/page/profile/model/itemPasswordResult.dart';
-import 'package:ismart_login/style/develop_blank.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -102,7 +98,7 @@ class _PasswordChangeState extends State<PasswordChange> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                   leading: IconButton(
                     icon: Icon(

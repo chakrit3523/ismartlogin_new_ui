@@ -8,7 +8,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/clock.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:http/http.dart' as http;
@@ -95,7 +94,7 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
       'firstTime': widget.firstTime,
       'lastTime': widget.lastTime,
       'selectFulltime': widget.selectFulltime,
-      'cid': widget.cidSub != null && widget.cidSub != ''
+      'cid': widget.cidSub != ''
           ? widget.cidSub
           : cidLeave,
     };
@@ -147,24 +146,22 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
     request.fields['firstTime'] = widget.firstTime;
     request.fields['lastTime'] = widget.lastTime;
     request.fields['selectFulltime'] = widget.selectFulltime;
-    if (widget.cidSub != null && widget.cidSub != '') {
+    if (widget.cidSub != '') {
       request.fields['cid'] = widget.cidSub;
     } else {
       request.fields['cid'] = cidLeave;
     }
-    if (widget.filesAll != null) {
-      var lenFile = widget.filesAll.length;
-      if (lenFile > 0) {
-        for (int i = 0; i < lenFile; i++) {
-          var ext = widget.filesAll[i].path.split('.').last;
-          var file = await http.MultipartFile.fromPath(
-              'file[$i]', widget.filesAll[i].path,
-              contentType: MediaType('image', ext));
-          request.files.add(file);
-        }
+    var lenFile = widget.filesAll.length;
+    if (lenFile > 0) {
+      for (int i = 0; i < lenFile; i++) {
+        var ext = widget.filesAll[i].path.split('.').last;
+        var file = await http.MultipartFile.fromPath(
+            'file[$i]', widget.filesAll[i].path,
+            contentType: MediaType('image', ext));
+        request.files.add(file);
       }
     }
-
+  
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     if (response.statusCode == 200) {

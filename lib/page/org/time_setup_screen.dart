@@ -438,8 +438,8 @@ class _TimeSetupScreenState extends State<TimeSetupScreen> {
                 _daySettings[index]['enabled'] = value;
               });
             },
-            activeColor: Color(0xFF4CAF50),
-            activeTrackColor: Color(0xFF4CAF50).withOpacity(0.5),
+            activeThumbColor: Color(0xFF4CAF50),
+            activeTrackColor: Color(0xFF4CAF50).withValues(alpha: 0.5),
             inactiveThumbColor: Colors.grey[400],
             inactiveTrackColor: Colors.grey[300],
           ),

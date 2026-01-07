@@ -182,7 +182,7 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                           'สมาชิก',
                           style: StylesText.titleAppBar,
                         ),
-                        backgroundColor: Colors.white.withOpacity(0),
+                        backgroundColor: Colors.white.withValues(alpha: 0),
                         elevation: 0,
                       ),
                       Container(
@@ -244,7 +244,8 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 OrgMemberDetailScreen(
-                                              title: _item[index].FULLNAME ?? '',
+                                              title:
+                                                  _item[index].FULLNAME ?? '',
                                               id_member:
                                                   _item[index].ID.toString(),
                                               status: _item[index].STATUS == '1'
@@ -273,8 +274,8 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  Colors.grey.withOpacity(0.5),
+                                              color: Colors.grey
+                                                  .withValues(alpha: 0.5),
                                               spreadRadius: 5,
                                               blurRadius: 7,
                                               offset: Offset(3,
@@ -330,8 +331,9 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                                                   BoxShadow(
                                                                     color: Colors
                                                                         .grey
-                                                                        .withOpacity(
-                                                                            0.3),
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.3),
                                                                     spreadRadius:
                                                                         2,
                                                                     blurRadius:
@@ -363,7 +365,9 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                                                     DecorationImage(
                                                                   image: NetworkImage(Server
                                                                           .url +
-                                                                      (_item[index].AVATAR ?? '')),
+                                                                      (_item[index]
+                                                                              .AVATAR ??
+                                                                          '')),
                                                                   fit: BoxFit
                                                                       .cover,
                                                                 ),
@@ -377,8 +381,9 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                                                   BoxShadow(
                                                                     color: Colors
                                                                         .grey
-                                                                        .withOpacity(
-                                                                            0.3),
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.3),
                                                                     spreadRadius:
                                                                         2,
                                                                     blurRadius:
@@ -410,8 +415,8 @@ class _OrgMemberScreenState extends State<OrgMemberScreen> {
                                                                               3),
                                                                       child:
                                                                           Text(
-                                                                        _subFullname(
-                                                                            _item[index].FULLNAME ?? ''),
+                                                                        _subFullname(_item[index].FULLNAME ??
+                                                                            ''),
                                                                         overflow:
                                                                             TextOverflow.ellipsis,
                                                                         style:

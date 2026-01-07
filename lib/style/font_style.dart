@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 class FontStyles {
   String FontFamily = "thaisanslite_r1";

@@ -97,10 +97,8 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   @override
   void dispose() {
     super.dispose();
-    if (widget.loadData != null) {
-      widget.loadData();
+    widget.loadData();
     }
-  }
 
   showLoaderDialog(BuildContext context) {
     AlertDialog alert = AlertDialog(
@@ -168,7 +166,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   }
 
   Future<void> _launchInBrowser(String url) async {
-    if (await canLaunch(url)) {
+    final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
       await launch(
         url,
         forceSafariVC: false,
@@ -428,7 +426,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
       width: 100, // Fixed width for each card
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -503,14 +501,14 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Leave Detail Card
-                  if (data != null && data.length > 0)
+                  if (data.length > 0)
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             spreadRadius: 2,
                             blurRadius: 5,
                             offset: Offset(0, 3), // changes position of shadow
@@ -555,8 +553,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                                 _buildDetailRow("เบอร์ที่ติดต่อได้", phone),
                                 _buildDetailRow("สถานะคำขอลา", leaveStatusText,
                                     color: Color(0xFFFF7700)),
-                                if (dataFiles != null &&
-                                    dataFiles.length > 0) ...[
+                                if (dataFiles.length > 0) ...[
                                   Divider(height: 20),
                                   Align(
                                     alignment: Alignment.centerLeft,
@@ -634,7 +631,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                   SizedBox(height: 32),
 
                   // Action Buttons
-                  if (data != null && data.length > 0)
+                  if (data.length > 0)
                     _buildActionButtons(context),
 
                   SizedBox(height: 40),

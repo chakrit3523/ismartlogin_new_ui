@@ -49,7 +49,7 @@ class _ContactDeveloperState extends State<ContactDeveloper> {
                         color: Colors.white,
                         fontWeight: FontWeight.normal),
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                 ),
                 Container(
@@ -95,7 +95,8 @@ class _ContactDeveloperState extends State<ContactDeveloper> {
                                         ),
                                         GestureDetector(
                                           onTap: () {
-                                            launch("tel:+66864908961");
+                                            launchUrl(
+                                                Uri.parse("tel:+66864908961"));
                                           },
                                           child: Text(
                                             '086-4908961 (คุณมิน)',

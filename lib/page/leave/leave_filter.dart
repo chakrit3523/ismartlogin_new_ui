@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -84,25 +83,17 @@ class _LeaveFilterScreenState extends State<LeaveFilterScreen> {
   }
 
   void initState() {
-    if (widget.statusDataTmp != null && widget.statusDataTmp.length > 0) {
+    if (widget.statusDataTmp.length > 0) {
       statusData = widget.statusDataTmp;
     }
-    if (widget.typesDataTmp != null && widget.typesDataTmp.length > 0) {
+    if (widget.typesDataTmp.length > 0) {
       typesData = widget.typesDataTmp;
     }
-    if (widget.dropdownValueStartMonthTmp != null) {
-      dropdownValueStartMonth = widget.dropdownValueStartMonthTmp.toString();
-    }
-    if (widget.dropdownValueStartYearTmp != null) {
+    dropdownValueStartMonth = widget.dropdownValueStartMonthTmp.toString();
       dropdownValueStartYear = widget.dropdownValueStartYearTmp.toString();
-    }
-    if (widget.dropdownValueEndMonthTmp != null) {
       dropdownValueEndMonth = widget.dropdownValueEndMonthTmp.toString();
-    }
-    if (widget.dropdownValueEndYearTmp != null) {
       dropdownValueEndYear = widget.dropdownValueEndYearTmp.toString();
-    }
-    super.initState();
+      super.initState();
   }
 
   @override

@@ -1,24 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
 import 'package:flutter_countdown_timer/index.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
-import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
-import 'package:ismart_login/page/sign/model/for_post.dart';
-import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/repassword/repassword_screen.dart';
 import 'package:ismart_login/page/sign/repassword/search_account_screen.dart';
-import 'package:ismart_login/page/sign/signup_screen.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
@@ -256,7 +245,7 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                           );
                         },
                         child: FaIcon(
-                          FontAwesomeIcons.times,
+                          FontAwesomeIcons.xmark,
                           color: Colors.white,
                           size: 26,
                         ),
@@ -283,7 +272,7 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                               shape: BoxShape.circle,
                             ),
                             child: FaIcon(
-                              FontAwesomeIcons.shieldAlt,
+                              FontAwesomeIcons.shieldHalved,
                               size: 60,
                               color: Colors.white,
                             ),

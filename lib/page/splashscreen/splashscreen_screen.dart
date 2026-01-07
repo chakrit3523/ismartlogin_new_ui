@@ -141,9 +141,6 @@ class _SplashscreenScreenState extends State<SplashscreenScreen>
   check_protect() async {
     bool _bool = false;
     _bool = await SharedCashe.getItemsBoolWay(key: 'setProtect');
-    if (_bool == null) {
-      _bool = false;
-    }
     print('vv ' + _bool.toString());
     setState(() {
       protect = _bool;
@@ -256,7 +253,7 @@ class _SplashscreenScreenState extends State<SplashscreenScreen>
                         decoration:
                             BoxDecoration(shape: BoxShape.circle, boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 20,
                             offset: Offset(0, 10),
                           )

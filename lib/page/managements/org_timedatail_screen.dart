@@ -7,7 +7,6 @@ import 'package:ismart_login/page/managements/future/time_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemTimeManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
-import 'package:ismart_login/page/managements/org_time_screen.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
@@ -222,7 +221,7 @@ class _OrgTimeDetailManageState extends State<OrgTimeDetailManage> {
                       'วันเวลาทำงาน',
                       style: StylesText.titleAppBar,
                     ),
-                    backgroundColor: Colors.white.withOpacity(0),
+                    backgroundColor: Colors.white.withValues(alpha: 0),
                     elevation: 0,
                   ),
                   SingleChildScrollView(

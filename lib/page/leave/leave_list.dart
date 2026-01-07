@@ -172,32 +172,32 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
 
   onSetDataFilter(List status, List types, String monthStart, String yearStart,
       String monthEnd, String yearEnd) async {
-    if (status != null && status.length > 0) {
+    if (status.length > 0) {
       statusData = status;
     }
-    if (types != null && types.length > 0) {
+    if (types.length > 0) {
       typesData = types;
     }
 
-    if (monthStart != null && monthStart != "") {
+    if (monthStart != "") {
       dropdownValueStartMonth = monthStart;
     }else{
       dropdownValueStartMonth = "เลือกเดือน";
     }
 
-    if (yearStart != null && yearStart != "") {
+    if (yearStart != "") {
       dropdownValueStartYear = yearStart;
     }else{
       dropdownValueStartYear = "เลือกปี";
     }
 
-    if (monthEnd != null && monthEnd != "") {
+    if (monthEnd != "") {
       dropdownValueEndMonth = monthEnd;
     }else{
       dropdownValueEndMonth = "เลือกเดือน";
     }
 
-    if (yearEnd != null && yearEnd != "") {
+    if (yearEnd != "") {
       dropdownValueEndYear = yearEnd;
     }else{
       dropdownValueEndYear = "เลือกปี";
@@ -211,10 +211,10 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
   onLoadListLeaveManage() async {
     String statusLeave = '';
     String typesLeave = '';
-    if (statusData != null && statusData.length > 0) {
+    if (statusData.length > 0) {
       statusLeave = statusData.join(',');
     }
-    if (typesData != null && typesData.length > 0) {
+    if (typesData.length > 0) {
       typesLeave = typesData.join(',');
     }
     Map map = {
@@ -531,7 +531,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                     boxShadow: [
                                                       BoxShadow(
                                                         color: Colors.grey
-                                                            .withOpacity(0.5),
+                                                            .withValues(alpha: 0.5),
                                                         spreadRadius: 0,
                                                         blurRadius: 7,
                                                         offset: Offset(3,
@@ -868,7 +868,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
       if (!mounted) return;
       if (files.length > 0) {
         setState(() {
-          if (_files != null && _files.length > 0) {
+          if (_files.length > 0) {
             _files.addAll(files);
           } else {
             _files = files.toList();

@@ -17,9 +17,7 @@ import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart'
 import 'package:ismart_login/page/managements/model/itemMemberStatusManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/profile/future/profile_future.dart';
-import 'package:ismart_login/page/profile/password_screen.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/develop_blank.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
@@ -301,7 +299,7 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                     widget.title,
                     style: StylesText.titleAppBar,
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                 ),
                 SingleChildScrollView(

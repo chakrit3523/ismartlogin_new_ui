@@ -7,11 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/future/attend_future.dart';
-import 'package:ismart_login/page/front/model/attendStart.dart';
 import 'package:ismart_login/page/front/outside_popup.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/clock.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:ismart_login/utils/image_helper.dart';
 
@@ -101,7 +99,7 @@ class _InsiteDialogState extends State<InsiteDialog> {
 
   checkTimr(String time) {
     print(time);
-    if (time == null || time == "") {
+    if (time == "") {
       return true;
     }
     var now = new DateTime.now();

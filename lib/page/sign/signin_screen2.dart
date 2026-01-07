@@ -1,15 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:ismart_login/page/front/front_screen.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/singin_future.dart';
-import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/memberresult.dart';
 import 'package:ismart_login/page/sign/repassword/search_account_screen.dart';
 import 'package:ismart_login/page/sign/signup_screen.dart';
@@ -34,7 +29,7 @@ class _SignInScreenState extends State<SignInScreen2> {
   TextEditingController _inputUsername = TextEditingController();
   TextEditingController _inputPassword = TextEditingController();
   TextEditingController _inputAge = TextEditingController();
-  
+
   FocusNode _focusUsername = FocusNode();
   FocusNode _focusPassword = FocusNode();
   FocusNode _focusAge = FocusNode();
@@ -43,7 +38,7 @@ class _SignInScreenState extends State<SignInScreen2> {
     Map _map = {
       "USERNAME": _inputUsername.text,
       "PASSWORD": _inputPassword.text,
-      "AGE" : _inputAge.text,
+      "AGE": _inputAge.text,
       "STATUS": "manual",
     };
     return _map;
@@ -112,6 +107,7 @@ class _SignInScreenState extends State<SignInScreen2> {
               if (value == null || value.isEmpty) {
                 return 'กรุณาป้อน เบอร์โทรศัพท์';
               }
+              return null;
             },
           ),
           TextFormField(
@@ -136,6 +132,7 @@ class _SignInScreenState extends State<SignInScreen2> {
               if (value == null || value.isEmpty) {
                 return 'กรุณาป้อน รหัสผ่าน';
               }
+              return null;
             },
           ),
           // TextFormField(
@@ -206,8 +203,15 @@ class _SignInScreenState extends State<SignInScreen2> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: alert_back_system,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await alert_back_system();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: Scaffold(
         body: Container(
           width: MediaQuery.of(context).size.width,
@@ -311,52 +315,6 @@ class _SignInScreenState extends State<SignInScreen2> {
                             ),
                           ),
                           Divider(),
-                          // Container(
-                          //   child: Row(
-                          //     mainAxisAlignment: MainAxisAlignment.center,
-                          //     children: [
-                          //       MaterialButton(
-                          //         onPressed: () {
-                          //           print('facebook');
-                          //         },
-                          //         color: Color(0xFF3B5998),
-                          //         child: FaIcon(
-                          //           FontAwesomeIcons.facebookF,
-                          //           color: Colors.white,
-                          //           size: 26,
-                          //         ),
-                          //         padding: EdgeInsets.all(12),
-                          //         shape: CircleBorder(),
-                          //       ),
-                          //       MaterialButton(
-                          //         onPressed: () {
-                          //           print('line');
-                          //         },
-                          //         color: Color(0xFF00C300),
-                          //         child: Image.asset(
-                          //           'assets/images/social/line.png',
-                          //           width: 26,
-                          //           fit: BoxFit.fill,
-                          //         ),
-                          //         padding: EdgeInsets.all(12),
-                          //         shape: CircleBorder(),
-                          //       ),
-                          //       MaterialButton(
-                          //         onPressed: () {
-                          //           print('apple');
-                          //         },
-                          //         color: Color(0xFFA3AAAE),
-                          //         child: FaIcon(
-                          //           FontAwesomeIcons.apple,
-                          //           color: Colors.white,
-                          //           size: 26,
-                          //         ),
-                          //         padding: EdgeInsets.all(12),
-                          //         shape: CircleBorder(),
-                          //       )
-                          //     ],
-                          //   ),
-                          // )
                         ],
                       ),
                     ),

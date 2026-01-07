@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:ismart_login/page/faq/future/faq_future.dart';
 import 'package:ismart_login/page/faq/model/listFaq.dart';
-import 'package:ismart_login/page/faq/model/listFaqResult.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
@@ -64,7 +63,7 @@ class _FaqState extends State<Faq> {
                           'คำถามที่พบบ่อย',
                           style: StylesText.titleAppBar,
                         ),
-                        backgroundColor: Colors.white.withOpacity(0),
+                        backgroundColor: Colors.white.withValues(alpha: 0),
                         elevation: 0,
                       ),
                       Expanded(

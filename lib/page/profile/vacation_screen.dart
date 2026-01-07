@@ -3,7 +3,6 @@ import 'package:ismart_login/page/profile/login.dart';
 import 'package:ismart_login/page/profile/register.dart';
 import 'package:ismart_login/style/font_style.dart';
 
-import '../main.dart';
 
 class VacationScreen extends StatefulWidget {
   @override

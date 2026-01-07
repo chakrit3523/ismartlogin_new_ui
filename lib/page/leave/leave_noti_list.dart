@@ -5,11 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 
-import '../main.dart';
 import 'leave_detail.dart';
 
 class LeaveNotiListScreen extends StatefulWidget {
@@ -248,13 +245,13 @@ class _LeaveNotiListScreenState extends State<LeaveNotiListScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: Offset(0, 2),
             ),
           ],
           border: isUnread
-              ? Border.all(color: Color(0xFF21CCD4).withOpacity(0.3))
+              ? Border.all(color: Color(0xFF21CCD4).withValues(alpha: 0.3))
               : Border.all(color: Colors.grey[100]!),
         ),
         child: Row(

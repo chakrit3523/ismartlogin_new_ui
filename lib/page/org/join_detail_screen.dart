@@ -117,7 +117,7 @@ class _OrganizationJoinDetailScreenState
                           color: Colors.white,
                           fontWeight: FontWeight.normal),
                     ),
-                    backgroundColor: Colors.white.withOpacity(0),
+                    backgroundColor: Colors.white.withValues(alpha: 0),
                     elevation: 0,
                   ),
                   SingleChildScrollView(

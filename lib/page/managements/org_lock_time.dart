@@ -48,7 +48,7 @@ class _OrgLockTimeScreenState extends State<OrgLockTimeScreen> {
                             'ตั้งเวลาปุ่มเข้า-ออกงาน',
                             style: StylesText.titleAppBar,
                           ),
-                          backgroundColor: Colors.white.withOpacity(0),
+                          backgroundColor: Colors.white.withValues(alpha: 0),
                           elevation: 0,
                         ),
                         Expanded(

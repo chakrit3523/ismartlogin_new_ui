@@ -434,7 +434,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
             child: SafeArea(
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 child: Row(
                   children: [
                     IconButton(
@@ -490,7 +490,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
                               value: _faceQuality / 100,
-                              backgroundColor: Colors.white.withOpacity(0.2),
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 _faceQuality >= 90
                                     ? Colors.green
@@ -512,7 +512,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
                       padding:
                           EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
+                        color: Colors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(25),
                       ),
                       child: Text(
@@ -548,8 +548,8 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
                                     : Colors.grey,
                                 width: 4),
                             color: _faceQuality >= 80
-                                ? Colors.white.withOpacity(0.3)
-                                : Colors.grey.withOpacity(0.1),
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Colors.grey.withValues(alpha: 0.1),
                           ),
                           child: Icon(
                             Icons.camera_alt,
@@ -577,7 +577,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
                       'จัดตำแหน่งให้ตรงกรอบ แล้วกดถ่าย',
                       style: TextStyle(
                         fontFamily: FontStyles().FontFamily,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

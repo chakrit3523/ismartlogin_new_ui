@@ -2,9 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 import 'package:flutter_switch/flutter_switch.dart';
-import 'package:google_maps_webservice/places.dart' hide Location;
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -435,7 +433,7 @@ class _OrgDepartmentDetailManageState extends State<OrgDepartmentDetailManage> {
                         'สาขา',
                         style: StylesText.titleAppBar,
                       ),
-                      backgroundColor: Colors.white.withOpacity(0),
+                      backgroundColor: Colors.white.withValues(alpha: 0),
                       elevation: 0,
                     ),
                     Container(

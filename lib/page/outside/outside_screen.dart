@@ -16,9 +16,6 @@ import 'package:ismart_login/utils/image_helper.dart';
 
 import 'package:ismart_login/page/outside/future/attend_outside_future.dart';
 import 'package:ismart_login/page/outside/model/attendOutsideStart.dart';
-import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
-import 'package:ismart_login/system/widht_device.dart';
 
 class OutsideScreen extends StatefulWidget {
   final double lat;
@@ -423,7 +420,7 @@ class _OutsideScreenState extends State<OutsideScreen> {
                               borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Color(0xFF0663F7).withOpacity(0.3),
+                                  color: Color(0xFF0663F7).withValues(alpha: 0.3),
                                   blurRadius: 10,
                                   offset: Offset(0, 4),
                                 )
@@ -481,7 +478,7 @@ class _OutsideScreenState extends State<OutsideScreen> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 5,
             offset: Offset(0, 2),
           ),

@@ -8,7 +8,6 @@ import 'package:ismart_login/page/front/front_count_late_screen.dart';
 import 'package:ismart_login/page/front/front_count_ontime_screen.dart';
 import 'package:ismart_login/page/front/front_count_outside_screen.dart';
 import 'package:ismart_login/page/front/future/summary_future.dart';
-import 'package:ismart_login/page/front/model/sumaryAllDay.dart';
 import 'package:ismart_login/page/front/model/sumaryToDay.dart';
 import 'package:ismart_login/page/front/model/sumaryToDay_absence.dart';
 import 'package:ismart_login/page/front/model/sumaryToDay_late.dart';

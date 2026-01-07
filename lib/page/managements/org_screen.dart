@@ -136,7 +136,7 @@ class _OrgManageScreenState extends State<OrgManageScreen> {
                           'จัดการองค์กร',
                           style: StylesText.titleAppBar,
                         ),
-                        backgroundColor: Colors.white.withOpacity(0),
+                        backgroundColor: Colors.white.withValues(alpha: 0),
                         elevation: 0,
                       ),
                       Expanded(

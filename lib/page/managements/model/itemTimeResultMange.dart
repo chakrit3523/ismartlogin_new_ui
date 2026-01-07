@@ -1,4 +1,3 @@
-import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
 
 class ItemsTimeResultManage {
   final String ID;

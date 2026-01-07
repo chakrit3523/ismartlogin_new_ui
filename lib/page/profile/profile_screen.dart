@@ -3,7 +3,6 @@
 import 'dart:io';
 import 'dart:convert'; // Added for JSON decoding
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,9 +16,7 @@ import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart'; // Added
 import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -314,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: GoogleFonts.kanit(color: Colors.white),
                         ),
                         style: TextButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.2),
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
