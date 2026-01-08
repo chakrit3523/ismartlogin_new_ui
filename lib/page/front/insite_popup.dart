@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +11,7 @@ import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:ismart_login/utils/image_helper.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 Completer<GoogleMapController> _controller = Completer();
 final currentTime = DateTime.now();
@@ -136,6 +136,8 @@ class _InsiteDialogState extends State<InsiteDialog> {
 
   //---
   /// ---- Server - Synchronous Upload Flow ---
+  //---
+  /// ---- Server - Synchronous Upload Flow ---
   Future<bool> processCheckIn(Map map) async {
     try {
       setState(() {
@@ -158,6 +160,7 @@ class _InsiteDialogState extends State<InsiteDialog> {
 
       // Step 3: Upload image first
       final uploadResult = await AttandFuture().uploadAttend(
+        context: context,
         file: compressedFile,
         cmd: 'attend',
         uid: widget.uid,
@@ -195,7 +198,7 @@ class _InsiteDialogState extends State<InsiteDialog> {
         _isUploading = false;
         _uploadStatus = 'เกิดข้อผิดพลาด: ${e.toString()}';
       });
-      EasyLoading.showError('เกิดข้อผิดพลาด: ${e.toString()}');
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
       return false;
     }
   }

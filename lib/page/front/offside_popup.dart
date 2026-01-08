@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +9,7 @@ import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/utils/image_helper.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 Completer<GoogleMapController> _controller = Completer();
 final currentTime = DateTime.now();
@@ -109,6 +109,8 @@ class _OffsideDialogState extends State<OffsideDialog> {
 
   //---
   /// ---- Server - Synchronous Upload Flow ---
+  //---
+  /// ---- Server - Synchronous Upload Flow ---
   Future<bool> processCheckOut(Map map) async {
     try {
       setState(() {
@@ -127,6 +129,7 @@ class _OffsideDialogState extends State<OffsideDialog> {
 
       // Step 2: Upload image using V2 API (server gets uploadKey from today's record)
       final uploadResult = await AttandFuture().uploadImageV2(
+        context: context,
         file: compressedFile,
         uid: widget.uid,
         attactType: 'i_end', // checkout
@@ -165,7 +168,7 @@ class _OffsideDialogState extends State<OffsideDialog> {
         _isUploading = false;
         _uploadStatus = 'เกิดข้อผิดพลาด: ${e.toString()}';
       });
-      EasyLoading.showError('เกิดข้อผิดพลาด: ${e.toString()}');
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
       return false;
     }
   }

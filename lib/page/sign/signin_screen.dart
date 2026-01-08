@@ -2,7 +2,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -50,7 +51,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Handle auto-login for social users
   Future<void> _handleSocialAutoLogin(String emailOrPhone) async {
-    EasyLoading.show(status: 'กำลังเข้าสู่ระบบ...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังเข้าสู่ระบบ...');
 
     // Use the existing login API with a special social password
     Map loginMap = {
@@ -62,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await SigninFuture().apiSelectMember(loginMap).then((onValue) async {
         if (onValue[0]['msg'] == 'success') {
-          EasyLoading.dismiss();
+          loadingDialog.dismiss();
           var result = onValue[0]['result'][0];
 
           // Save user data to SharedPreferences using SharedCashe
@@ -83,7 +85,7 @@ class _SignInScreenState extends State<SignInScreen> {
           await SharedCashe.savaItemsString(
               key: 'username', valString: emailOrPhone);
 
-          EasyLoading.showSuccess('เข้าสู่ระบบสำเร็จ');
+          DialogHelper.showSuccess(context, 'เข้าสู่ระบบสำเร็จ');
 
           // Navigate to organization screen or front screen
           if (result['org_id'] != null &&
@@ -100,13 +102,14 @@ class _SignInScreenState extends State<SignInScreen> {
             );
           }
         } else {
-          EasyLoading.dismiss();
-          EasyLoading.showError('ไม่สามารถเข้าสู่ระบบได้');
+          loadingDialog.dismiss();
+          DialogHelper.showError(
+              context, 'เกิดข้อผิดพลาด', 'ไม่สามารถเข้าสู่ระบบได้');
         }
       });
     } catch (e) {
-      EasyLoading.dismiss();
-      EasyLoading.showError('เกิดข้อผิดพลาด');
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
       print('Social auto-login error: $e');
     }
   }
@@ -114,41 +117,51 @@ class _SignInScreenState extends State<SignInScreen> {
   //--API
   List<ItemsMemberResult> _result = [];
   Future<bool> onLoadGetMember(Map map) async {
-    EasyLoading.show();
-    await new SigninFuture().apiSelectMember(map).then((onValue) async {
-      print(onValue[0]['msg']);
-      print("wittawat rs");
-      print(onValue[0]['result']);
-      if (onValue[0]['msg'] == 'success') {
-        EasyLoading.dismiss();
-        await SharedCashe.saveItemsMemberList(item: onValue[0]['result']);
-        if (onValue[0]['result'][0]['org_id'] == '0') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OrganizationScreen(),
-            ),
-          );
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังเข้าสู่ระบบ...');
+    try {
+      await new SigninFuture().apiSelectMember(map).then((onValue) async {
+        print(onValue[0]['msg']);
+        print("wittawat rs");
+        print(onValue[0]['result']);
+        if (onValue[0]['msg'] == 'success') {
+          loadingDialog.dismiss();
+          await SharedCashe.saveItemsMemberList(item: onValue[0]['result']);
+          if (onValue[0]['result'][0]['org_id'] == '0') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrganizationScreen(),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainPage(),
+              ),
+            );
+            _showToast();
+          }
+        } else if (onValue[0]['msg'] == 'fail') {
+          loadingDialog.dismiss();
+          alert_non_signin(context, 'ไม่พบ Username');
         } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainPage(),
-            ),
-          );
-          _showToast();
+          loadingDialog.dismiss();
+          alert_non_signin(context, 'Password ของคุณไม่ถูกต้อง');
         }
-      } else if (onValue[0]['msg'] == 'fail') {
-        EasyLoading.dismiss();
-        alert_non_signin(context, 'ไม่พบ Username');
-      } else {
-        EasyLoading.dismiss();
-        alert_non_signin(context, 'Password ของคุณไม่ถูกต้อง');
-      }
-    });
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
+    }
     setState(() {});
     return true;
   }
+// ... (skip down to social login)
+// Note: I will use separate calls to fix the social login parts to avoid large block replacement issues if lines don't match exactly.
+// Actually, I can do multiple chunks if I am careful. The first chunk handles onLoadGetMember.
+// I will split this into multiple chunks in one tool call.
 
   Widget formlogin() {
     return Form(
@@ -376,16 +389,20 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontFamily: 'Tahoma',
                       fontWeight: FontWeight.normal)),
               onPressed: () async {
-                EasyLoading.show(status: 'กำลังเชื่อมต่อ...');
+                AwesomeDialog loadingDialog =
+                    DialogHelper.showLoading(context, 'กำลังเชื่อมต่อ...');
                 final result = await SocialAuthService().signInWithGoogle();
 
                 if (result != null && result.email != null) {
+                  loadingDialog.dismiss(); // Dismiss first loading
+
                   // Check if email already exists in system
-                  EasyLoading.show(status: 'กำลังตรวจสอบ...');
+                  AwesomeDialog checkingDialog =
+                      DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
                   try {
                     final existingMember = await MemberFuture()
                         .apiCheckMemberByEmail(result.email!);
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
 
                     if (existingMember.isNotEmpty &&
                         existingMember[0].STATUS == "true") {
@@ -409,7 +426,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       );
                     }
                   } catch (e) {
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
                     // On error, go to OTP flow as fallback
                     Navigator.push(
                       context,
@@ -426,8 +443,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     );
                   }
                 } else {
-                  EasyLoading.dismiss();
-                  EasyLoading.showError('ไม่สามารถเชื่อมต่อ Google ได้');
+                  loadingDialog.dismiss();
+                  DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                      'ไม่สามารถเชื่อมต่อ Google ได้');
                 }
               },
             ),
@@ -455,16 +473,20 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontFamily: 'Tahoma',
                       fontWeight: FontWeight.normal)),
               onPressed: () async {
-                EasyLoading.show(status: 'กำลังเชื่อมต่อ...');
+                AwesomeDialog loadingDialog =
+                    DialogHelper.showLoading(context, 'กำลังเชื่อมต่อ...');
                 final result = await SocialAuthService().signInWithApple();
 
                 if (result != null && result.email != null) {
+                  loadingDialog.dismiss();
+
                   // Check if email already exists in system
-                  EasyLoading.show(status: 'กำลังตรวจสอบ...');
+                  AwesomeDialog checkingDialog =
+                      DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
                   try {
                     final existingMember = await MemberFuture()
                         .apiCheckMemberByEmail(result.email!);
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
 
                     if (existingMember.isNotEmpty &&
                         existingMember[0].STATUS == "true") {
@@ -487,7 +509,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       );
                     }
                   } catch (e) {
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
                     // On error, go to OTP flow as fallback
                     Navigator.push(
                       context,
@@ -504,8 +526,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     );
                   }
                 } else {
-                  EasyLoading.dismiss();
-                  EasyLoading.showError('ไม่สามารถเชื่อมต่อ Apple ได้');
+                  loadingDialog.dismiss();
+                  DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                      'ไม่สามารถเชื่อมต่อ Apple ได้');
                 }
               },
             ),
@@ -789,7 +812,8 @@ class _SignInScreenState extends State<SignInScreen> {
                             Navigator.pop(context);
                             onLoadGetMember(_postDataInput());
                           } else {
-                            EasyLoading.showError('กรุณากรอกข้อมูลให้ครบถ้วน');
+                            DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                                'กรุณากรอกข้อมูลให้ครบถ้วน');
                           }
                         },
                         style: ElevatedButton.styleFrom(

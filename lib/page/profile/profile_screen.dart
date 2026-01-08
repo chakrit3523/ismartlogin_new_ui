@@ -4,8 +4,9 @@ import 'dart:io';
 import 'dart:convert'; // Added for JSON decoding
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ismart_login/page/managements/future/department_manage_future.dart';
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
@@ -133,14 +134,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {});
       }
     });
-    EasyLoading.dismiss();
     return true;
   }
 
   List<ItemsMemberResultManage> _item = [];
   Future<bool> onLoadMemberManage() async {
     org_id = await SharedCashe.getItemsWay(name: 'org_id');
-    EasyLoading.show();
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'Loading...');
     Map map = {
       "org_id": org_id,
       "uid": await SharedCashe.getItemsWay(name: 'id'),
@@ -148,15 +149,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await MemberManageFuture().apiGetMemberManageList(map).then((onValue) {
       if (mounted) {
+        loadingDialog.dismiss();
         setState(() {
           if (onValue[0].STATUS) {
             _item = onValue[0].RESULT;
             _getData();
           }
         });
+      } else {
+        loadingDialog.dismiss();
       }
     });
-    EasyLoading.dismiss();
     return true;
   }
 
@@ -207,8 +210,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<dynamic> onUpdateProfile() async {
-    EasyLoading.show(status: 'Updating...');
+    // EasyLoading calls removed as ProfileFuture handles it with context
     await ProfileFuture().updateProfile(
+      context: context,
       file: _imageFile?.path ?? '',
       uid: uid,
       name: _inputName.text,
@@ -218,8 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       time: dropdownValueTime,
       org_id: await SharedCashe.getItemsWay(name: 'org_id'),
     );
-    EasyLoading.dismiss();
-    EasyLoading.showSuccess('สำเร็จ');
+    // Success/dismiss handled in ProfileFuture
     setState(() {
       _edit = false;
     });

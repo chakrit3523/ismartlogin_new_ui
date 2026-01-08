@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter/material.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:ismart_login/page/outside/model/attendOutsideEnd.dart';
 import 'package:ismart_login/page/outside/model/attendOutsideStart.dart';
 import 'package:ismart_login/page/outside/model/attendOutsideToDay.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 import 'package:ismart_login/server/server.dart';
 
@@ -83,32 +85,48 @@ class AttandOutsideFuture {
   }
 
   ///---UPLOAD
-  Future<dynamic> uploadAttendOutside(
-      {required File file,
-      required String uploadKey,
-      required String uid,
-      required String cmd,
-      required String attact_type}) async {
-    String fileName = file.path.split('/').last;
-    var formData = FormData.fromMap({
-      "file": await MultipartFile.fromFile(file.path, filename: fileName),
-      "uploadKey": uploadKey,
-      "uid": uid,
-      "cmd": cmd,
-      "attact_type": attact_type,
-    });
-    Response response = await Dio().post(Server().postAttandUploadImages,
-        data: formData, onSendProgress: (int bytes, int total) {
-      print('progress: $total ($bytes/$total) => ' +
-          (bytes / total).toString() +
-          '%');
-      EasyLoading.showProgress((bytes / total), status: "กำลังอัพโหลด");
-      if (bytes / total == 1 || bytes >= total) {
-        EasyLoading.dismiss();
-        EasyLoading.showSuccess('เรียบร้อย');
-      }
-    });
-    print(json.encode(response.data));
+  ///---UPLOAD
+  Future<dynamic> uploadAttendOutside({
+    required BuildContext context,
+    required File file,
+    required String uploadKey,
+    required String uid,
+    required String cmd,
+    required String attact_type,
+  }) async {
+    AwesomeDialog? loadingDialog =
+        DialogHelper.showLoading(context, "กำลังอัพโหลด");
+    try {
+      String fileName = file.path.split('/').last;
+      var formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(file.path, filename: fileName),
+        "uploadKey": uploadKey,
+        "uid": uid,
+        "cmd": cmd,
+        "attact_type": attact_type,
+      });
+
+      Response response = await Dio().post(
+        Server().postAttandUploadImages,
+        data: formData,
+        onSendProgress: (int bytes, int total) {
+          double progress = bytes / total;
+          print('progress: $total ($bytes/$total) => ' +
+              progress.toString() +
+              '%');
+          // Note: AwesomeDialog doesn't support progress update easily.
+        },
+      );
+
+      loadingDialog.dismiss();
+      print(json.encode(response.data));
+      DialogHelper.showSuccess(context, 'เรียบร้อย');
+      return response.data;
+    } catch (e) {
+      loadingDialog.dismiss();
+      print('Error uploading: $e');
+      DialogHelper.showError(context, 'อัพโหลดล้มเหลว', e.toString());
+    }
   }
 
   //----------------

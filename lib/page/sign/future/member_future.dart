@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter/material.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:ismart_login/page/sign/model/checkmemberlist.dart';
 import 'package:ismart_login/page/sign/model/for_post.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/server/server.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 final Map<String, String> header = {
   "Content-Type": "application/json",
@@ -116,6 +118,7 @@ class MemberFuture {
   }
 
   Future<dynamic> uploadAvatarProfile({
+    required BuildContext context,
     required String file,
     required String uploadKey,
   }) async {
@@ -126,21 +129,31 @@ class MemberFuture {
           : '',
       "uploadKey": uploadKey,
     });
-    Response response = await Dio().post(Server().postAvatarMember,
-        data: formData, onSendProgress: (int bytes, int total) {
-      print('progress: $total ($bytes/$total) => ' +
-          (bytes / total).toString() +
-          '%');
-      EasyLoading.showProgress((bytes / total), status: "กำลังอัพโหลด");
-      if (bytes / total == 1 || bytes >= total) {
-        EasyLoading.dismiss();
-        EasyLoading.showSuccess('เรียบร้อย');
+
+    // Show loading dialog
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, "กำลังอัพโหลด...");
+
+    try {
+      Response response = await Dio().post(
+        Server().postAvatarMember,
+        data: formData,
+        // Note: Progress update removed as AwesomeDialog doesn't support it natively in this simple helper.
+        // If we really need progress, we'd need a StatefulBuilder in DialogHelper.
+      );
+
+      loadingDialog.dismiss();
+
+      if (response.statusCode == 200) {
+        print(json.encode(response.data));
+        // var list = json.decode(response.data); // Decode loop might fail if response.data is already map/list
+        // print("ผลการอัพโหลดรูป : " + list[0]['result']);
+        DialogHelper.showSuccess(context, 'อัพโหลดเรียบร้อย');
       }
-    });
-    if (response.statusCode == 200) {
-      print(json.encode(response.data));
-      var list = json.decode(response.data);
-      print("ผลการอัพโหลดรูป : " + list[0]['result']);
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(
+          context, 'อัพโหลดล้มเหลว', 'เกิดข้อผิดพลาด: ${e.toString()}');
     }
   }
 }

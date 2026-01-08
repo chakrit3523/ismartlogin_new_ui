@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+
+import 'package:awesome_dialog/awesome_dialog.dart';
+
 import 'package:ismart_login/page/org/time_setup_screen.dart';
 
 // Result class to pass back location data
@@ -52,7 +56,8 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
   void initState() {
     super.initState();
     _orgNameController = TextEditingController(text: widget.orgName);
-    // Do not auto-get current location - user must select manually
+    // Auto-get current location to center map, but do not select it
+    _getCurrentLocation();
   }
 
   @override
@@ -94,18 +99,21 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
         _isLoading = false;
       });
 
-      _getAddressFromLatLng(_currentPosition);
+      // _getAddressFromLatLng(_currentPosition); // Don't fetch address on auto-locate
 
       if (_mapController != null) {
         _mapController!.animateCamera(
           CameraUpdate.newLatLng(_currentPosition),
         );
       }
+      // Note: We do NOT call _getAddressFromLatLng here to keep it unselected
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _address = 'Could not get location';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          // _address = 'Could not get location'; // Don't show error to keep UI clean
+        });
+      }
     }
   }
 
@@ -138,7 +146,9 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
   }
 
   void _onCameraIdle() {
-    _getAddressFromLatLng(_currentPosition);
+    if (_hasSelectedLocation) {
+      _getAddressFromLatLng(_currentPosition);
+    }
   }
 
   void _openFullMapPicker() async {
@@ -166,16 +176,34 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
 
   // Navigate to TimeSetupScreen
   void _onNextPressed() {
-    // Validate org name
     String orgName = _orgNameController.text.trim();
+
+    // Validate Org Name
     if (orgName.isEmpty) {
-      EasyLoading.showError('กรุณากรอกชื่อกลุ่มหรือองค์กร');
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.bottomSlide,
+        title: 'ข้อมูลไม่ครบถ้วน',
+        desc: 'กรุณากรอกชื่อกลุ่มหรือองค์กร',
+        btnOkOnPress: () {},
+        btnOkText: 'ตกลง',
+      ).show();
       return;
     }
 
     // Validate location selection
     if (!_hasSelectedLocation) {
-      EasyLoading.showError('กรุณาเลือกตำแหน่งบนแผนที่');
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.bottomSlide,
+        title: 'ยังไม่ได้เลือกตำแหน่ง',
+        desc: 'กรุณาเลือกตำแหน่งบนแผนที่',
+        btnOkOnPress: () {},
+        btnOkColor: Colors.orange,
+        btnOkText: 'ตกลง',
+      ).show();
       return;
     }
 
@@ -275,7 +303,7 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
                                   children: [
                                     // Organization Name Section
                                     Text(
-                                      'ชื่อกลุ่มหรือองค์กร',
+                                      'ชื่อกลุ่ม/องค์กร',
                                       style: GoogleFonts.kanit(
                                         fontSize: 16,
                                         fontWeight: FontWeight.normal,
@@ -325,7 +353,7 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
 
                                     // Map Section
                                     Text(
-                                      'ปักหมุดบนแผนที่สำหรับล็อกอินเข้าออกงาน',
+                                      'ปักหมุดตำแหน่งสำหรับเข้าออกงาน',
                                       style: GoogleFonts.kanit(
                                         fontSize: 16,
                                         fontWeight: FontWeight.normal,
@@ -386,20 +414,47 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
                                                             false,
                                                         tiltGesturesEnabled:
                                                             false,
+                                                        circles:
+                                                            _hasSelectedLocation
+                                                                ? {
+                                                                    Circle(
+                                                                      circleId:
+                                                                          CircleId(
+                                                                              'radiusCircle'),
+                                                                      center:
+                                                                          _currentPosition,
+                                                                      radius: _radius
+                                                                          .toDouble(),
+                                                                      fillColor: Color(
+                                                                              0xFF0663F7)
+                                                                          .withOpacity(
+                                                                              0.2),
+                                                                      strokeColor:
+                                                                          Color(
+                                                                              0xFF0663F7),
+                                                                      strokeWidth:
+                                                                          1,
+                                                                    ),
+                                                                  }
+                                                                : {},
                                                       ),
                                                     ),
                                             ),
                                           ),
-                                          // Pin overlay
-                                          Positioned.fill(
-                                            child: Center(
-                                              child: Icon(
-                                                Icons.location_pin,
-                                                size: 36,
-                                                color: Colors.red,
+                                          // Pin overlay - Shifted up to align tip with center, only if selected
+                                          if (_hasSelectedLocation)
+                                            Positioned.fill(
+                                              child: Center(
+                                                child: Transform.translate(
+                                                  offset: Offset(0, -18),
+                                                  child: Icon(
+                                                    Icons.location_pin,
+                                                    size: 36,
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
                                           // Edit button - only this is tappable
                                           Positioned(
                                             bottom: 8,
@@ -486,10 +541,26 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
                                               ),
                                               controller: _radiusController,
                                               onChanged: (value) {
-                                                setState(() {
-                                                  _radius =
-                                                      int.tryParse(value) ?? 50;
-                                                });
+                                                int? val = int.tryParse(value);
+                                                if (val != null) {
+                                                  if (val > 100) {
+                                                    val = 100;
+                                                    _radiusController.text =
+                                                        '100';
+                                                    _radiusController
+                                                            .selection =
+                                                        TextSelection
+                                                            .fromPosition(
+                                                      TextPosition(
+                                                          offset:
+                                                              _radiusController
+                                                                  .text.length),
+                                                    );
+                                                  }
+                                                  setState(() {
+                                                    _radius = val!;
+                                                  });
+                                                }
                                               },
                                             ),
                                           ),
@@ -503,6 +574,15 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
                                           ),
                                         ),
                                       ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'ระยะห่างจากหมุดที่ยังสามารถล็อคอินเข้า-ออกงานได้',
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 14,
+                                        color: const Color.fromARGB(
+                                            255, 110, 109, 109),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -586,21 +666,131 @@ class FullMapPickerScreen extends StatefulWidget {
   _FullMapPickerScreenState createState() => _FullMapPickerScreenState();
 }
 
-class _FullMapPickerScreenState extends State<FullMapPickerScreen> {
+class _FullMapPickerScreenState extends State<FullMapPickerScreen>
+    with SingleTickerProviderStateMixin {
   late LatLng _selectedPosition;
   String _address = '';
   GoogleMapController? _mapController;
   final TextEditingController _searchController = TextEditingController();
+  bool _hasMoved = false;
+
+  // Tutorial Animation
+  late AnimationController _tutorialController;
+  late Animation<Offset> _handSlideAnimation;
+  late Animation<double> _handOpacityAnimation;
+  bool _showTutorial = true;
 
   @override
   void initState() {
     super.initState();
     _selectedPosition = widget.initialPosition;
     _getAddressFromLatLng(_selectedPosition);
+
+    _tutorialController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 3),
+    );
+
+    // 1. Hand Sliding Animation (Grab at Center -> Slide Right)
+    _handSlideAnimation = TweenSequence<Offset>([
+      // Appear at slightly left of center or center
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(Offset(0, 0)),
+        weight: 20, // Wait/Appear
+      ),
+      // Press (still at center)
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(Offset(0, 0)),
+        weight: 10,
+      ),
+      // Slide Right (Dragging)
+      TweenSequenceItem(
+        tween: Tween<Offset>(
+                begin: Offset(0, 0), end: Offset(0.4, 0)) // Move Right
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 40,
+      ),
+      // Release (at new pos)
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(Offset(0.4, 0)),
+        weight: 10,
+      ),
+      // Fade out/Reset (doesn't matter)
+      TweenSequenceItem(
+        tween: ConstantTween<Offset>(Offset(0.4, 0)),
+        weight: 20,
+      ),
+    ]).animate(_tutorialController);
+
+    // 2. Hand Opacity
+    _handOpacityAnimation = TweenSequence<double>([
+      // Fade In
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 20,
+      ),
+      // Stay visible
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 60,
+      ),
+      // Fade Out
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 20,
+      ),
+    ]).animate(_tutorialController);
+
+    // Start tutorial loop
+    Future.delayed(Duration(milliseconds: 500), () {
+      if (mounted) {
+        _tutorialController.repeat(count: 2).then((_) {
+          if (mounted) {
+            setState(() {
+              _showTutorial = false;
+            });
+          }
+        });
+
+        // Sync Map Camera with Hand Animation
+        _tutorialController.addListener(_onAnimationTick);
+      }
+    });
+  }
+
+  Offset _lastHandOffset = Offset(0, 0);
+  bool _isTutorialMovingMap = false;
+
+  void _onAnimationTick() {
+    if (_mapController != null && _showTutorial) {
+      final currentOffset = _handSlideAnimation.value;
+      final delta = currentOffset - _lastHandOffset;
+      _lastHandOffset = currentOffset;
+
+      // Only move if there is significant change to avoid jitter
+      if (delta.distance > 0.0001) {
+        _isTutorialMovingMap = true;
+
+        // Scale factor: 400 pixels seems reasonable for 0.3 offset on a typical screen
+        double scale = 500.0;
+
+        _mapController!.moveCamera(
+          CameraUpdate.scrollBy(-delta.dx * scale, -delta.dy * scale),
+        );
+
+        // Reset flag after a tiny delay to allow onCameraMove to fire and be ignored
+        Future.delayed(Duration(milliseconds: 50), () {
+          if (mounted) _isTutorialMovingMap = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
+    _tutorialController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -631,9 +821,9 @@ class _FullMapPickerScreenState extends State<FullMapPickerScreen> {
     if (query.isEmpty) return;
 
     try {
-      EasyLoading.show(status: 'กำลังค้นหา...');
+      // EasyLoading.show(status: 'กำลังค้นหา...');
       List<Location> locations = await locationFromAddress(query);
-      EasyLoading.dismiss();
+      // EasyLoading.dismiss();
 
       if (locations.isNotEmpty) {
         LatLng newPosition = LatLng(
@@ -651,60 +841,50 @@ class _FullMapPickerScreenState extends State<FullMapPickerScreen> {
 
         _getAddressFromLatLng(newPosition);
       } else {
-        EasyLoading.showError('ไม่พบสถานที่');
+        AwesomeDialog(
+          context: context,
+          dialogType: DialogType.info,
+          animType: AnimType.bottomSlide,
+          title: 'ไม่พบสถานที่',
+          desc: 'กรุณาลองค้นหาด้วยชื่ออื่น',
+          btnOkOnPress: () {},
+        ).show();
       }
     } catch (e) {
-      EasyLoading.dismiss();
-      EasyLoading.showError('ไม่พบสถานที่');
+      // EasyLoading.dismiss();
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.bottomSlide,
+        title: 'ไม่พบสถานที่',
+        desc: 'เกิดข้อผิดพลาดในการค้นหา',
+        btnOkOnPress: () {},
+      ).show();
     }
   }
 
-  void _showSearchDialog() {
-    _searchController.clear();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'ค้นหาสถานที่',
-          style: GoogleFonts.kanit(fontSize: 18),
-        ),
-        content: TextField(
-          controller: _searchController,
-          autofocus: true,
-          style: GoogleFonts.kanit(),
-          decoration: InputDecoration(
-            hintText: 'พิมพ์ชื่อสถานที่...',
-            hintStyle: GoogleFonts.kanit(),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onSubmitted: (value) {
-            Navigator.pop(context);
-            _searchPlace(value);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('ยกเลิก', style: GoogleFonts.kanit()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _searchPlace(_searchController.text);
-            },
-            child: Text('ค้นหา', style: GoogleFonts.kanit()),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _onCameraMove(CameraPosition position) {
-    setState(() {
+    // If tutorial is moving the map, ignore interaction logic
+    if (_isTutorialMovingMap) {
+      // Just update position without stopping tutorial
       _selectedPosition = position.target;
-    });
+      return;
+    }
+
+    // If user interacts, stop tutorial immediately
+    if (_showTutorial) {
+      _tutorialController.stop();
+      setState(() {
+        _showTutorial = false;
+        _hasMoved = true;
+        _selectedPosition = position.target;
+      });
+    } else {
+      setState(() {
+        _selectedPosition = position.target;
+        _hasMoved = true;
+      });
+    }
   }
 
   void _onCameraIdle() {
@@ -733,60 +913,200 @@ class _FullMapPickerScreenState extends State<FullMapPickerScreen> {
 
           // Pin overlay
           Center(
-            child: Icon(
-              Icons.location_pin,
-              size: 50,
-              color: Colors.red,
+            child: Transform.translate(
+              offset: Offset(0, -25),
+              child: Icon(
+                Icons.location_pin,
+                size: 50,
+                color: Colors.red,
+              ),
             ),
           ),
 
-          // Top bar with search
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back_ios, color: Colors.grey),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        style: GoogleFonts.kanit(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'ค้นหาสถานที่...',
-                          hintStyle: GoogleFonts.kanit(
-                            fontSize: 16,
-                            color: Colors.grey,
+          // Tutorial Hand Overlay
+          if (_showTutorial)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _tutorialController,
+                    builder: (context, child) {
+                      // Pin Bounce: Only bounce when hand stops (approx > 0.7 interval)
+                      double bounceValue = 0;
+                      if (_tutorialController.value > 0.7) {
+                        double t = (_tutorialController.value - 0.7) / 0.3;
+                        bounceValue = -10 *
+                            (1 - math.cos(t * 2 * 3.14159).abs()) *
+                            (1 - t);
+                      }
+
+                      // Ripple Effect: Only at the very end
+                      double rippleRadius = 0;
+                      double rippleOpacity = 0;
+                      if (_tutorialController.value > 0.8) {
+                        double t = (_tutorialController.value - 0.8) / 0.2;
+                        rippleRadius = t * 60;
+                        rippleOpacity = 1.0 - t;
+                      }
+
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Ripple
+                          if (rippleRadius > 0)
+                            Opacity(
+                              opacity: rippleOpacity,
+                              child: Container(
+                                width: rippleRadius * 2,
+                                height: rippleRadius * 2,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.redAccent, width: 2),
+                                ),
+                              ),
+                            ),
+
+                          // Bouncing Pin (Tutorial)
+                          Transform.translate(
+                            offset: Offset(0, -25 + bounceValue),
+                            child: Icon(
+                              Icons.location_pin,
+                              size: 50,
+                              color: Colors.red,
+                            ),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        onSubmitted: (value) => _searchPlace(value),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.search, color: Color(0xFF0663F7)),
-                      onPressed: () => _searchPlace(_searchController.text),
-                    ),
-                  ],
+
+                          // Text Only (Stationary, no hand)
+                          Positioned(
+                            bottom:
+                                80, // Adjust position to be below the center pin
+                            child: Opacity(
+                              opacity: _handOpacityAnimation.value,
+                              child: Text(
+                                'เลื่อนแผนที่เพื่อเลือกตำแหน่ง',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.black87,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 2,
+                                      color: Colors.white,
+                                      offset: Offset(0, 1),
+                                    ),
+                                    Shadow(
+                                      blurRadius: 2,
+                                      color: Colors.white,
+                                      offset: Offset(0, -1),
+                                    ),
+                                    Shadow(
+                                      blurRadius: 2,
+                                      color: Colors.white,
+                                      offset: Offset(1, 0),
+                                    ),
+                                    Shadow(
+                                      blurRadius: 2,
+                                      color: Colors.white,
+                                      offset: Offset(-1, 0),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
+            ),
+
+          // Top bar with search and Title
+          SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          'ปักหมุดตำแหน่งสำหรับเข้าออกงาน',
+                          style: GoogleFonts.kanit(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios, color: Colors.grey),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            style: GoogleFonts.kanit(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'ค้นหาสถานที่...',
+                              hintStyle: GoogleFonts.kanit(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding:
+                                  EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onSubmitted: (value) => _searchPlace(value),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.search, color: Color(0xFF0663F7)),
+                          onPressed: () => _searchPlace(_searchController.text),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -823,35 +1143,31 @@ class _FullMapPickerScreenState extends State<FullMapPickerScreen> {
                     ),
                   ),
                   SizedBox(height: 16),
-                  SizedBox(
+                  Container(
                     width: double.infinity,
                     height: 50,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
-                          begin: Alignment(-0.97, -0.24),
-                          end: Alignment(0.97, 0.24),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: _hasMoved ? Color(0xFF0663F7) : Colors.grey[400],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _hasMoved
+                          ? () {
+                              Navigator.pop(context, _selectedPosition);
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context, _selectedPosition);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'เลือกตำแหน่งนี้',
-                          style: GoogleFonts.kanit(
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
+                      child: Text(
+                        'เลือกตำแหน่งนี้',
+                        style: GoogleFonts.kanit(
+                          fontSize: 18,
+                          color: Colors.white,
                         ),
                       ),
                     ),

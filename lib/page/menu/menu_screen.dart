@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 // Screens
 import 'package:ismart_login/page/profile/profile_screen.dart';
@@ -329,7 +328,6 @@ class MenuScreen extends StatelessWidget {
             bgColor: Color(0xFFF3E5F5),
             title: 'กำหนดสิทธิ์สมาชิก',
             onTap: () {
-              EasyLoading.show();
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => OrgMemberScreen()));
             },

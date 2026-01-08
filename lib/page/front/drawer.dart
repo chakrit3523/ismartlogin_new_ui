@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/contact_dev/contactdev_screen.dart';
@@ -350,7 +350,7 @@ class _MenuDrawerState extends State<MenuDrawer> {
                                 ),
                                 onTap: () {
                                   Navigator.pop(context);
-                                  EasyLoading.show();
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -440,7 +440,6 @@ class _MenuDrawerState extends State<MenuDrawer> {
                                       ),
                                     );
                                   } else {
-                                    EasyLoading.show();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(

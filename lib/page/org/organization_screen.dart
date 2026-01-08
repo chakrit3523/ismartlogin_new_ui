@@ -120,18 +120,7 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                 Spacer(),
 
                 // Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: Text(
-                    "เลือก สร้างกลุ่ม/องค์กร หรือเข้าร่วม",
-                    style: GoogleFonts.kanit(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                // Title removed
 
                 SizedBox(height: 25),
 
@@ -157,7 +146,7 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                           ),
                         ],
                       ),
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         onPressed: _navigateToCreate,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -167,8 +156,13 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          "สร้าง",
+                        icon: Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        label: Text(
+                          "สร้างกลุ่ม/องค์กรใหม่",
                           style: GoogleFonts.kanit(
                             fontSize: 21,
                             color: Colors.white,
@@ -182,6 +176,39 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
 
                 SizedBox(height: 15),
 
+                // Styled Separator
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          "หรือ",
+                          style: GoogleFonts.kanit(
+                            fontSize: 16,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 15),
                 // Join Button (Same Gradient style)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -204,7 +231,7 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                           ),
                         ],
                       ),
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         onPressed: _navigateToJoin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -214,8 +241,13 @@ class _OrganizationScreenState extends State<OrganizationScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          "เข้าร่วม",
+                        icon: Icon(
+                          Icons.login,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        label: Text(
+                          "เข้าร่วมกลุ่ม/องค์กร",
                           style: GoogleFonts.kanit(
                             fontSize: 21,
                             color: Colors.white,

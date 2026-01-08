@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/profile/model/itemPasswordResult.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -18,6 +20,7 @@ final Map<String, String> header = {
 
 class ProfileFuture {
   Future<dynamic> updateProfile({
+    required BuildContext context,
     required String file,
     String? uid,
     String? name,
@@ -27,6 +30,8 @@ class ProfileFuture {
     String? time,
     String? org_id,
   }) async {
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังอัพโหลด...');
     String fileName = file.split('/').last;
     var formData = FormData.fromMap({
       "file": file != ''
@@ -40,33 +45,34 @@ class ProfileFuture {
       "time": time,
       "org_id": org_id,
     });
-    Response response = await Dio().post(Server().updateMember, data: formData,
-        onSendProgress: (int bytes, int total) {
-      print('progress: $total ($bytes/$total) => ' +
-          (bytes / total).toString() +
-          '%');
-      EasyLoading.showProgress((bytes / total), status: "กำลังอัพโหลด");
-      if (bytes / total == 1 || bytes >= total) {
-        EasyLoading.dismiss();
+    try {
+      Response response = await Dio().post(Server().updateMember,
+          data: formData, onSendProgress: (int bytes, int total) {
+        // print('progress: $total ($bytes/$total) => ' + (bytes / total).toString() + '%');
+        // DialogHelper doesn't support progress update easily, just show spinner
+      });
+      if (response.statusCode == 200) {
+        print(json.encode(response.data));
+        var list = json.decode(response.data);
+        print(list[0]['path']);
+        if (list[0]['path'] != '') {
+          await SharedCashe.savaItemsString(
+              key: 'avatar', valString: list[0]['path']);
+        }
+        if (time != "") {
+          await SharedCashe.savaItemsString(
+              key: 'time_id', valString: time ?? '');
+        }
+        loadingDialog.dismiss();
+        DialogHelper.showSuccess(context, 'บันทึกเรียบร้อย');
+      } else {
+        loadingDialog.dismiss();
+        DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+            'Error : ' + response.statusCode.toString());
       }
-    });
-    if (response.statusCode == 200) {
-      print(json.encode(response.data));
-      var list = json.decode(response.data);
-      print(list[0]['path']);
-      if (list[0]['path'] != '') {
-        await SharedCashe.savaItemsString(
-            key: 'avatar', valString: list[0]['path']);
-      }
-      if(time != ""){
-        await SharedCashe.savaItemsString(
-            key: 'time_id', valString: time ?? '');
-      }
-      EasyLoading.dismiss();
-      EasyLoading.showSuccess('บันทึกเรียบร้อย');
-    } else {
-      EasyLoading.dismiss();
-      EasyLoading.showError('Error : ' + response.statusCode.toString());
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
     }
   }
 

@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ismart_login/page/splashscreen/splashscreen_screen.dart';
@@ -90,23 +90,7 @@ Future<void> main() async {
     debugShowCheckedModeBanner: false,
   ));
 
-  configLoading();
-}
-
-void configLoading() {
-  EasyLoading.instance
-    ..displayDuration = const Duration(milliseconds: 2000)
-    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
-    ..loadingStyle = EasyLoadingStyle.dark
-    ..indicatorSize = 45.0
-    ..radius = 10.0
-    ..progressColor = Colors.yellow
-    ..backgroundColor = Colors.green
-    ..indicatorColor = Colors.yellow
-    ..textColor = Colors.yellow
-    ..maskColor = Colors.blue.withValues(alpha: 0.5)
-    ..userInteractions = true
-    ..dismissOnTap = false;
+  // configLoading removed
 }
 
 class MyApp extends StatefulWidget {
@@ -162,6 +146,8 @@ class _MyAppState extends State<MyApp> {
     packageName: 'Unknown',
     version: 'Unknown',
     buildNumber: 'Unknown',
+
+    // buildSignature: '', // Removed or irrelevant based on previous code
   );
 
   Future<void> initPackageInfo() async {
@@ -254,8 +240,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: SplashscreenScreen(),
-      builder: (context, child) =>
-          FlutterEasyLoading(child: child ?? Container()),
+      // EasyLoading builder removed
     );
   }
 }

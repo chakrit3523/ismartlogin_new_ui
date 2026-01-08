@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_countdown_timer/index.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
@@ -60,24 +61,32 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
   //-- check OTP
   List<ItemsOTPList> _resultOtp = [];
   Future<bool> onLoadCheckOtp(Map map) async {
-    await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
-      _resultOtp = onValue;
-      print(onValue.length);
-      print(_resultOtp[0].RESULT);
-      if (_resultOtp[0].RESULT == "success") {
-        EasyLoading.show();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RePasswordChange(
-              uid: _items["UID"],
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
+    try {
+      await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
+        _resultOtp = onValue;
+        print(onValue.length);
+        print(_resultOtp[0].RESULT);
+        if (_resultOtp[0].RESULT == "success") {
+          loadingDialog.dismiss();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RePasswordChange(
+                uid: _items["UID"],
+              ),
             ),
-          ),
-        );
-      } else {
-        EasyLoading.showError('OTP ไม่ถูกต้อง');
-      }
-    });
+          );
+        } else {
+          loadingDialog.dismiss();
+          DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'OTP ไม่ถูกต้อง');
+        }
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
+    }
     setState(() {});
     return true;
   }
@@ -144,15 +153,16 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                 child: CountdownTimer(
                   controller: controller,
                   endTime: endTime,
-                  widgetBuilder: (BuildContext context, CurrentRemainingTime? time) {
+                  widgetBuilder:
+                      (BuildContext context, CurrentRemainingTime? time) {
                     if (time == null) {
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  OtpRepasswordScreen(key: UniqueKey(), map: widget.map),
+                              builder: (context) => OtpRepasswordScreen(
+                                  key: UniqueKey(), map: widget.map),
                             ),
                           );
                         },

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/page_style.dart';
@@ -32,7 +32,7 @@ class _LeaveTypesFormScreenState extends State<LeaveTypesFormScreen> {
   @override
   void initState() {
     onLoadCateLeaveDetailManage();
-      super.initState();
+    super.initState();
   }
 
   onLoadCateLeaveDetailManage() async {
@@ -247,12 +247,14 @@ class _LeaveTypesFormScreenState extends State<LeaveTypesFormScreen> {
                                     child: InkWell(
                                       onTap: () {
                                         if (_inputSubject.text == "") {
-                                          EasyLoading.showError(
+                                          DialogHelper.showError(
+                                              context,
+                                              'เกิดข้อผิดพลาด',
                                               'กรอกชื่อประเภทการลา');
                                           return;
                                         }
                                         _updateCate();
-                                                                            },
+                                      },
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: Color(0xFF00B9FF),

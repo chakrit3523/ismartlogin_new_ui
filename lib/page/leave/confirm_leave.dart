@@ -4,7 +4,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -94,9 +95,7 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
       'firstTime': widget.firstTime,
       'lastTime': widget.lastTime,
       'selectFulltime': widget.selectFulltime,
-      'cid': widget.cidSub != ''
-          ? widget.cidSub
-          : cidLeave,
+      'cid': widget.cidSub != '' ? widget.cidSub : cidLeave,
     };
     var body = json.encode(map);
     print(body);
@@ -131,7 +130,8 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
   }
 
   insertLeave() async {
-    showLoaderDialog(context);
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังโหลด...');
     var uri = Uri.parse(Server().insertInfoLeave);
     print("inform uri: ${uri.toString()}");
     var request = http.MultipartRequest('POST', uri);
@@ -161,11 +161,11 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
         request.files.add(file);
       }
     }
-  
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     if (response.statusCode == 200) {
-      // EasyLoading.dismiss();
+      loadingDialog.dismiss();
       final data = jsonDecode(response.body);
       if (data['msg'] == 'success') {
         Navigator.pop(context);
@@ -174,6 +174,10 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
         Navigator.pop(context);
         alert_end(context, "ไม่สามารถบันทึกข้อมูลใบลา กรุณาติดต่อเจ้าหน้าที่");
       }
+    } else {
+      loadingDialog.dismiss();
+      Navigator.pop(context);
+      alert_end(context, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์");
     }
   }
 
@@ -209,13 +213,20 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                         child: InkWell(
                           onTap: () {
                             Navigator.pop(context);
-                            EasyLoading.show();
+                            AwesomeDialog loadingDialog =
+                                DialogHelper.showLoading(context, 'Loading...');
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => MainPage()),
-                            );
-                            EasyLoading.dismiss();
+                            ).then((_) => loadingDialog.dismiss());
+                            // delay slightly to allow push to start?
+                            // Just dismissing immediately might be fine if MainPage manages itself.
+                            // But since we navigate away, the dialog context might be tricky.
+                            // Actually, if we push MainPage, this screen is still in stack until we pop or replace.
+                            // But MainPage likely replaces everything or sits on top.
+                            // Let's just remove the loading here as it's not very useful for a local push unless there's heavy work in MainPage init.
+                            loadingDialog.dismiss();
                           },
                           child: Container(
                             decoration: BoxDecoration(
@@ -244,25 +255,6 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
             ),
           ),
         );
-      },
-    );
-  }
-
-  showLoaderDialog(BuildContext context) {
-    AlertDialog alert = AlertDialog(
-      content: new Row(
-        children: [
-          CircularProgressIndicator(),
-          Container(
-              margin: EdgeInsets.only(left: 7), child: Text("กำลังโหลด...")),
-        ],
-      ),
-    );
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
       },
     );
   }

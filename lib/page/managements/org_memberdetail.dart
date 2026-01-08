@@ -5,7 +5,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -124,7 +125,6 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
         setState(() {});
       }
     });
-    EasyLoading.dismiss();
     return true;
   }
 
@@ -133,6 +133,8 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
   ///  ///-----member
   List<ItemsMemberResultManage> _item = [];
   Future<bool> onLoadMemberManage() async {
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'Loading...');
     Map map = {
       "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
       "uid": widget.id_member,
@@ -158,7 +160,7 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
         }
       });
     });
-    EasyLoading.dismiss();
+    loadingDialog.dismiss();
     setState(() {});
 
     return true;
@@ -171,7 +173,7 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
         .then((onValue) {
       setState(() {
         if (onValue[0].STATUS == false) {
-          EasyLoading.showError('Error Save');
+          DialogHelper.showError(context, 'Error Save', 'บันทึกสถานะไม่สำเร็จ');
         }
       });
     });
@@ -227,6 +229,7 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
 
   Future<dynamic> onUpdateProfile() async {
     await ProfileFuture().updateProfile(
+      context: context,
       file: _imageFile?.path ?? '',
       uid: widget.id_member,
       name: _inputName.text,
@@ -236,6 +239,7 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
       time: dropdownValueTime,
       org_id: await SharedCashe.getItemsWay(name: 'org_id'),
     );
+    // Success/dismiss handled in ProfileFuture
     return true;
   }
 
@@ -762,7 +766,7 @@ class _OrgMemberDetailScreenState extends State<OrgMemberDetailScreen> {
                                                       ?.validate() ??
                                                   false) {
                                                 print('ถัดไป');
-                                                EasyLoading.show();
+                                                // EasyLoading.show();
                                                 onUpdateProfile();
                                                 if (_edit) {
                                                   setState(() {

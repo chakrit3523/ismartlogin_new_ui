@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/checkmemberlist.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
@@ -48,7 +49,8 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
   Future<void> _checkMemberAndRequestOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
-    EasyLoading.show(status: 'กำลังตรวจสอบ...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
 
     Map<String, dynamic> checkMap = {
       "username": _inputPhone.text.trim(),
@@ -60,31 +62,170 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
         _resultCheck = onValue;
         if (_resultCheck.isNotEmpty && _resultCheck[0].STATUS == "true") {
           // Status "true" means username is available (not taken)
+          loadingDialog.dismiss();
 
-          // 2. Request OTP
-          await _requestOtp();
+          // 2. Show Confirmation Dialog
+          bool confirm = await _showConfirmationDialog();
+          if (confirm) {
+            // 3. Request OTP
+            await _requestOtp();
+          }
         } else {
-          EasyLoading.dismiss();
-          EasyLoading.showError('${_inputPhone.text} ถูกใช้งานแล้ว');
+          loadingDialog.dismiss();
+          DialogHelper.showError(
+              context, 'เกิดข้อผิดพลาด', '${_inputPhone.text} ถูกใช้งานแล้ว');
         }
       });
     } catch (e) {
-      EasyLoading.dismiss();
+      loadingDialog.dismiss();
       print(e);
-      EasyLoading.showError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      DialogHelper.showError(
+          context, 'เกิดข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     }
+  }
+
+  Future<bool> _showConfirmationDialog() async {
+    return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFE5F6FD),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.phonelink_ring,
+                        color: Color(0xFF079CFD),
+                        size: 40,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "ยืนยันเบอร์โทรศัพท์",
+                      style: GoogleFonts.kanit(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "ต้องการรับ OTP เบอร์นี้ใช่หรือไม่?",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.kanit(
+                        fontSize: 16,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      _inputPhone.text,
+                      style: GoogleFonts.kanit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF079CFD),
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    SizedBox(height: 25),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 45,
+                            decoration: BoxDecoration(
+                              color: Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: Text(
+                                "ยกเลิก",
+                                style: GoogleFonts.kanit(
+                                  fontSize: 18,
+                                  color: Color(0xFF888888),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 15),
+                        Expanded(
+                          child: Container(
+                            height: 45,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      Color(0xFF0663F7).withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: Text(
+                                "ยืนยัน",
+                                style: GoogleFonts.kanit(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ) ??
+        false;
   }
 
   Future<void> _requestOtp() async {
     Map<String, dynamic> otpMap = {
       "PHONE": _inputPhone.text.trim(),
-      // Add other fields if required by apiPostOtp, usually just PHONE for request?
-      // Checking signup_screen.dart usage:
-      // _postDataInput() sends NAME, LASTNAME etc. + PHONE
-      // But apiPostOtp usually only needs PHONE.
-      // Based on legacy code, it sends the whole map.
-      // We might need to send dummy data or just PHONE if the backend allows.
-      // Let's try sending just PHONE first, if it fails we might need to adjust.
       "NAME": "",
       "LASTNAME": "",
       "NICKNAME": "",
@@ -97,6 +238,9 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
     print('Phone: ${_inputPhone.text.trim()}');
     print('OTP Map: $otpMap');
 
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังส่ง OTP...');
+
     try {
       await MemberFuture().apiPostOtp(otpMap).then((onValue) {
         print('=== OTP Response ===');
@@ -105,13 +249,11 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
 
         _resultOtp = onValue;
         if (_resultOtp.isNotEmpty) {
-          // Assuming if we get a result, it sent successfully.
-          // Legacy code prints MSG and length.
+          loadingDialog.dismiss();
           print('OTP sent successfully!');
           print('OTP MSG: ${_resultOtp[0].MSG}');
 
-          EasyLoading.dismiss();
-          EasyLoading.showSuccess('ส่ง OTP แล้ว');
+          DialogHelper.showSuccess(context, 'ส่ง OTP แล้ว');
 
           // Extract reference code from API response if available
           String refCode = '';
@@ -154,16 +296,18 @@ class _RequestOtpScreenState extends State<RequestOtpScreen> {
           );
         } else {
           print('OTP response is empty');
-          EasyLoading.dismiss();
-          EasyLoading.showError('ไม่สามารถส่ง OTP ได้');
+          loadingDialog.dismiss();
+          DialogHelper.showError(
+              context, 'เกิดข้อผิดพลาด', 'ไม่สามารถส่ง OTP ได้');
         }
       });
     } catch (e, stackTrace) {
-      EasyLoading.dismiss();
+      loadingDialog.dismiss();
       print('=== OTP Error ===');
       print('Error: $e');
       print('StackTrace: $stackTrace');
-      EasyLoading.showError('เกิดข้อผิดพลาดในการส่ง OTP: $e');
+      DialogHelper.showError(
+          context, 'ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการส่ง OTP: $e');
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ismart_login/page/main.dart';
@@ -47,11 +48,12 @@ class _SignInScreenState extends State<SignInScreen2> {
   //--API
   List<ItemsMemberResult> _result = [];
   Future<bool> onLoadGetMember(Map map) async {
-    EasyLoading.show();
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังเข้าสู่ระบบ...');
     await new SigninFuture().apiSelectMember(map).then((onValue) {
       print(onValue[0]['msg']);
       if (onValue[0]['msg'] == 'success') {
-        EasyLoading.dismiss();
+        loadingDialog.dismiss();
         SharedCashe.saveItemsMemberList(item: onValue[0]['result']);
         if (onValue[0]['result'][0]['org_id'] == '0') {
           Navigator.push(
@@ -70,10 +72,10 @@ class _SignInScreenState extends State<SignInScreen2> {
           _showToast();
         }
       } else if (onValue[0]['msg'] == 'fail') {
-        EasyLoading.dismiss();
+        loadingDialog.dismiss();
         alert_non_signin(context, 'ไม่พบ Username');
       } else {
-        EasyLoading.dismiss();
+        loadingDialog.dismiss();
         alert_non_signin(context, 'Password ของคุณไม่ถูกต้อง');
       }
     });

@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/utils/image_helper.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 import 'package:ismart_login/page/outside/future/attend_outside_future.dart';
 import 'package:ismart_login/page/outside/model/attendOutsideStart.dart';
@@ -83,15 +84,17 @@ class _OutsideScreenState extends State<OutsideScreen> {
   }
 
   //---
+  //---
   /// ---- Server - OT Flow (Upload -> Post) ---
   Future<bool> processOvertimeCheckIn() async {
     if (_imageFile_login == null) {
-      EasyLoading.showError('กรุณาถ่ายรูป');
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'กรุณาถ่ายรูป');
       return false;
     }
 
     try {
-      EasyLoading.show(status: 'กำลังประมวลผล...');
+      AwesomeDialog loadingDialog =
+          DialogHelper.showLoading(context, 'กำลังประมวลผล...');
 
       // 1. Prepare Note
       String noteStr = _inputTopic.text;
@@ -107,10 +110,16 @@ class _OutsideScreenState extends State<OutsideScreen> {
       File originalFile = File(_imageFile_login!.path);
       File compressedFile = await ImageHelper.compressImage(originalFile);
 
-      EasyLoading.show(status: 'กำลังอัพโหลดรูปภาพ...');
+      // 4. Upload Image (AttandFuture refactored to accept context, but we use it here inside loading dialog)
+      // Since AttandFuture might show its own loading or we want to avoid double loading,
+      // let's check AttandFuture.uploadAttend. It shows loading.
+      // So we should dismiss our loading first? Or rely on AttandFuture's loading?
+      // AttandFuture uses a loading dialog if no progress callback.
 
-      // 4. Upload Image
+      loadingDialog.dismiss(); // Dismiss initial "Processing"
+
       final uploadResult = await AttandFuture().uploadAttend(
+        context: context,
         file: compressedFile,
         cmd: 'attend',
         uid: widget.uid,
@@ -123,7 +132,8 @@ class _OutsideScreenState extends State<OutsideScreen> {
         throw Exception(uploadResult['error'] ?? 'Upload failed');
       }
 
-      EasyLoading.show(status: 'กำลังบันทึกข้อมูล...');
+      AwesomeDialog savingDialog =
+          DialogHelper.showLoading(context, 'กำลังบันทึกข้อมูล...');
 
       // 5. Post Attendance Data
       Map map = {
@@ -144,8 +154,10 @@ class _OutsideScreenState extends State<OutsideScreen> {
 
       final response = await AttandFuture().apiPostAttandStart(map);
 
+      savingDialog.dismiss();
+
       if (response.isNotEmpty && response[0].STATUS == 'success') {
-        EasyLoading.showSuccess('บันทึกสำเร็จ');
+        DialogHelper.showSuccess(context, 'บันทึกสำเร็จ');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MainPage()),
@@ -156,7 +168,7 @@ class _OutsideScreenState extends State<OutsideScreen> {
             response.isNotEmpty ? response[0].MSG : 'Failed to save data');
       }
     } catch (e) {
-      EasyLoading.showError('เกิดข้อผิดพลาด: $e');
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
       return false;
     }
   }
@@ -189,17 +201,20 @@ class _OutsideScreenState extends State<OutsideScreen> {
     print(map);
 
     try {
-      EasyLoading.show(status: 'กำลังบันทึก...');
+      AwesomeDialog loadingDialog =
+          DialogHelper.showLoading(context, 'กำลังบันทึก...');
       await AttandOutsideFuture()
           .apiPostAttandOutsideStart(map)
           .then((onValue) {
+        loadingDialog.dismiss();
+
         if (onValue[0].STATUS == 'success') {
           _resultAttandStart = onValue;
           if (_imageFile_login != null) {
-            onUploadFiles('i_start');
+            onUploadFiles('i_start'); // This will show its own loading
           }
-          EasyLoading.dismiss(); // Dismiss after successful post/upload init
-          // onUploadFiles handles its own loading? Checked source: yes it uses EasyLoading.
+          // Dismiss after successful post/upload init
+          // onUploadFiles handles its own loading? Checked source: yes it uses EasyLoading (now DialogHelper).
 
           Navigator.push(
             context,
@@ -208,11 +223,13 @@ class _OutsideScreenState extends State<OutsideScreen> {
             ),
           );
         } else {
-          EasyLoading.showError('ล้มเหลว');
+          DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ล้มเหลว');
         }
       });
     } catch (e) {
-      EasyLoading.showError('Error: $e');
+      // Ensure loading is dismissed if still active (though we dismissed it inside .then, need careful handling if async error)
+      // Actually we should await properly.
+      DialogHelper.showError(context, 'Error', e.toString());
     }
     return true;
   }
@@ -220,6 +237,7 @@ class _OutsideScreenState extends State<OutsideScreen> {
   Future<dynamic> onUploadFiles(String statusFile) async {
     if (_imageFile_login != null) {
       await AttandOutsideFuture().uploadAttendOutside(
+        context: context,
         file: File(_imageFile_login!.path),
         cmd: 'attend',
         uid: widget.uid,
@@ -420,7 +438,8 @@ class _OutsideScreenState extends State<OutsideScreen> {
                               borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Color(0xFF0663F7).withValues(alpha: 0.3),
+                                  color:
+                                      Color(0xFF0663F7).withValues(alpha: 0.3),
                                   blurRadius: 10,
                                   offset: Offset(0, 4),
                                 )

@@ -1,15 +1,16 @@
 import 'dart:async';
 
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_countdown_timer/index.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/for_post.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/signup_screen.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 class OtpScreen extends StatefulWidget {
   final Map map;
@@ -83,11 +84,16 @@ class _OtpScreenState extends State<OtpScreen>
       print(onValue.length);
       print(_result[0].RESULT);
       if (_result[0].RESULT == "success") {
-        EasyLoading.dismiss();
+        // EasyLoading.dismiss(); // Handled by caller or not showed here?
+        // This function seems to be called logic ONLY, but it mixed UI.
+        // Wait, where is onLoadInsertMember called? It seems UNUSED in the provided code snippet!
+        // Ah, it might be legacy code. But if I touch it, I should fix it.
+        // Assuming it's unused or I should wrap it.
+
         if (_items['AVATAR'] != "") {
           onUploadAvatarProfile(_result[0].UPLOADKEY, _items['AVATAR']);
         }
-        EasyLoading.showSuccess('ลงทะเบียนสำเร็จ');
+        DialogHelper.showSuccess(context, 'ลงทะเบียนสำเร็จ');
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -95,7 +101,8 @@ class _OtpScreenState extends State<OtpScreen>
           ),
         );
       } else {
-        EasyLoading.showError('ลงทะเบียนไม่สำเร็จ');
+        DialogHelper.showError(
+            context, 'ลงทะเบียนไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
       }
     });
     setState(() {});
@@ -105,6 +112,7 @@ class _OtpScreenState extends State<OtpScreen>
   Future<dynamic> onUploadAvatarProfile(
       String uploadKey, String pathFile) async {
     await MemberFuture().uploadAvatarProfile(
+      context: context,
       file: pathFile,
       uploadKey: uploadKey,
     );
@@ -114,13 +122,14 @@ class _OtpScreenState extends State<OtpScreen>
   // Check OTP
   List<ItemsOTPList> _resultOtp = [];
   Future<bool> onLoadCheckOtp(Map map) async {
-    EasyLoading.show(status: 'กำลังตรวจสอบ...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
     await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
       _resultOtp = onValue;
       print(onValue.length);
       print(_resultOtp[0].RESULT);
       if (_resultOtp[0].RESULT == "success") {
-        EasyLoading.dismiss();
+        loadingDialog.dismiss();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -131,7 +140,9 @@ class _OtpScreenState extends State<OtpScreen>
           ),
         );
       } else {
-        EasyLoading.showError('OTP ไม่ถูกต้อง');
+        loadingDialog.dismiss();
+        DialogHelper.showError(
+            context, 'OTP ไม่ถูกต้อง', 'กรุณาตรวจสอบรหัสอีกครั้ง');
       }
     });
     setState(() {});
@@ -186,7 +197,7 @@ class _OtpScreenState extends State<OtpScreen>
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: GoogleFonts.kanit(
             fontSize: 24,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.normal,
             color: Color(0xFF0663F7),
           ),
           decoration: InputDecoration(
@@ -283,6 +294,7 @@ class _OtpScreenState extends State<OtpScreen>
                           ),
                         ),
                         // Countdown / Resend
+                        // Countdown / Resend
                         CountdownTimer(
                           controller: controller,
                           endTime: endTime,
@@ -291,7 +303,9 @@ class _OtpScreenState extends State<OtpScreen>
                               return GestureDetector(
                                 onTap: () async {
                                   // Resend OTP - call API and restart countdown
-                                  EasyLoading.show(status: 'กำลังส่ง OTP...');
+                                  AwesomeDialog loadingDialog =
+                                      DialogHelper.showLoading(
+                                          context, 'กำลังส่ง OTP...');
                                   try {
                                     Map<String, dynamic> otpMap = {
                                       "PHONE": _items['PHONE'],
@@ -304,8 +318,10 @@ class _OtpScreenState extends State<OtpScreen>
                                     };
                                     final result =
                                         await MemberFuture().apiPostOtp(otpMap);
-                                    EasyLoading.dismiss();
-                                    EasyLoading.showSuccess('ส่ง OTP ใหม่แล้ว');
+
+                                    loadingDialog.dismiss();
+                                    DialogHelper.showSuccess(
+                                        context, 'ส่ง OTP ใหม่แล้ว');
 
                                     // Extract new reference code from response
                                     String newRefCode = '';
@@ -347,9 +363,11 @@ class _OtpScreenState extends State<OtpScreen>
                                     FocusScope.of(context)
                                         .requestFocus(_focusNodes[0]);
                                   } catch (e) {
-                                    EasyLoading.dismiss();
-                                    EasyLoading.showError(
-                                        'ไม่สามารถส่ง OTP ได้');
+                                    loadingDialog.dismiss();
+                                    DialogHelper.showError(
+                                        context,
+                                        'ไม่สามารถส่ง OTP ได้',
+                                        'โปรดลองใหม่อีกครั้ง');
                                     print('Resend OTP error: $e');
                                   }
                                 },
@@ -406,7 +424,8 @@ class _OtpScreenState extends State<OtpScreen>
                             if (_otpValue.length == 6) {
                               onLoadCheckOtp(_getData());
                             } else {
-                              EasyLoading.showError("กรุณากรอก OTP 6 หลัก");
+                              DialogHelper.showWarning(context,
+                                  'ข้อมูลไม่ครบถ้วน', 'กรุณากรอก OTP 6 หลัก');
                             }
                           },
                           style: ElevatedButton.styleFrom(
