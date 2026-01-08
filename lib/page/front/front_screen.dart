@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart'
     show XFile; // For XFile type only
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/drawer.dart';
+import 'package:ismart_login/page/front/front_count_widget.dart';
 
 import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/front/future/org_future.dart';
@@ -557,6 +558,10 @@ class _FrontScreenState extends State<FrontScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (_itemMember != null)
+                          if (_itemMember.length > 0)
+                            if (_itemMember[0].MEMBER_TYPE == 'admin')
+                              FrontCountWidget(),
                         _buildMenuGrid(),
                         SizedBox(height: 75),
                       ],
