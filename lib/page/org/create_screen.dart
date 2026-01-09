@@ -2,12 +2,10 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -16,13 +14,11 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:ismart_login/page/managements/future/org_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemOrgManage.dart';
-import 'package:ismart_login/page/managements/org_manage_screen.dart';
 import 'package:ismart_login/page/managements/org_screen.dart';
 import 'package:ismart_login/page/org/future/getJoinOrg_future.dart';
 import 'package:ismart_login/page/org/model/itemSwitchOrg.dart';
@@ -33,7 +29,6 @@ import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';
-import 'package:location/location.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -102,59 +97,47 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
     if (widget.type == 'update') {
       _inputSubject.text = widget.title;
     }
-    if (widget.history != null) {
-      if (widget.history == "0") {
-        _switchHistory = false;
-      } else {
-        _switchHistory = true;
-      }
+    if (widget.history == "0") {
+      _switchHistory = false;
+    } else {
+      _switchHistory = true;
     }
-
+  
     //noti
-    if (widget.noti != null) {
-      if (widget.noti == "0") {
-        _switchNoti = false;
-      } else {
-        _switchNoti = true;
-      }
+    if (widget.noti == "0") {
+      _switchNoti = false;
+    } else {
+      _switchNoti = true;
     }
-
+  
     //ot
-    if (widget.ot != null) {
-      if (widget.ot == "0") {
-        _switchOT = false;
-      } else {
-        _switchOT = true;
-      }
+    if (widget.ot == "0") {
+      _switchOT = false;
+    } else {
+      _switchOT = true;
     }
-
+  
     //logout
-    if (widget.logout != null) {
-      if (widget.logout == "0") {
-        _switchLogout = false;
-      } else {
-        _switchLogout = true;
-      }
+    if (widget.logout == "0") {
+      _switchLogout = false;
+    } else {
+      _switchLogout = true;
     }
-
+  
     //time status
-    if (widget.time_status != null) {
-      if (widget.time_status == "0") {
-        _switchSwapTime = true;
-      } else {
-        _switchSwapTime = false;
-      }
+    if (widget.time_status == "0") {
+      _switchSwapTime = true;
+    } else {
+      _switchSwapTime = false;
     }
-
+  
     //leave cancel status
-    if (widget.leave_cancel_status != null) {
-      if (widget.leave_cancel_status == "0") {
-        _switchCancelLeave = false;
-      } else {
-        _switchCancelLeave = true;
-      }
+    if (widget.leave_cancel_status == "0") {
+      _switchCancelLeave = false;
+    } else {
+      _switchCancelLeave = true;
     }
-  }
+    }
 
   _releaseData() async {
     String _subject = _inputSubject.text;
@@ -747,7 +730,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                             )
                           : Container(),
                     ],
-                    backgroundColor: Colors.white.withOpacity(0),
+                    backgroundColor: Colors.white.withValues(alpha: 0),
                     elevation: 0,
                   ),
                   Container(
@@ -1374,7 +1357,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withOpacity(0.5),
+                                        color: Colors.grey.withValues(alpha: 0.5),
                                         spreadRadius: 1,
                                         blurRadius: 5,
                                         offset: Offset(

@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -106,7 +104,7 @@ class _LeaveTypesScreenState extends State<LeaveTypesScreen> {
                             'ประเภทการลา',
                             style: StylesText.titleAppBar,
                           ),
-                          backgroundColor: Colors.white.withOpacity(0),
+                          backgroundColor: Colors.white.withValues(alpha: 0),
                           elevation: 0,
                         ),
                         Expanded(
@@ -114,7 +112,7 @@ class _LeaveTypesScreenState extends State<LeaveTypesScreen> {
                             padding:
                                 EdgeInsets.only(left: 20, right: 20, top: 20),
                             width: MediaQuery.of(context).size.width,
-                            child: data != null && data.length > 0
+                            child: data.length > 0
                                 ? ListView(
                                     children: [
                                       for (var i = 0; i < data.length; i++)

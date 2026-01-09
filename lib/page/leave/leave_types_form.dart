@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -33,9 +31,7 @@ class _LeaveTypesFormScreenState extends State<LeaveTypesFormScreen> {
 
   @override
   void initState() {
-    if (widget.id != null) {
-      onLoadCateLeaveDetailManage();
-    }
+    onLoadCateLeaveDetailManage();
     super.initState();
   }
 
@@ -167,12 +163,10 @@ class _LeaveTypesFormScreenState extends State<LeaveTypesFormScreen> {
                           ),
                           actions: [],
                           title: Text(
-                            widget.title != null
-                                ? widget.title
-                                : 'แก้ไขรายละเอียดประเภทการลา',
+                            widget.title,
                             style: StylesText.titleAppBar,
                           ),
-                          backgroundColor: Colors.white.withOpacity(0),
+                          backgroundColor: Colors.white.withValues(alpha: 0),
                           elevation: 0,
                         ),
                         Expanded(
@@ -253,15 +247,13 @@ class _LeaveTypesFormScreenState extends State<LeaveTypesFormScreen> {
                                     child: InkWell(
                                       onTap: () {
                                         if (_inputSubject.text == "") {
-                                          EasyLoading.showError(
+                                          DialogHelper.showError(
+                                              context,
+                                              'เกิดข้อผิดพลาด',
                                               'กรอกชื่อประเภทการลา');
                                           return;
                                         }
-                                        if (widget.id != null) {
-                                          _updateCate();
-                                        } else {
-                                          _insertCate();
-                                        }
+                                        _updateCate();
                                       },
                                       child: Container(
                                         decoration: BoxDecoration(

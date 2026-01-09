@@ -1,15 +1,12 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ismart_login/page/org/future/getJoinOrg_future.dart';
 import 'package:ismart_login/page/org/join_detail_screen.dart';
 import 'package:ismart_login/page/org/model/getorglist.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/scan_qr.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;

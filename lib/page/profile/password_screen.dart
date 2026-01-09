@@ -1,14 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:crypto/crypto.dart';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/page/profile/model/itemPasswordResult.dart';
-import 'package:ismart_login/style/develop_blank.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -34,7 +31,8 @@ class _PasswordChangeState extends State<PasswordChange> {
 
   List<ItemsPasswordMemberResult> _item = [];
   Future<bool> onLoadMemberManage() async {
-    EasyLoading.show();
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังขื่อ...');
     if (md5.convert(utf8.encode(_inputPassword.text)).toString() ==
         await SharedCashe.getItemsWay(name: 'password')) {
       Map map = {
@@ -46,19 +44,19 @@ class _PasswordChangeState extends State<PasswordChange> {
       await ProfileFuture().apiUpdatePasswordMemberList(map).then((onValue) {
         if (onValue[0].STATUS) {
           _setNewPassword();
-          EasyLoading.dismiss();
-          EasyLoading.showSuccess("บันทึกแล้ว");
+          loadingDialog.dismiss();
+          DialogHelper.showSuccess(context, 'สำเร็จ', 'บันทึกแล้ว');
           Navigator.of(context).pop();
         } else {
-          EasyLoading.dismiss();
-          EasyLoading.showError("ล้มเหลว");
+          loadingDialog.dismiss();
+          DialogHelper.showError(context, 'ผิดพลาด', 'ล้มเหลว');
         }
       });
       setState(() {});
       return true;
     } else {
-      EasyLoading.dismiss();
-      EasyLoading.showToast("รหัสผ่านเดิมไม่ถูกต้อง !!");
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'ผิดพลาด', "รหัสผ่านเดิมไม่ถูกต้อง !!");
       return false;
     }
   }
@@ -102,7 +100,7 @@ class _PasswordChangeState extends State<PasswordChange> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                   leading: IconButton(
                     icon: Icon(
@@ -350,7 +348,8 @@ class _PasswordChangeState extends State<PasswordChange> {
                                   Container(
                                     child: GestureDetector(
                                       onTap: () {
-                                        if (_formKey.currentState?.validate() ?? false) {
+                                        if (_formKey.currentState?.validate() ??
+                                            false) {
                                           print('ถัดไป');
                                           onLoadMemberManage();
                                         } else {

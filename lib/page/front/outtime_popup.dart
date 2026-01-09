@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/clock.dart';
 import 'package:ismart_login/system/widht_device.dart';
 
 class OTDialog extends StatefulWidget {
@@ -121,7 +120,7 @@ class _OTDialogState extends State<OTDialog> {
                           print('show camera');
                           if (_formKey.currentState?.validate() ?? false) {
                             Navigator.pop(context);
-                            widget.onConfirmTap?.call(_inputNote.text);
+                            widget.onConfirmTap.call(_inputNote.text);
                           }
                         },
                         child: Container(

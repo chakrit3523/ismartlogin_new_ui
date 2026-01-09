@@ -5,9 +5,10 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/checkmemberlist.dart';
@@ -85,7 +86,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // API - Register member
   List<ItemsMemberResultList> _resultRegister = [];
   Future<bool> _registerMember(Map map) async {
-    EasyLoading.show(status: 'กำลังลงทะเบียน...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังลงทะเบียน...');
     await MemberFuture().apiInsertMember(map).then((onValue) async {
       _resultRegister = onValue;
       if (_resultRegister.isNotEmpty &&
@@ -95,11 +97,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         await SharedCashe.savaItemsString(
             key: 'id', valString: _resultRegister[0].ID);
 
-        EasyLoading.dismiss();
+        loadingDialog.dismiss();
         if (map['AVATAR'] != "") {
-          _onUploadAvatarProfile(_resultRegister[0].UPLOADKEY, map['AVATAR']);
+          await _onUploadAvatarProfile(
+              _resultRegister[0].UPLOADKEY, map['AVATAR']);
         }
-        EasyLoading.showSuccess('ลงทะเบียนสำเร็จ');
+        DialogHelper.showSuccess(context, 'ลงทะเบียนสำเร็จ');
         Navigator.popUntil(context, (route) => route.isFirst);
         Navigator.pushReplacement(
           context,
@@ -108,8 +111,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         );
       } else {
-        EasyLoading.dismiss();
-        EasyLoading.showError('ลงทะเบียนไม่สำเร็จ');
+        loadingDialog.dismiss();
+        DialogHelper.showError(
+            context, 'ลงทะเบียนไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
       }
     });
     return true;
@@ -118,6 +122,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<dynamic> _onUploadAvatarProfile(
       String uploadKey, String pathFile) async {
     await MemberFuture().uploadAvatarProfile(
+      context: context,
       file: pathFile,
       uploadKey: uploadKey,
     );
@@ -127,15 +132,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // Check if member exists
   List<ItemsCheckMemberResult> _resultCheck = [];
   Future<bool> _checkMember() async {
-    EasyLoading.show(status: 'กำลังตรวจสอบ...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
     Map map = {"username": _inputPhone.text};
     await MemberFuture().apiGetCheckMember(map).then((onValue) {
       _resultCheck = onValue;
       if (_resultCheck[0].STATUS == "true") {
         // Phone is available, proceed to OTP
+        loadingDialog.dismiss();
         _sendOtpAndNavigate();
       } else {
-        EasyLoading.dismiss();
+        loadingDialog.dismiss();
         _showAlert("${_inputPhone.text} ถูกใช้งานแล้ว");
       }
     });
@@ -145,10 +152,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // Send OTP
   List<ItemsOTPList> _resultOtp = [];
   Future<void> _sendOtpAndNavigate() async {
+    // Show loading before sending OTP, because checkMember already dismissed its loading
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังส่ง OTP...');
     Map formData = _getFormData();
     await MemberFuture().apiPostOtp(formData).then((onValue) {
       _resultOtp = onValue;
-      EasyLoading.dismiss();
+      loadingDialog.dismiss();
 
       if (_resultOtp.isNotEmpty) {
         // Extract reference code
@@ -174,7 +184,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         );
       } else {
-        EasyLoading.showError('ไม่สามารถส่ง OTP ได้');
+        DialogHelper.showError(
+            context, 'ไม่สามารถส่ง OTP ได้', 'โปรดลองใหม่อีกครั้ง');
       }
     });
   }

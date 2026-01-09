@@ -1,15 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:crypto/crypto.dart';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/page/profile/model/itemPasswordResult.dart';
 import 'package:ismart_login/page/sign/signin_screen.dart';
-import 'package:ismart_login/style/develop_blank.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
@@ -36,29 +33,40 @@ class _RePasswordChangeState extends State<RePasswordChange> {
 
   List<ItemsPasswordMemberResult> _item = [];
   Future<bool> onLoadMemberManage() async {
-    EasyLoading.show();
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังบันทึก...');
     Map map = {
       "newpassword":
           md5.convert(utf8.encode(_inputReNewPassword.text)).toString(),
       "uid": widget.uid,
     };
     print(map);
-    await ProfileFuture().apiUpdatePasswordMemberList(map).then((onValue) {
-      if (onValue[0].STATUS) {
-        EasyLoading.dismiss();
-        EasyLoading.showSuccess("บันทึกแล้ว");
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SignInScreen(),
-          ),
-        );
-        EasyLoading.showToast("กรุณาเข้าสู่ระบบอีกครั้ง");
-      } else {
-        EasyLoading.dismiss();
-        EasyLoading.showError("ล้มเหลว");
-      }
-    });
+    try {
+      await ProfileFuture().apiUpdatePasswordMemberList(map).then((onValue) {
+        if (onValue[0].STATUS) {
+          loadingDialog.dismiss();
+          DialogHelper.showSuccess(context, 'บันทึกแล้ว');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SignInScreen(),
+            ),
+          );
+          // Toast is not needed if we show success dialog, but let's keep message consistent
+          // DialogHelper.showSuccess handles the display.
+          // EasyLoading.showToast("กรุณาเข้าสู่ระบบอีกครั้ง");
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("กรุณาเข้าสู่ระบบอีกครั้ง")));
+        } else {
+          loadingDialog.dismiss();
+          DialogHelper.showError(
+              context, 'ล้มเหลว', 'เกิดข้อผิดพลาดในการบันทึก');
+        }
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
+    }
     setState(() {});
     return true;
   }
@@ -85,7 +93,7 @@ class _RePasswordChangeState extends State<RePasswordChange> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    EasyLoading.dismiss();
+    // EasyLoading.dismiss(); // Not needed or replace if necessary
   }
 
   @override
@@ -109,7 +117,7 @@ class _RePasswordChangeState extends State<RePasswordChange> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                   actions: [
                     IconButton(
@@ -317,7 +325,8 @@ class _RePasswordChangeState extends State<RePasswordChange> {
                                   Container(
                                     child: GestureDetector(
                                       onTap: () {
-                                        if (_formKey.currentState?.validate() ?? false) {
+                                        if (_formKey.currentState?.validate() ??
+                                            false) {
                                           print('ถัดไป');
                                           onLoadMemberManage();
                                         } else {

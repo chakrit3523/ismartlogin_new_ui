@@ -302,7 +302,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: Offset(0, -5),
                           ),
@@ -320,7 +320,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                               border: Border.all(color: Colors.grey[200]!),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 10,
                                   offset: Offset(0, 4),
                                 ),
@@ -986,7 +986,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                             style: BorderStyle.solid),
                                         borderRadius: BorderRadius.circular(12),
                                         color:
-                                            Color(0xFF21CCD4).withOpacity(0.05),
+                                            Color(0xFF21CCD4).withValues(alpha: 0.05),
                                       ),
                                       child: Row(
                                         mainAxisAlignment:
@@ -1069,7 +1069,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                         boxShadow: [
                                           BoxShadow(
                                             color: Color(0xFF0663F7)
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                             blurRadius: 10,
                                             offset: Offset(0, 4),
                                           ),
@@ -1433,7 +1433,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 4,
             offset: Offset(0, 2),
           ),

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -9,8 +8,6 @@ import 'package:ismart_login/page/front/model/sumaryToDay_ontime.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
-import 'package:ismart_login/system/widht_device.dart';
-import 'package:loading_gifs/loading_gifs.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class FrontCountOntimeScreen extends StatefulWidget {
@@ -49,7 +46,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Colors.white.withOpacity(0),
+                backgroundColor: Colors.white.withValues(alpha: 0),
                 elevation: 0,
               ),
               Expanded(
@@ -87,7 +84,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: Offset(0, 4),
               ),
@@ -242,7 +239,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
 
   _getStatusLocation(String _status) {
     String _txt = '';
-    if (_status != '' && _status != null) {
+    if (_status != '') {
       List _list = json.decode(_status);
       List _checkboxListTile = ['โปรแกรมระบุตำแหน่งผิดพลาด', 'ทำงานนอกสถานที่'];
       if (_list.length > 0) {
@@ -389,8 +386,8 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                           onTap: () async {
                             String url =
                                 'https://www.google.com/maps/search/?api=1&query=$lat,$long';
-                            if (await canLaunch(url)) {
-                              await launch(url);
+                            final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                              await launchUrl(Uri.parse(url));
                             } else {
                               // EasyLoading.showError('Could not launch map');
                               print('Could not launch $url');
@@ -407,7 +404,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                FaIcon(FontAwesomeIcons.mapMarkerAlt,
+                                FaIcon(FontAwesomeIcons.locationDot,
                                     size: 16, color: Colors.grey[600]),
                                 SizedBox(width: 8),
                                 Text(

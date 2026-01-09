@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:ismart_login/style/font_style.dart';
 
 /// Simple Camera Screen without AI face detection
 class SimpleCameraScreen extends StatefulWidget {
@@ -129,7 +127,7 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.white
-                          .withOpacity(0.8), // Semi-transparent white
+                          .withValues(alpha: 0.8), // Semi-transparent white
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.close, color: Colors.black, size: 24),

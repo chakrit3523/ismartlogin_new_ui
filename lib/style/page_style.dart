@@ -11,7 +11,7 @@ class StylePage {
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.grey.withOpacity(0.5),
+        color: Colors.grey.withValues(alpha: 0.5),
         spreadRadius: 5,
         blurRadius: 7,
         offset: Offset(3, 0), // changes position of shadow

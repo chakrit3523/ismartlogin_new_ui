@@ -1,16 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/sign/signin_screen.dart';
-import 'package:ismart_login/page/sign/signout_popup.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 // import 'package:toast/toast.dart';
 import 'package:http/http.dart' as http;
-
-import '../main.dart';
 
 class UserDeleteView extends StatefulWidget {
   const UserDeleteView({required Key key}) : super(key: key);
@@ -35,10 +33,11 @@ class _UserDeleteViewState extends State<UserDeleteView> {
   }
 
   getUsers() async {
-    EasyLoading.show(status: 'loading...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'Loading...');
     // await user.init();
     _getMyUid();
-    EasyLoading.dismiss();
+    loadingDialog.dismiss();
   }
 
   Future<void> submitDelete() async {
@@ -231,9 +230,9 @@ class UserDeleteDialog extends StatelessWidget {
                 TextButton(
                   style: ButtonStyle(
                     backgroundColor:
-                        MaterialStateProperty.all<Color>(Color(0xFFFFD60A)),
+                        WidgetStateProperty.all<Color>(Color(0xFFFFD60A)),
                     foregroundColor:
-                        MaterialStateProperty.all<Color>(Colors.black),
+                        WidgetStateProperty.all<Color>(Colors.black),
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();

@@ -47,7 +47,7 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Colors.white.withOpacity(0),
+                backgroundColor: Colors.white.withValues(alpha: 0),
                 elevation: 0,
               ),
               Expanded(
@@ -263,7 +263,7 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
 
   _getStatusLocation(String _status) {
     String _txt = '';
-    if (_status != '' && _status != null) {
+    if (_status != '') {
       List _list = json.decode(_status);
       List _checkboxListTile = ['โปรแกรมระบุตำแหน่งผิดพลาด', 'ทำงานนอกสถานที่'];
       if (_list.length > 0) {
@@ -369,8 +369,8 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                                 ',' +
                                                 (_items[index].START_LONGITUDE ?? '') +
                                                 '';
-                                        if (await canLaunch(url)) {
-                                          await launch(url);
+                                        final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                                          await launchUrl(Uri.parse(url));
                                         } else {
                                           throw 'Could not launch $url';
                                         }
@@ -387,7 +387,7 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             FaIcon(
-                                              FontAwesomeIcons.mapMarkedAlt,
+                                              FontAwesomeIcons.mapLocationDot,
                                               size: 18,
                                               color: Colors.grey[600],
                                             ),
@@ -440,8 +440,8 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                                 ',' +
                                                 (_items[index].END_LONGITUDE ?? '') +
                                                 '';
-                                        if (await canLaunch(url)) {
-                                          await launch(url);
+                                        final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                                          await launchUrl(Uri.parse(url));
                                         } else {
                                           throw 'Could not launch $url';
                                         }
@@ -458,7 +458,7 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             FaIcon(
-                                              FontAwesomeIcons.mapMarkedAlt,
+                                              FontAwesomeIcons.mapLocationDot,
                                               size: 18,
                                               color: Colors.grey[600],
                                             ),

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_switch/flutter_switch.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
@@ -111,12 +110,10 @@ class _OrgLockTimeFormScreenState extends State<OrgLockTimeFormScreen> {
                           ),
                           actions: [],
                           title: Text(
-                            widget.title != null
-                                ? widget.title
-                                : 'ตั้งเวลาปุ่มเข้า-ออกงาน',
+                            widget.title,
                             style: StylesText.titleAppBar,
                           ),
-                          backgroundColor: Colors.white.withOpacity(0),
+                          backgroundColor: Colors.white.withValues(alpha: 0),
                           elevation: 0,
                         ),
                         Expanded(
@@ -141,8 +138,7 @@ class _OrgLockTimeFormScreenState extends State<OrgLockTimeFormScreen> {
                                       hintText: 'เข้างานได้ก่อนกี่ชั่วโมง',
                                     ),
                                   ),
-                                  if (widget.statusBtn == 'in' &&
-                                      widget.statusBtn != null)
+                                  if (widget.statusBtn == 'in')
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           top: 10.0, bottom: 10),
@@ -151,8 +147,7 @@ class _OrgLockTimeFormScreenState extends State<OrgLockTimeFormScreen> {
                                         style: TextStyle(color: Colors.red),
                                       ),
                                     ),
-                                  if (widget.statusBtn == 'out' &&
-                                      widget.statusBtn != null)
+                                  if (widget.statusBtn == 'out')
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           top: 10.0, bottom: 10),

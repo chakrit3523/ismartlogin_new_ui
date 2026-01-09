@@ -10,8 +10,6 @@ import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/front/model/attendUpdateStart.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/clock.dart';
-import 'package:ismart_login/system/gps.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:location/location.dart';
 
@@ -135,8 +133,8 @@ class _OutsideDialogState extends State<OutsideDialog> {
           center: LatLng(
               double.parse(widget.mainLat), double.parse(widget.mainLng)),
           radius: 30,
-          strokeColor: (Colors.blue[200] ?? Colors.blue).withOpacity(0.5),
-          fillColor: (Colors.blue[100] ?? Colors.blue).withOpacity(0.3),
+          strokeColor: (Colors.blue[200] ?? Colors.blue).withValues(alpha: 0.5),
+          fillColor: (Colors.blue[100] ?? Colors.blue).withValues(alpha: 0.3),
           strokeWidth: 2),
     ]);
     return circles;

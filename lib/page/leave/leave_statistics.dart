@@ -1,7 +1,6 @@
 // ignore_for_file: unnecessary_null_comparison
 
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -300,7 +299,7 @@ class _LeaveStatisticsScreenState extends State<LeaveStatisticsScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
@@ -311,7 +310,7 @@ class _LeaveStatisticsScreenState extends State<LeaveStatisticsScreen> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -367,7 +366,7 @@ class _LeaveStatisticsScreenState extends State<LeaveStatisticsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.05),
+              color: Colors.grey.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),

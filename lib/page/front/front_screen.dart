@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart'
     show XFile; // For XFile type only
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/drawer.dart';
+import 'package:ismart_login/page/front/front_count_widget.dart';
 
 import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/front/future/org_future.dart';
@@ -29,13 +30,11 @@ import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart'
 import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/outside/outside_screen.dart';
-import 'package:ismart_login/widgets/atom_orbit_widget.dart';
-import 'package:ismart_login/widgets/curved_white_panel_clipper.dart';
+import 'package:ismart_login/widgets/orbit_clock_widget.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 
-import 'package:ismart_login/system/clock.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 
 import 'package:ismart_login/widgets/simple_camera_screen.dart';
@@ -52,7 +51,6 @@ class FrontScreen extends StatefulWidget {
 class _FrontScreenState extends State<FrontScreen>
     with SingleTickerProviderStateMixin {
   int currentIndex = 0;
-  TextEditingController _inputNote = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Animation Controller
@@ -64,15 +62,10 @@ class _FrontScreenState extends State<FrontScreen>
   double _myLat = 0.0;
   double _myLng = 0.0;
   //--
-  late Timer _timer;
-  late Timer _date;
   late String _time_id;
   String? OT_note;
   //---
   List<ItemsMemberList> _items = [];
-  late String _dateString;
-  late String _dayString;
-  late String _timeString;
   String badge = '0';
   //----
   String org_id = '';
@@ -116,19 +109,13 @@ class _FrontScreenState extends State<FrontScreen>
     onLoadBadgeLeaveManage();
     _getMyLocation();
     _getShaerd();
-    _timeString = _formatTime(DateTime.now());
-    _dateString = _formatDate(DateTime.now());
-    _dayString = Clock().thDay[DateTime.now().weekday % 7];
-    _timer = Timer.periodic(Duration(seconds: 1), (Timer t) => _getTime());
-    _date = Timer.periodic(Duration(seconds: 1), (Timer t) => _getDate());
   }
 
   @override
   @override
   void dispose() {
     _controller.dispose();
-    _timer.cancel();
-    _date.cancel();
+
     super.dispose();
     locationSubscription.cancel();
   }
@@ -390,57 +377,6 @@ class _FrontScreenState extends State<FrontScreen>
 
   ///------
 
-  void _getTime() {
-    _timeString = _formatTime(DateTime.now());
-    // Map map = {
-    //   "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
-    //   "uid": await SharedCashe.getItemsWay(name: 'id'),
-    // };
-    // var body = json.encode(map);
-    // final response = await http.Client().post(
-    //   Uri.parse(Server().getTimeInServer),
-    //   headers: {"Content-Type": "application/json"},
-    //   body: body,
-    // );
-    // var data = json.decode(response.body);
-    // // print(data['time'].toString());
-    // setState(() {
-    //   _timeString = data['time'].toString();
-    // });
-    // debugPrint("formattedDateTime = " + formattedDateTime);
-    // var dateValue = DateTime.now();
-    // String formattedDate =
-    //     DateFormat("dd MMM yyyy hh:mm:ssZ").format(dateValue);
-    // debugPrint("formattedDate = " + formattedDate);
-    // final DateTime now = DateTime.now();
-    // final String formattedDateTime = _formatTime(now);
-    // // print(formattedDateTime);
-    // setState(() {
-    //   _timeString = formattedDateTime;
-    // });
-  }
-
-  String _formatTime(DateTime dateTime) {
-    return DateFormat('HH:mm').format(dateTime);
-  }
-
-  void _getDate() {
-    final DateTime now = DateTime.now();
-    final String formattedDateTime = _formatDate(now);
-    List date = formattedDateTime.split("-");
-    String day = date[0];
-    String month = Clock().thMonth[int.parse(date[1])];
-    String year = (int.parse(date[2]) + 543).toString();
-    String display = day + ' ' + month + ' ' + year;
-    // weekday: 1=Monday, 2=Tuesday, ..., 7=Sunday
-    // thDay: 0=Sunday, 1=Monday, ..., 6=Saturday
-    int dayIndex = now.weekday % 7; // Convert: 7(Sun)->0, 1(Mon)->1, etc.
-    setState(() {
-      _dateString = display;
-      _dayString = Clock().thDay[dayIndex];
-    });
-  }
-
   _getShaerd() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? item = prefs.getString('item');
@@ -458,10 +394,6 @@ class _FrontScreenState extends State<FrontScreen>
     } else {
       _items = [];
     }
-  }
-
-  String _formatDate(DateTime dateTime) {
-    return DateFormat('d-M-y').format(dateTime);
   }
 
   @override
@@ -526,6 +458,12 @@ class _FrontScreenState extends State<FrontScreen>
                       SizedBox(height: MediaQuery.of(context).padding.top + 10),
                       // Header
                       _buildHeader(),
+                      SizedBox(height: 10),
+                      // Stats Widget for Admin
+                      if (_itemMember != null)
+                        if (_itemMember.length > 0)
+                          if (_itemMember[0].MEMBER_TYPE == 'admin')
+                            FrontCountWidget(),
                       SizedBox(height: 10),
                       // Clock
                       _buildCircularClock(),
@@ -684,57 +622,9 @@ class _FrontScreenState extends State<FrontScreen>
   }
 
   Widget _buildCircularClock() {
-    // 3D Atom-like orbits animation around the clock
-    return AtomOrbitWidget(
-      size: 220,
-      orbitColor: Color(0xFF0663F7),
-      duration: Duration(seconds: 3),
-      child: Container(
-        width: 155,
-        height: 155,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _dayString,
-              style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: FontStyles().FontFamily),
-            ),
-            SizedBox(height: 2),
-            Text(
-              _dateString,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[500],
-                  fontFamily: FontStyles().FontFamily),
-            ),
-            SizedBox(height: 4),
-            Text(
-              _timeString,
-              style: TextStyle(
-                  fontSize: 42,
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  height: 1.1,
-                  fontFamily: FontStyles().FontFamily),
-            ),
-          ],
-        ),
-      ),
+    // Orbit clock with rotating time indicators
+    return OrbitClockWidget(
+      size: 200,
     );
   }
 
@@ -778,7 +668,7 @@ class _FrontScreenState extends State<FrontScreen>
                   (index) => Container(
                         width: 2,
                         height: 3,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                       )),
             ),
           ),
@@ -975,7 +865,7 @@ class _FrontScreenState extends State<FrontScreen>
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 10,
                   spreadRadius: 1,
                   offset: Offset(0, 4),
@@ -992,37 +882,6 @@ class _FrontScreenState extends State<FrontScreen>
                   height: 1.2, // Default comfortable height for 14px
                   color: Color(0xFF424242), // Dark grey for visibility
                   fontFamily: FontStyles().FontFamily))
-        ],
-      ),
-    );
-  }
-
-  _causeNote() {
-    return Container(
-      padding: EdgeInsets.all(10),
-      child: Row(
-        children: [
-          Text(
-            'สาเหตุ',
-            style: TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
-          ),
-          Expanded(
-            child: TextFormField(
-              controller: _inputNote,
-              keyboardType: TextInputType.text,
-              style:
-                  TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
-              decoration: InputDecoration(
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.edit,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-          )
         ],
       ),
     );
@@ -1079,7 +938,7 @@ class _FrontScreenState extends State<FrontScreen>
                   radius: double.parse(_resultItemDepartment[0].RADIUS),
                   holiday: holiday,
                   ot_note: OT_note ?? '',
-                  time_server: _timeString);
+                  time_server: DateFormat('HH:mm').format(DateTime.now()));
             });
       }
     } catch (e) {
@@ -1141,7 +1000,7 @@ class _FrontScreenState extends State<FrontScreen>
                 timeId: _time_id,
                 radius: double.parse(_resultItemDepartment[0].RADIUS),
                 holiday: holiday,
-                time_server: _timeString,
+                time_server: DateFormat('HH:mm').format(DateTime.now()),
               );
             });
       }
@@ -1152,7 +1011,7 @@ class _FrontScreenState extends State<FrontScreen>
 
   void _handleCheckoutAttempt(BuildContext context) {
     // 1. Check if we have a valid scheduled checkout time
-    if (timeOut == '' || timeOut == null || _timeString == '') {
+    if (timeOut == '' || timeOut == null) {
       _proceedWithCheckout(context);
       return;
     }
@@ -1160,9 +1019,9 @@ class _FrontScreenState extends State<FrontScreen>
     try {
       // 2. Parse times (Assuming HH:mm format)
       // Current Time
-      List<String> currentParts = _timeString.split(':');
-      int currentHour = int.parse(currentParts[0]);
-      int currentMinute = int.parse(currentParts[1]);
+      DateTime now = DateTime.now();
+      int currentHour = now.hour;
+      int currentMinute = now.minute;
       int currentTotalMinutes = (currentHour * 60) + currentMinute;
 
       // Scheduled Time

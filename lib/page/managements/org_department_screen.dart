@@ -5,17 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ismart_login/page/managements/future/department_manage_future.dart';
-import 'package:ismart_login/page/managements/future/time_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemDepartmentResultManage.dart';
-import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
-import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
 import 'package:ismart_login/page/managements/org_departmentdetail_screen.dart';
-import 'package:ismart_login/page/managements/org_timedatail_screen.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/text_style.dart';
-import 'package:ismart_login/system/widht_device.dart';
 import 'package:location/location.dart';
 
 class OrgDepartmentManage extends StatefulWidget {
@@ -174,7 +169,7 @@ class _OrgDepartmentManageState extends State<OrgDepartmentManage> {
                             'สาขา',
                             style: StylesText.titleAppBar,
                           ),
-                          backgroundColor: Colors.white.withOpacity(0),
+                          backgroundColor: Colors.white.withValues(alpha: 0),
                           elevation: 0,
                         ),
                         Expanded(

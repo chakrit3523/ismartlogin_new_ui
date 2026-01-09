@@ -34,6 +34,7 @@ Widget formlogin() {
             if (value == null || value.isEmpty) {
               return 'กรุณาป้อน เบอร์โทรศัพท์';
             }
+            return null;
           },
         ),
         TextFormField(
@@ -58,9 +59,10 @@ Widget formlogin() {
             if (value == null || value.isEmpty) {
               return 'กรุณาป้อน รหัสผ่าน';
             }
+            return null;
           },
         ),
-        
+
         Padding(
           padding: EdgeInsets.all(20),
         ),
@@ -98,13 +100,12 @@ Widget formlogin() {
 class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // You can customize this logic as needed
-        return true;
-      },
+    return PopScope(
+      canPop: true,
       child: Scaffold(
-        appBar: AppBar(title:Text("เข้าสู่ระบบ"),),
+        appBar: AppBar(
+          title: Text("เข้าสู่ระบบ"),
+        ),
         body: Container(
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height,

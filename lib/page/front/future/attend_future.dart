@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter/material.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:ismart_login/page/front/model/attendEnd.dart';
 import 'package:ismart_login/page/front/model/attendHistory.dart';
 import 'package:ismart_login/page/front/model/attendStart.dart';
 import 'package:ismart_login/page/front/model/attendToDay.dart';
 import 'package:ismart_login/page/front/model/attendUpdateStart.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 
 import 'package:ismart_login/server/server.dart';
 
@@ -108,7 +110,15 @@ class AttandFuture {
   /// - 'success': true/false
   /// - 'uploadKey': the uploadKey used
   /// - 'error': error message if failed
+  ///---UPLOAD
+  /// Upload attendance image
+  ///
+  /// Returns Map with upload result:
+  /// - 'success': true/false
+  /// - 'uploadKey': the uploadKey used
+  /// - 'error': error message if failed
   Future<Map<String, dynamic>> uploadAttend({
+    required BuildContext context,
     required File file,
     required String uploadKey,
     required String uid,
@@ -116,6 +126,14 @@ class AttandFuture {
     required String attact_type,
     Function(double)? onProgress,
   }) async {
+    // Show loading dialog if no custom progress callback is provided (or even if it is, consistent UI)
+    // AwesomeDialog doesn't support progress updates easily.
+    // We will use a simple loading dialog.
+    AwesomeDialog? loadingDialog;
+    if (onProgress == null) {
+      loadingDialog = DialogHelper.showLoading(context, "กำลังอัพโหลด...");
+    }
+
     try {
       String fileName = file.path.split('/').last;
       var formData = FormData.fromMap({
@@ -134,18 +152,13 @@ class AttandFuture {
           print(
               'Upload progress: ${(progress * 100).toStringAsFixed(1)}% ($bytes/$total bytes)');
 
-          // Call custom progress callback if provided
           if (onProgress != null) {
             onProgress(progress);
-          } else {
-            // Use default EasyLoading if no custom callback
-            EasyLoading.showProgress(progress, status: "กำลังอัพโหลด");
-            if (progress >= 1.0) {
-              EasyLoading.dismiss();
-            }
           }
         },
       );
+
+      if (loadingDialog != null) loadingDialog.dismiss();
 
       print('Upload response: ${json.encode(response.data)}');
 
@@ -164,6 +177,7 @@ class AttandFuture {
         };
       }
     } catch (e) {
+      if (loadingDialog != null) loadingDialog.dismiss();
       print('Error uploading attendance image: $e');
       return {
         'success': false,
@@ -208,11 +222,17 @@ class AttandFuture {
   /// - 'imagePath': path of uploaded file
   /// - 'error': error message if failed
   Future<Map<String, dynamic>> uploadImageV2({
+    required BuildContext context,
     required File file,
     required String uid,
     required String attactType, // 'i_start' for check-in, 'i_end' for check-out
     Function(double)? onProgress,
   }) async {
+    AwesomeDialog? loadingDialog;
+    if (onProgress == null) {
+      loadingDialog = DialogHelper.showLoading(context, "กำลังอัพโหลดภาพ...");
+    }
+
     try {
       String fileName = file.path.split('/').last;
       var formData = FormData.fromMap({
@@ -231,14 +251,11 @@ class AttandFuture {
 
           if (onProgress != null) {
             onProgress(progress);
-          } else {
-            EasyLoading.showProgress(progress, status: "กำลังอัพโหลดภาพ...");
-            if (progress >= 1.0) {
-              EasyLoading.dismiss();
-            }
           }
         },
       );
+
+      if (loadingDialog != null) loadingDialog.dismiss();
 
       print('V2 Upload response: ${json.encode(response.data)}');
 
@@ -277,7 +294,7 @@ class AttandFuture {
       }
     } catch (e) {
       print('Error in V2 uploadImage: $e');
-      EasyLoading.dismiss();
+      if (loadingDialog != null) loadingDialog.dismiss();
       return {
         'success': false,
         'uploadKey': null,

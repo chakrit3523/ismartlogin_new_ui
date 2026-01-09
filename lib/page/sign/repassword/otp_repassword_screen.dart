@@ -1,24 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
 import 'package:flutter_countdown_timer/index.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
-import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
-import 'package:ismart_login/page/sign/model/for_post.dart';
-import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/repassword/repassword_screen.dart';
 import 'package:ismart_login/page/sign/repassword/search_account_screen.dart';
-import 'package:ismart_login/page/sign/signup_screen.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
@@ -71,24 +61,32 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
   //-- check OTP
   List<ItemsOTPList> _resultOtp = [];
   Future<bool> onLoadCheckOtp(Map map) async {
-    await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
-      _resultOtp = onValue;
-      print(onValue.length);
-      print(_resultOtp[0].RESULT);
-      if (_resultOtp[0].RESULT == "success") {
-        EasyLoading.show();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RePasswordChange(
-              uid: _items["UID"],
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
+    try {
+      await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
+        _resultOtp = onValue;
+        print(onValue.length);
+        print(_resultOtp[0].RESULT);
+        if (_resultOtp[0].RESULT == "success") {
+          loadingDialog.dismiss();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RePasswordChange(
+                uid: _items["UID"],
+              ),
             ),
-          ),
-        );
-      } else {
-        EasyLoading.showError('OTP ไม่ถูกต้อง');
-      }
-    });
+          );
+        } else {
+          loadingDialog.dismiss();
+          DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'OTP ไม่ถูกต้อง');
+        }
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
+    }
     setState(() {});
     return true;
   }
@@ -155,15 +153,16 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                 child: CountdownTimer(
                   controller: controller,
                   endTime: endTime,
-                  widgetBuilder: (BuildContext context, CurrentRemainingTime? time) {
+                  widgetBuilder:
+                      (BuildContext context, CurrentRemainingTime? time) {
                     if (time == null) {
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  OtpRepasswordScreen(key: UniqueKey(), map: widget.map),
+                              builder: (context) => OtpRepasswordScreen(
+                                  key: UniqueKey(), map: widget.map),
                             ),
                           );
                         },
@@ -256,7 +255,7 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                           );
                         },
                         child: FaIcon(
-                          FontAwesomeIcons.times,
+                          FontAwesomeIcons.xmark,
                           color: Colors.white,
                           size: 26,
                         ),
@@ -283,7 +282,7 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                               shape: BoxShape.circle,
                             ),
                             child: FaIcon(
-                              FontAwesomeIcons.shieldAlt,
+                              FontAwesomeIcons.shieldHalved,
                               size: 60,
                               color: Colors.white,
                             ),

@@ -22,7 +22,7 @@ class UploadLoadingDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 20,
               offset: Offset(0, 10),
             ),
@@ -54,7 +54,7 @@ class UploadLoadingDialog extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFF4A90E2).withOpacity(0.3),
+                          color: Color(0xFF4A90E2).withValues(alpha: 0.3),
                           blurRadius: 15,
                           offset: Offset(0, 5),
                         ),
@@ -109,7 +109,7 @@ class UploadLoadingDialog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF4A90E2).withOpacity(0.3),
+                        color: Color(0xFF4A90E2).withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: Offset(0, 2),
                       ),
@@ -145,7 +145,7 @@ class UploadLoadingDialog extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (context) => UploadLoadingDialog(
         status: status,
         progress: progress,

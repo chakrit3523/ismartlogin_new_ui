@@ -45,7 +45,7 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Colors.white.withOpacity(0),
+                backgroundColor: Colors.white.withValues(alpha: 0),
                 elevation: 0,
               ),
               Expanded(
@@ -266,7 +266,7 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
 
   _getStatusLocation(String _status) {
     String _txt = '';
-    if (_status != '' && _status != null) {
+    if (_status != '') {
       List _list = json.decode(_status);
       List _checkboxListTile = ['โปรแกรมระบุตำแหน่งผิดพลาด', 'ทำงานนอกสถานที่'];
       if (_list.length > 0) {

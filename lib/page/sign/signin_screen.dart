@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -11,11 +11,10 @@ import 'package:ismart_login/page/front/front_screen.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/page/org/organization_screen.dart';
 import 'package:ismart_login/page/sign/future/singin_future.dart';
-import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/page/sign/model/memberresult.dart';
 import 'package:ismart_login/page/sign/repassword/search_account_screen.dart';
 import 'package:ismart_login/page/sign/request_otp_screen.dart';
-
+import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';
@@ -28,6 +27,7 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
+  bool _showPageLogin = false;
   TextEditingController _inputPass = TextEditingController();
 
   bool checkProtect = false;
@@ -51,7 +51,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Handle auto-login for social users
   Future<void> _handleSocialAutoLogin(String emailOrPhone) async {
-    EasyLoading.show(status: 'กำลังเข้าสู่ระบบ...');
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังเข้าสู่ระบบ...');
 
     // Use the existing login API with a special social password
     Map loginMap = {
@@ -63,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await SigninFuture().apiSelectMember(loginMap).then((onValue) async {
         if (onValue[0]['msg'] == 'success') {
-          EasyLoading.dismiss();
+          loadingDialog.dismiss();
           var result = onValue[0]['result'][0];
 
           // Save user data to SharedPreferences using SharedCashe
@@ -84,7 +85,7 @@ class _SignInScreenState extends State<SignInScreen> {
           await SharedCashe.savaItemsString(
               key: 'username', valString: emailOrPhone);
 
-          EasyLoading.showSuccess('เข้าสู่ระบบสำเร็จ');
+          DialogHelper.showSuccess(context, 'เข้าสู่ระบบสำเร็จ');
 
           // Navigate to organization screen or front screen
           if (result['org_id'] != null &&
@@ -101,13 +102,14 @@ class _SignInScreenState extends State<SignInScreen> {
             );
           }
         } else {
-          EasyLoading.dismiss();
-          EasyLoading.showError('ไม่สามารถเข้าสู่ระบบได้');
+          loadingDialog.dismiss();
+          DialogHelper.showError(
+              context, 'เกิดข้อผิดพลาด', 'ไม่สามารถเข้าสู่ระบบได้');
         }
       });
     } catch (e) {
-      EasyLoading.dismiss();
-      EasyLoading.showError('เกิดข้อผิดพลาด');
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
       print('Social auto-login error: $e');
     }
   }
@@ -115,41 +117,51 @@ class _SignInScreenState extends State<SignInScreen> {
   //--API
   List<ItemsMemberResult> _result = [];
   Future<bool> onLoadGetMember(Map map) async {
-    EasyLoading.show();
-    await new SigninFuture().apiSelectMember(map).then((onValue) async {
-      print(onValue[0]['msg']);
-      print("wittawat rs");
-      print(onValue[0]['result']);
-      if (onValue[0]['msg'] == 'success') {
-        EasyLoading.dismiss();
-        await SharedCashe.saveItemsMemberList(item: onValue[0]['result']);
-        if (onValue[0]['result'][0]['org_id'] == '0') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OrganizationScreen(),
-            ),
-          );
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังเข้าสู่ระบบ...');
+    try {
+      await new SigninFuture().apiSelectMember(map).then((onValue) async {
+        print(onValue[0]['msg']);
+        print("wittawat rs");
+        print(onValue[0]['result']);
+        if (onValue[0]['msg'] == 'success') {
+          loadingDialog.dismiss();
+          await SharedCashe.saveItemsMemberList(item: onValue[0]['result']);
+          if (onValue[0]['result'][0]['org_id'] == '0') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrganizationScreen(),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MainPage(),
+              ),
+            );
+            _showToast();
+          }
+        } else if (onValue[0]['msg'] == 'fail') {
+          loadingDialog.dismiss();
+          alert_non_signin(context, 'ไม่พบ Username');
         } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainPage(),
-            ),
-          );
-          _showToast();
+          loadingDialog.dismiss();
+          alert_non_signin(context, 'Password ของคุณไม่ถูกต้อง');
         }
-      } else if (onValue[0]['msg'] == 'fail') {
-        EasyLoading.dismiss();
-        alert_non_signin(context, 'ไม่พบ Username');
-      } else {
-        EasyLoading.dismiss();
-        alert_non_signin(context, 'Password ของคุณไม่ถูกต้อง');
-      }
-    });
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
+    }
     setState(() {});
     return true;
   }
+// ... (skip down to social login)
+// Note: I will use separate calls to fix the social login parts to avoid large block replacement issues if lines don't match exactly.
+// Actually, I can do multiple chunks if I am careful. The first chunk handles onLoadGetMember.
+// I will split this into multiple chunks in one tool call.
 
   Widget formlogin() {
     return Form(
@@ -177,6 +189,7 @@ class _SignInScreenState extends State<SignInScreen> {
               if (value == null || value.isEmpty) {
                 return 'กรุณาป้อน เบอร์โทรศัพท์';
               }
+              return null;
             },
           ),
           TextFormField(
@@ -201,6 +214,7 @@ class _SignInScreenState extends State<SignInScreen> {
               if (value == null || value.isEmpty) {
                 return 'กรุณาป้อน รหัสผ่าน';
               }
+              return null;
             },
           ),
           Padding(
@@ -253,9 +267,17 @@ class _SignInScreenState extends State<SignInScreen> {
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
-      child: WillPopScope(
-        onWillPop: () async {
-          return await alert_back_system();
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          if (_showPageLogin) {
+            setState(() {
+              _showPageLogin = false;
+            });
+            return;
+          }
+          await alert_back_system();
         },
         child: Scaffold(
           resizeToAvoidBottomInset: false,
@@ -278,7 +300,7 @@ class _SignInScreenState extends State<SignInScreen> {
               SafeArea(
                 top: true,
                 bottom: true,
-                child: _buildLandingPage(),
+                child: _showPageLogin ? _buildLoginPage() : _buildLandingPage(),
               ),
             ],
           ),
@@ -367,16 +389,20 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontFamily: 'Tahoma',
                       fontWeight: FontWeight.normal)),
               onPressed: () async {
-                EasyLoading.show(status: 'กำลังเชื่อมต่อ...');
+                AwesomeDialog loadingDialog =
+                    DialogHelper.showLoading(context, 'กำลังเชื่อมต่อ...');
                 final result = await SocialAuthService().signInWithGoogle();
 
                 if (result != null && result.email != null) {
+                  loadingDialog.dismiss(); // Dismiss first loading
+
                   // Check if email already exists in system
-                  EasyLoading.show(status: 'กำลังตรวจสอบ...');
+                  AwesomeDialog checkingDialog =
+                      DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
                   try {
                     final existingMember = await MemberFuture()
                         .apiCheckMemberByEmail(result.email!);
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
 
                     if (existingMember.isNotEmpty &&
                         existingMember[0].STATUS == "true") {
@@ -400,7 +426,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       );
                     }
                   } catch (e) {
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
                     // On error, go to OTP flow as fallback
                     Navigator.push(
                       context,
@@ -417,8 +443,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     );
                   }
                 } else {
-                  EasyLoading.dismiss();
-                  EasyLoading.showError('ไม่สามารถเชื่อมต่อ Google ได้');
+                  loadingDialog.dismiss();
+                  DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                      'ไม่สามารถเชื่อมต่อ Google ได้');
                 }
               },
             ),
@@ -446,16 +473,20 @@ class _SignInScreenState extends State<SignInScreen> {
                       fontFamily: 'Tahoma',
                       fontWeight: FontWeight.normal)),
               onPressed: () async {
-                EasyLoading.show(status: 'กำลังเชื่อมต่อ...');
+                AwesomeDialog loadingDialog =
+                    DialogHelper.showLoading(context, 'กำลังเชื่อมต่อ...');
                 final result = await SocialAuthService().signInWithApple();
 
                 if (result != null && result.email != null) {
+                  loadingDialog.dismiss();
+
                   // Check if email already exists in system
-                  EasyLoading.show(status: 'กำลังตรวจสอบ...');
+                  AwesomeDialog checkingDialog =
+                      DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
                   try {
                     final existingMember = await MemberFuture()
                         .apiCheckMemberByEmail(result.email!);
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
 
                     if (existingMember.isNotEmpty &&
                         existingMember[0].STATUS == "true") {
@@ -478,7 +509,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       );
                     }
                   } catch (e) {
-                    EasyLoading.dismiss();
+                    checkingDialog.dismiss();
                     // On error, go to OTP flow as fallback
                     Navigator.push(
                       context,
@@ -495,8 +526,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     );
                   }
                 } else {
-                  EasyLoading.dismiss();
-                  EasyLoading.showError('ไม่สามารถเชื่อมต่อ Apple ได้');
+                  loadingDialog.dismiss();
+                  DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                      'ไม่สามารถเชื่อมต่อ Apple ได้');
                 }
               },
             ),
@@ -526,325 +558,353 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  void _showLoginBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+  Widget _buildLoginPage() {
+    return SingleChildScrollView(
+      child: Container(
+        padding: EdgeInsets.only(left: 20, right: 20),
+        width: MediaQuery.of(context).size.width,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Container(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showPageLogin = false;
+                  });
+                },
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: Offset(0, -5),
+            Container(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'iSmartLogin',
+                style: TextStyle(
+                    fontFamily: FontStyles().FontFamily,
+                    fontSize: 46,
+                    color: Colors.white,
+                    fontWeight: FontWeight.normal),
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Handle Bar
-              SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              SizedBox(height: 25),
-
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Column(
+            ),
+            Container(
+              padding: EdgeInsets.only(left: 5, right: 5, top: 10, bottom: 20),
+              width: WidhtDevice().widht(context),
+              decoration: StylePage().boxWhite,
+              child: Column(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 15),
+                    alignment: Alignment.center,
+                    width: 100,
+                    height: 100,
+                    decoration: new BoxDecoration(
+                      color: Color(0xFF18C0FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 75,
+                    ),
+                  ),
+                  Text(
+                    'เข้าใช้งาน',
+                    style: TextStyle(
+                        fontFamily: FontStyles().FontFamily, fontSize: 46),
+                  ),
+                  Container(
+                    padding: EdgeInsets.only(top: 40, left: 20, right: 20),
+                    child: formlogin(),
+                  ),
+                  Container(
+                    margin: EdgeInsets.only(top: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Icon with gradient background
-                        Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF18C0FF), Color(0xFF079CFD)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFF18C0FF).withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 50,
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        Text(
-                          'เข้าใช้งาน',
-                          style: GoogleFonts.kanit(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'กรอกข้อมูลเพื่อเข้าสู่ระบบ',
-                          style: GoogleFonts.kanit(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 35),
-
-                        // Enhanced Form
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              // Username Input with modern styling
-                              TextFormField(
-                                controller: _inputUsername,
-                                focusNode: _focusUsername,
-                                keyboardType: TextInputType.number,
-                                style: GoogleFonts.kanit(
-                                  fontSize: 16,
-                                  color: Colors.grey[800],
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'เบอร์โทรศัพท์',
-                                  hintStyle: GoogleFonts.kanit(
-                                    color: Colors.grey[400],
-                                    fontSize: 16,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.phone_iphone,
-                                    color: Color(0xFF079CFD),
-                                    size: 22,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[200]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[200]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF079CFD),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.red[300]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.red,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    vertical: 16,
-                                    horizontal: 16,
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'กรุณาป้อน เบอร์โทรศัพท์';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              SizedBox(height: 18),
-
-                              // Password Input with modern styling
-                              TextFormField(
-                                controller: _inputPassword,
-                                focusNode: _focusPassword,
-                                obscureText: true,
-                                keyboardType: TextInputType.visiblePassword,
-                                style: GoogleFonts.kanit(
-                                  fontSize: 16,
-                                  color: Colors.grey[800],
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'รหัสผ่าน',
-                                  hintStyle: GoogleFonts.kanit(
-                                    color: Colors.grey[400],
-                                    fontSize: 16,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.lock,
-                                    color: Color(0xFF079CFD),
-                                    size: 22,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[200]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[200]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF079CFD),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.red[300]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(
-                                      color: Colors.red,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    vertical: 16,
-                                    horizontal: 16,
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'กรุณาป้อน รหัสผ่าน';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              SizedBox(height: 25),
-
-                              // Login Button with gradient
-                              Container(
-                                width: double.infinity,
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Color(0xFF18C0FF),
-                                      Color(0xFF079CFD)
-                                    ],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(26),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0xFF079CFD).withOpacity(0.4),
-                                      blurRadius: 12,
-                                      offset: Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(26),
-                                    onTap: () {
-                                      if (_formKey.currentState?.validate() ??
-                                          false) {
-                                        onLoadGetMember(_postDataInput());
-                                      }
-                                    },
-                                    child: Center(
-                                      child: Text(
-                                        'เข้าสู่ระบบ',
-                                        style: GoogleFonts.kanit(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 20),
-
-                        // Forgot Password Link
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => SearchAccountScreen(),
-                              ),
+                                  builder: (context) => SearchAccountScreen()),
                             );
                           },
-                          child: Text(
-                            'ลืมรหัสผ่าน?',
-                            style: GoogleFonts.kanit(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 15,
-                              color: Color(0xFF079CFD),
-                            ),
-                          ),
+                          child: Text('ลืมรหัสผ่าน',
+                              style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24)),
                         ),
-                        SizedBox(height: 30),
+                        // Removed Logic for Register since it is on the main page now, but keeping forget password
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // Not used anymore but kept if we need to revert or for reference
+  void _showLoginBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Color(0xFFF5F9FF),
+            ],
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withValues(alpha: 0.3),
+              blurRadius: 30,
+              spreadRadius: 5,
+              offset: Offset(0, -10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              width: 50,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                child: Column(
+                  children: [
+                    // Avatar with gradient border
+                    Container(
+                      margin: EdgeInsets.only(top: 10),
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          color: Color(0xFF0663F7),
+                          size: 50,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 15),
+                    // Title
+                    Text(
+                      'เข้าสู่ระบบ',
+                      style: GoogleFonts.kanit(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1a1a2e),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'กรุณากรอกข้อมูลเพื่อเข้าใช้งาน',
+                      style: GoogleFonts.kanit(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    SizedBox(height: 30),
+                    // Phone Input
+                    _buildInputField(
+                      controller: _inputUsername,
+                      focusNode: _focusUsername,
+                      hint: 'เบอร์โทรศัพท์',
+                      icon: Icons.phone_iphone,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    SizedBox(height: 16),
+                    // Password Input
+                    _buildInputField(
+                      controller: _inputPassword,
+                      focusNode: _focusPassword,
+                      hint: 'รหัสผ่าน',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                    ),
+                    SizedBox(height: 12),
+                    // Forgot Password
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SearchAccountScreen(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'ลืมรหัสผ่าน?',
+                          style: GoogleFonts.kanit(
+                            fontSize: 14,
+                            color: Color(0xFF0663F7),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    // Login Button
+                    Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF0663F7).withValues(alpha: 0.4),
+                            blurRadius: 15,
+                            spreadRadius: 0,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_inputUsername.text.isNotEmpty &&
+                              _inputPassword.text.isNotEmpty) {
+                            Navigator.pop(context);
+                            onLoadGetMember(_postDataInput());
+                          } else {
+                            DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                                'กรุณากรอกข้อมูลให้ครบถ้วน');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: Text(
+                          'เข้าสู่ระบบ',
+                          style: GoogleFonts.kanit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool isPassword = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        focusNode: focusNode,
+        keyboardType: keyboardType,
+        obscureText: isPassword,
+        style: GoogleFonts.kanit(
+          fontSize: 16,
+          color: Color(0xFF1a1a2e),
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.kanit(
+            fontSize: 16,
+            color: Colors.grey[400],
+          ),
+          prefixIcon: Container(
+            margin: EdgeInsets.only(left: 16, right: 12),
+            child: Icon(
+              icon,
+              color: Color(0xFF0663F7),
+              size: 22,
+            ),
+          ),
+          prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Color(0xFF0663F7), width: 2),
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        ),
+      ),
+    );
+  }
 
   Future<bool> alert_back_system() async {
     final result = await showDialog<bool>(

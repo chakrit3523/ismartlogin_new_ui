@@ -81,10 +81,20 @@ class _MainPageState extends State<MainPage> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: alert_back_system,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await alert_back_system();
+        if (shouldPop && context.mounted) {
+          if (Platform.isAndroid) {
+            SystemNavigator.pop();
+          } else {
+            exit(0);
+          }
+        }
+      },
       child: Scaffold(
         key: _scaffoldKey,
         extendBody: true,
@@ -107,7 +117,7 @@ class _MainPageState extends State<MainPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
+                color: Colors.blue.withValues(alpha: 0.3),
                 blurRadius: 8,
                 spreadRadius: 2,
                 offset: Offset(0, 4),
@@ -143,7 +153,7 @@ class _MainPageState extends State<MainPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 5,
                 offset: Offset(0, -10),
@@ -327,11 +337,6 @@ class _MainPageState extends State<MainPage> {
                       Expanded(
                         child: InkWell(
                           onTap: () {
-                            if (Platform.isAndroid) {
-                              SystemNavigator.pop();
-                            } else {
-                              exit(0);
-                            }
                             Navigator.pop(context, true);
                           },
                           child: Container(
@@ -366,13 +371,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _launchInBrowser(String url) async {
-    if (await canLaunch(url)) {
-      await launch(
-        url,
-        forceSafariVC: false,
-        forceWebView: false,
-        headers: <String, String>{'my_header_key': 'my_header_value'},
-      );
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
       exit(0);
     } else {
       throw 'Could not launch $url';

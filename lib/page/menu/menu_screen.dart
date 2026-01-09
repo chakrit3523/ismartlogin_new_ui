@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 // Screens
 import 'package:ismart_login/page/profile/profile_screen.dart';
@@ -12,11 +9,10 @@ import 'package:ismart_login/page/profile/UserDeleteView.dart';
 import 'package:ismart_login/page/sign/signout_popup.dart';
 
 // Admin Screens
-import 'package:ismart_login/page/managements/org_manage_screen.dart'; // Verify path
+// Verify path
 import 'package:ismart_login/page/managements/org_member_screen.dart';
 import 'package:ismart_login/page/managements/org_department_screen.dart';
 import 'package:ismart_login/page/managements/org_time_screen.dart';
-import 'package:ismart_login/page/managements/org_lock_time.dart';
 import 'package:ismart_login/page/leave/leave_settings.dart'; // Verify path
 import 'package:ismart_login/page/managements/org_screen.dart';
 
@@ -171,7 +167,7 @@ class MenuScreen extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: Color(0xFF21CCD4).withOpacity(0.1),
+              color: Color(0xFF21CCD4).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -332,7 +328,6 @@ class MenuScreen extends StatelessWidget {
             bgColor: Color(0xFFF3E5F5),
             title: 'กำหนดสิทธิ์สมาชิก',
             onTap: () {
-              EasyLoading.show();
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => OrgMemberScreen()));
             },

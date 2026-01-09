@@ -1,7 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:ismart_login/page/profile/future/profile_future.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:ismart_login/utils/dialog_helper.dart';
 import 'package:ismart_login/page/sign/future/member_future.dart';
 import 'package:ismart_login/page/sign/model/otplist.dart';
 import 'package:ismart_login/page/sign/repassword/future/repassword_future.dart';
@@ -28,21 +27,31 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
 
   List<ItemsRePasswordMemberResultDetail> _item = [];
   Future<bool> onLoadGetMember() async {
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังค้นหา...');
     Map map = {"phone": _inputPhone.text};
-    await RepasswordFuture().apiGetMemberList(map).then((onValue) {
-      if (onValue[0].STATUS) {
-        setState(() {
-          _item = onValue[0].RESULT;
-          if (_item.length > 0) {
-            _resultBool = true;
-          } else {
-            _resultBool = false;
-          }
-        });
-      } else {
-        EasyLoading.showError("ไม่พบ Username");
-      }
-    });
+    try {
+      await RepasswordFuture().apiGetMemberList(map).then((onValue) {
+        if (onValue[0].STATUS) {
+          loadingDialog.dismiss();
+          setState(() {
+            _item = onValue[0].RESULT;
+            if (_item.length > 0) {
+              _resultBool = true;
+            } else {
+              _resultBool = false;
+            }
+          });
+        } else {
+          loadingDialog.dismiss();
+          DialogHelper.showError(
+              context, 'ไม่พบผู้ใช้', 'ไม่พบ Username นี้ในระบบ');
+        }
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', e.toString());
+    }
     setState(() {});
     return true;
   }
@@ -51,12 +60,21 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
   //--API
   List<ItemsOTPList> _result = [];
   Future<bool> onLoadSendOtp(String phone) async {
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังส่ง OTP...');
     Map map = {"PHONE": phone};
-    await new MemberFuture().apiPostOtp(map).then((onValue) {
-      _result = onValue;
-      print(_result[0].MSG);
-      print(onValue.length);
-    });
+    try {
+      await new MemberFuture().apiPostOtp(map).then((onValue) {
+        loadingDialog.dismiss();
+        _result = onValue;
+        print(_result[0].MSG);
+        print(onValue.length);
+        DialogHelper.showSuccess(context, 'ส่ง OTP สำเร็จ');
+      });
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ไม่สามารถส่ง OTP ได้');
+    }
     setState(() {});
     return true;
   }
@@ -82,7 +100,7 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: Colors.white.withOpacity(0),
+                  backgroundColor: Colors.white.withValues(alpha: 0),
                   elevation: 0,
                   actions: [
                     IconButton(
@@ -158,7 +176,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                   Container(
                                     child: GestureDetector(
                                       onTap: () {
-                                        if (_formKey.currentState?.validate() ?? false) {
+                                        if (_formKey.currentState?.validate() ??
+                                            false) {
                                           onLoadGetMember();
                                         }
                                       },
@@ -219,7 +238,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                                     boxShadow: [
                                                       BoxShadow(
                                                         color: Colors.grey
-                                                            .withOpacity(0.3),
+                                                            .withValues(
+                                                                alpha: 0.3),
                                                         spreadRadius: 2,
                                                         blurRadius: 5,
                                                         offset: Offset(0,
@@ -250,8 +270,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                                         boxShadow: [
                                                           BoxShadow(
                                                             color: Colors.grey
-                                                                .withOpacity(
-                                                                    0.3),
+                                                                .withValues(
+                                                                    alpha: 0.3),
                                                             spreadRadius: 2,
                                                             blurRadius: 5,
                                                             offset: Offset(0,
@@ -288,8 +308,8 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                                         boxShadow: [
                                                           BoxShadow(
                                                             color: Colors.grey
-                                                                .withOpacity(
-                                                                    0.3),
+                                                                .withValues(
+                                                                    alpha: 0.3),
                                                             spreadRadius: 2,
                                                             blurRadius: 5,
                                                             offset: Offset(0,

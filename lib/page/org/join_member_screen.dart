@@ -42,7 +42,7 @@ class _OrganizationJoinMemberScreenState
                       color: Colors.white,
                       fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Colors.white.withOpacity(0),
+                backgroundColor: Colors.white.withValues(alpha: 0),
                 elevation: 0,
                 leading: IconButton(
                   icon: Icon(
@@ -111,7 +111,7 @@ class _OrganizationJoinMemberScreenState
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.3),
+                                color: Colors.grey.withValues(alpha: 0.3),
                                 spreadRadius: 2,
                                 blurRadius: 5,
                                 offset:
@@ -130,7 +130,7 @@ class _OrganizationJoinMemberScreenState
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.3),
+                                color: Colors.grey.withValues(alpha: 0.3),
                                 spreadRadius: 2,
                                 blurRadius: 5,
                                 offset:
