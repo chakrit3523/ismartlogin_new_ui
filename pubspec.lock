@@ -53,10 +53,10 @@ packages:
     dependency: "direct main"
     description:
       name: awesome_dialog
-      sha256: "4c5821a0a637ceee022084e78c1b8237dd4b8bfca4dd24ac2484662a56707338"
+      sha256: c5bccfc0cd94f2025ba6af324e723b99241859e49d9951933d0e1a7952f4f8bb
       url: "https://pub.dev"
     source: hosted
-    version: "3.3.0"
+    version: "3.2.0"
   back_button_interceptor:
     dependency: transitive
     description:
@@ -1225,18 +1225,18 @@ packages:
     dependency: transitive
     description:
       name: rive
-      sha256: "4e555e212e28d6502eba37bab08213faa798de79c5cf21c950f122b50a5e33ba"
+      sha256: ae75a6e9cfbf146630bfb1feba97ee582d935508be6b362e4bd197b9c55a6dd3
       url: "https://pub.dev"
     source: hosted
-    version: "0.14.0"
-  rive_native:
+    version: "0.12.4"
+  rive_common:
     dependency: transitive
     description:
-      name: rive_native
-      sha256: "4e72aab284fe875e4b7da4b445117e8882f777fcc0358d4416b5850334246fb7"
+      name: rive_common
+      sha256: f4e20d0a99c5040c85624a3eb2b0b6b19e614d93a693c3bb25cf6e7bb2d3d6d3
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.2.8"
   rxdart:
     dependency: "direct main"
     description:
