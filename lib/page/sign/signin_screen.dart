@@ -656,157 +656,117 @@ class _SignInScreenState extends State<SignInScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.5),
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              Color(0xFFF5F9FF),
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white,
+                Color(0xFFF5F9FF),
+              ],
+            ),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withValues(alpha: 0.3),
+                blurRadius: 30,
+                spreadRadius: 5,
+                offset: Offset(0, -10),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withValues(alpha: 0.3),
-              blurRadius: 30,
-              spreadRadius: 5,
-              offset: Offset(0, -10),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: EdgeInsets.only(top: 12),
-              width: 50,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(10),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: EdgeInsets.only(top: 12),
+                width: 50,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-            ),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                child: Column(
-                  children: [
-                    // Avatar with gradient border
-                    Container(
-                      margin: EdgeInsets.only(top: 10),
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Container(
-                        width: 80,
-                        height: 80,
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                  child: Column(
+                    children: [
+                      // Avatar with gradient border
+                      Container(
+                        margin: EdgeInsets.only(top: 10),
+                        padding: EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white,
                           shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.person,
-                          color: Color(0xFF0663F7),
-                          size: 50,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 15),
-                    // Title
-                    Text(
-                      'เข้าสู่ระบบ',
-                      style: GoogleFonts.kanit(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1a1a2e),
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'กรุณากรอกข้อมูลเพื่อเข้าใช้งาน',
-                      style: GoogleFonts.kanit(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 30),
-                    // Phone Input
-                    _buildInputField(
-                      controller: _inputUsername,
-                      focusNode: _focusUsername,
-                      hint: 'เบอร์โทรศัพท์',
-                      icon: Icons.phone_iphone,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    SizedBox(height: 16),
-                    // Password Input
-                    _buildInputField(
-                      controller: _inputPassword,
-                      focusNode: _focusPassword,
-                      hint: 'รหัสผ่าน',
-                      icon: Icons.lock_outline,
-                      isPassword: true,
-                    ),
-                    SizedBox(height: 12),
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SearchAccountScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'ลืมรหัสผ่าน?',
-                          style: GoogleFonts.kanit(
-                            fontSize: 14,
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.person,
                             color: Color(0xFF0663F7),
+                            size: 50,
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    // Login Button
-                    Container(
-                      width: double.infinity,
-                      height: 55,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
+                      SizedBox(height: 15),
+                      // Title
+                      Text(
+                        'เข้าสู่ระบบ',
+                        style: GoogleFonts.kanit(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1a1a2e),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0xFF0663F7).withValues(alpha: 0.4),
-                            blurRadius: 15,
-                            spreadRadius: 0,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
                       ),
-                      child: ElevatedButton(
-                        onPressed: () {
+                      SizedBox(height: 8),
+                      Text(
+                        'กรุณากรอกข้อมูลเพื่อเข้าใช้งาน',
+                        style: GoogleFonts.kanit(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 30),
+                      // Phone Input
+                      _buildInputField(
+                        controller: _inputUsername,
+                        focusNode: _focusUsername,
+                        hint: 'เบอร์โทรศัพท์',
+                        icon: Icons.phone_iphone,
+                        keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
+                      ),
+                      SizedBox(height: 16),
+                      // Password Input
+                      _buildInputField(
+                        controller: _inputPassword,
+                        focusNode: _focusPassword,
+                        hint: 'รหัสผ่าน',
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) {
                           if (_inputUsername.text.isNotEmpty &&
                               _inputPassword.text.isNotEmpty) {
                             Navigator.pop(context);
@@ -816,28 +776,85 @@ class _SignInScreenState extends State<SignInScreen> {
                                 'กรุณากรอกข้อมูลให้ครบถ้วน');
                           }
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: Text(
-                          'เข้าสู่ระบบ',
-                          style: GoogleFonts.kanit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
+                      ),
+                      SizedBox(height: 12),
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SearchAccountScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'ลืมรหัสผ่าน?',
+                            style: GoogleFonts.kanit(
+                              fontSize: 14,
+                              color: Color(0xFF0663F7),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 20),
+                      // Login Button
+                      Container(
+                        width: double.infinity,
+                        height: 55,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFF0663F7).withValues(alpha: 0.4),
+                              blurRadius: 15,
+                              spreadRadius: 0,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_inputUsername.text.isNotEmpty &&
+                                _inputPassword.text.isNotEmpty) {
+                              Navigator.pop(context);
+                              onLoadGetMember(_postDataInput());
+                            } else {
+                              DialogHelper.showError(context, 'เกิดข้อผิดพลาด',
+                                  'กรุณากรอกข้อมูลให้ครบถ้วน');
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: Text(
+                            'เข้าสู่ระบบ',
+                            style: GoogleFonts.kanit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -850,6 +867,8 @@ class _SignInScreenState extends State<SignInScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     bool isPassword = false,
+    TextInputAction? textInputAction,
+    void Function(String)? onSubmitted,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -869,6 +888,8 @@ class _SignInScreenState extends State<SignInScreen> {
         focusNode: focusNode,
         keyboardType: keyboardType,
         obscureText: isPassword,
+        textInputAction: textInputAction,
+        onFieldSubmitted: onSubmitted,
         style: GoogleFonts.kanit(
           fontSize: 16,
           color: Color(0xFF1a1a2e),
