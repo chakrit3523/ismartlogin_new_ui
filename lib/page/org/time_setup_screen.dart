@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -329,6 +330,15 @@ class _TimeSetupScreenState extends State<TimeSetupScreen> {
     );
   }
 
+  // Helper to convert time string to total minutes for comparison
+  int _timeToMinutes(String timeStr) {
+    String t = timeStr.replaceAll(' น.', '');
+    List<String> parts = t.split('.');
+    int hours = int.tryParse(parts[0]) ?? 0;
+    int minutes = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    return hours * 60 + minutes;
+  }
+
   // Show time picker dialog
   Future<void> _showTimePicker(int dayIndex, String timeType) async {
     final day = _daySettings[dayIndex];
@@ -358,9 +368,41 @@ class _TimeSetupScreenState extends State<TimeSetupScreen> {
     );
 
     if (picked != null) {
+      final formattedTime =
+          '${picked.hour}.${picked.minute.toString().padLeft(2, '0')} น.';
+
+      // Validate time: check-in must be before check-out
+      String newCheckIn =
+          timeType == 'checkIn' ? formattedTime : day['checkIn'];
+      String newCheckOut =
+          timeType == 'checkOut' ? formattedTime : day['checkOut'];
+
+      int checkInMinutes = _timeToMinutes(newCheckIn);
+      int checkOutMinutes = _timeToMinutes(newCheckOut);
+
+      if (checkInMinutes >= checkOutMinutes) {
+        // Show error dialog
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: Text('เวลาไม่ถูกต้อง',
+                style: GoogleFonts.kanit(fontWeight: FontWeight.w600)),
+            content: Text(
+              'เวลาเข้างานต้องเริ่มก่อนเวลาออกงาน',
+              style: GoogleFonts.kanit(),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: Text('ตกลง', style: GoogleFonts.kanit()),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
       setState(() {
-        final formattedTime =
-            '${picked.hour}.${picked.minute.toString().padLeft(2, '0')} น.';
         _daySettings[dayIndex][timeType] = formattedTime;
       });
     }
@@ -431,17 +473,14 @@ class _TimeSetupScreenState extends State<TimeSetupScreen> {
             ),
           ],
           Spacer(),
-          Switch(
+          CupertinoSwitch(
             value: isEnabled,
             onChanged: (value) {
               setState(() {
                 _daySettings[index]['enabled'] = value;
               });
             },
-            activeThumbColor: Color(0xFF4CAF50),
-            activeTrackColor: Color(0xFF4CAF50).withValues(alpha: 0.5),
-            inactiveThumbColor: Colors.grey[400],
-            inactiveTrackColor: Colors.grey[300],
+            activeTrackColor: Color(0xFF34C759), // iOS green
           ),
         ],
       ),

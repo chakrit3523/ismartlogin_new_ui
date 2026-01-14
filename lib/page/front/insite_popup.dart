@@ -9,7 +9,6 @@ import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/front/outside_popup.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/system/widht_device.dart';
 import 'package:ismart_login/utils/image_helper.dart';
 import 'package:ismart_login/utils/dialog_helper.dart';
 
@@ -71,6 +70,8 @@ class _InsiteDialogState extends State<InsiteDialog> {
   @override
   void initState() {
     super.initState();
+    setLat = double.parse(widget.lat);
+    setLong = double.parse(widget.long);
     (widget.holiday == true)
         ? print("holiday, ${widget.holiday}")
         : print("NOT holiday, ${widget.holiday}");
@@ -103,7 +104,6 @@ class _InsiteDialogState extends State<InsiteDialog> {
       return true;
     }
     var now = new DateTime.now();
-    // var insite = DateFormat("HH:mm").format(DateTime.parse(time + ':00'));
     print("checkTimr time : " + time);
     DateTime timeInsite = DateFormat("HH:mm:ss").parse(time);
     DateTime combinedTime = DateTime(
@@ -116,8 +116,6 @@ class _InsiteDialogState extends State<InsiteDialog> {
     );
     String insiteNow = DateFormat("HH:mm:ss").format(now);
     DateTime timeNow = DateFormat("HH:mm:ss").parse(insiteNow);
-    // print("checkTimr combinedTime : " + combinedTime.toString());
-    // print("checkTimr timeNow : " + timeNow.toString());
     if (timeNow.isBefore(combinedTime) || timeNow == combinedTime) {
       return true;
     } else {
@@ -206,156 +204,261 @@ class _InsiteDialogState extends State<InsiteDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20.0))),
-      contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-      content: SingleChildScrollView(
-        child: Container(
-          width: WidhtDevice().widht(context),
+    bool isLate = !checkTimr(widget.time) && !checkHoliday(widget.holiday);
+    bool isOffsite = !distanc();
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.all(10),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 1. Map & Photo Header
               Container(
-                padding: EdgeInsets.only(top: 5),
-                height: 150,
-                child: Image.file(
-                  File(widget.pathImage),
-                  fit: BoxFit.fitHeight,
+                height: 250,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-              ),
-              Container(
-                child: Column(
+                child: Stack(
                   children: [
-                    Text(
-                      // Clock().getTime(),
-                      widget.time_server.toString(),
-                      style: TextStyle(
-                        fontFamily: FontStyles().FontFamily,
-                        height: 1,
-                        fontSize: 40,
-                        color: Color(0xFF757575),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              distanc()
-                  ? Container()
-                  : Container(
-                      child: Text(
-                        'คุณไม่ได้อยู่ในพื้นที่',
-                        style: TextStyle(
-                            fontFamily: FontStyles().FontFamily,
-                            fontSize: 18,
-                            color: Colors.red),
+                    // Map
+                    ClipRRect(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(20)),
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(widget.myLat, widget.myLng),
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: MarkerId('curr_loc'),
+                            position: LatLng(widget.myLat, widget.myLng),
+                            icon: BitmapDescriptor.defaultMarkerWithHue(
+                                BitmapDescriptor.hueGreen),
+                          )
+                        },
+                        myLocationEnabled: false,
+                        zoomControlsEnabled: false,
                       ),
                     ),
-              Container(
-                child: Column(
-                  children: [
-                    Text(
-                      checkTimr(widget.time)
-                          ? ''
-                          : widget.holiday == true
-                              ? ''
-                              : 'คุณเข้างานสาย',
-                      style: TextStyle(
-                        fontFamily: FontStyles().FontFamily,
-                        height: 1,
-                        fontSize: 26,
-                        color: Colors.red,
+                    // Photo Overlay
+                    Positioned(
+                      bottom: 0,
+                      left: 20,
+                      child: Container(
+                        width: 100,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(15)),
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black26, blurRadius: 4)
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(12)),
+                          child: Image.file(
+                            File(widget.pathImage),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                    )
+                    ),
+                    // Close Button
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.close, color: Colors.grey),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              checkHoliday(widget.holiday)
-                  ? Container()
-                  : checkTimr(widget.time)
-                      ? Container()
-                      : _radioButton(),
-              checkHoliday(widget.holiday)
-                  ? Container()
-                  : checkTimr(widget.time)
-                      ? Container()
-                      : _causeNote(),
+
+              // 2. Info Header (Time & Location) - Green for Check-in
               Container(
+                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                color: Color(0xFF4CAF50), // Green for check-in
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: _isUploading
-                            ? null
-                            : () async {
-                                Map _map = {
-                                  "uid": widget.uid,
-                                  "time": widget.time_server.toString(),
-                                  "image": widget.pathImage,
-                                  "latitude": widget.myLat.toString(),
-                                  "longitude": widget.myLng.toString(),
-                                  "start_status": checkHoliday(widget.holiday)
-                                      ? '5'
-                                      : checkTimr(widget.time)
-                                          ? '0'
-                                          : (currentIndex + 1),
-                                  "start_note": checkHoliday(widget.holiday)
-                                      ? widget.ot_note
-                                      : _inputNote.text,
-                                  "start_location_status":
-                                      distanc() ? '0' : '1',
-                                  "log": 'timeid_${widget.timeId}',
-                                };
-                                print("CHECK-IN DATA: " + _map.toString());
-
-                                // Synchronous upload flow
-                                final success = await processCheckIn(_map);
-
-                                if (!success) {
-                                  // Upload failed, stay on dialog
-                                  return;
-                                }
-
-                                ///--- Navigation
-                                if (!distanc()) {
-                                  Navigator.pop(context);
-                                  showDialog(
-                                      barrierDismissible: false,
-                                      context: context,
-                                      builder: (_) {
-                                        return OutsideDialog(
-                                          status: 1,
-                                          uid: widget.uid,
-                                          mainLat: widget.lat.toString(),
-                                          mainLng: widget.long.toString(),
-                                          lat: widget.myLat.toString(),
-                                          long: widget.myLng.toString(),
-                                          time: widget.time,
-                                          time_server:
-                                              widget.time_server.toString(),
-                                        );
-                                      });
-                                } else {
-                                  Navigator.pop(context);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => MainPage()),
-                                  );
-                                }
-                              },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _isUploading
-                                ? Colors.grey[300]
-                                : Colors.green[100],
-                            borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(20.0),
-                              bottomRight: Radius.circular(20.0),
-                            ),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time_filled, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          widget.time_server,
+                          style: TextStyle(
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
-                          height: 50,
-                          alignment: Alignment.center,
+                        ),
+                      ],
+                    ),
+                    // Status badge
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Text(
+                        'เข้างาน',
+                        style: TextStyle(
+                          fontFamily: FontStyles().FontFamily,
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 3. Warning & Reason Section
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    // Late Warning
+                    if (isLate) ...[
+                      Container(
+                        padding: EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.red[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_rounded,
+                                color: Colors.red, size: 30),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'คุณเข้างานสาย กรุณาระบุเหตุผล',
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red[700],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 15),
+                    ],
+
+                    // Offsite Warning
+                    if (isOffsite) ...[
+                      Container(
+                        padding: EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.orange[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.location_off,
+                                color: Colors.orange, size: 30),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'คุณไม่ได้อยู่ในพื้นที่',
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[700],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 15),
+                    ],
+
+                    // Reason Input (only show if late and not holiday)
+                    if (isLate) ...[
+                      // Quick Reason Chips
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildReasonChip('สาย', 0),
+                          _buildReasonChip('ลาไม่เต็มวัน', 1),
+                          _buildReasonChip('ลืมลงชื่อ', 2),
+                          _buildReasonChip('นอกสถานที่', 3),
+                        ],
+                      ),
+                      SizedBox(height: 15),
+
+                      // Input Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: TextFormField(
+                          controller: _inputNote,
+                          style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'ระบุเหตุผลเพิ่มเติม (ถ้ามี)',
+                            hintStyle: TextStyle(color: Colors.grey),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 15, vertical: 15),
+                            suffixIcon: Icon(Icons.edit, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                    ],
+
+                    // Submit Button
+                    GestureDetector(
+                      onTap: _isUploading ? null : _submitCheckIn,
+                      child: Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF66BB6A), Color(0xFF43A047)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
                           child: _isUploading
                               ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -365,33 +468,31 @@ class _InsiteDialogState extends State<InsiteDialog> {
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.green),
+                                        color: Colors.white,
                                       ),
                                     ),
                                     SizedBox(width: 10),
-                                    Flexible(
-                                      child: Text(
-                                        _uploadStatus +
-                                            (_uploadProgress > 0
-                                                ? ' ${(_uploadProgress * 100).toStringAsFixed(0)}%'
-                                                : ''),
-                                        style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontSize: 18,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                    Text(
+                                      _uploadStatus +
+                                          (_uploadProgress > 0
+                                              ? ' ${(_uploadProgress * 100).toStringAsFixed(0)}%'
+                                              : ''),
+                                      style: TextStyle(
+                                        fontFamily: FontStyles().FontFamily,
+                                        fontSize: 16,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ],
                                 )
                               : Text(
-                                  'ตกลง',
+                                  'ลงเวลาเข้างาน',
                                   style: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold),
+                                    fontFamily: FontStyles().FontFamily,
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                         ),
                       ),
@@ -406,73 +507,84 @@ class _InsiteDialogState extends State<InsiteDialog> {
     );
   }
 
-  _causeNote() {
-    return Container(
-      padding: EdgeInsets.all(10),
-      child: Row(
-        children: [
-          Text(
-            'สาเหตุ',
-            style: TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
+  Widget _buildReasonChip(String label, int index) {
+    bool isSelected = currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          currentIndex = index;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Color(0xFFE8F5E9) : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Color(0xFF4CAF50) : Colors.transparent,
           ),
-          Expanded(
-            child: TextFormField(
-              controller: _inputNote,
-              keyboardType: TextInputType.text,
-              style:
-                  TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
-              decoration: InputDecoration(
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.edit,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-          )
-        ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: FontStyles().FontFamily,
+            color: isSelected ? Color(0xFF2E7D32) : Colors.black54,
+          ),
+        ),
       ),
     );
   }
 
-  _radioButton() {
-    return Container(
-      child: ListView.builder(
-        physics: NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.only(top: 0.0),
-        shrinkWrap: true,
-        itemCount: sortTimeOthers.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Container(
-            height: 35.0,
-            alignment: Alignment.topCenter,
-            child: RadioListTile(
-              value: index,
-              activeColor: Color(0xFF84ACFB),
-              groupValue: currentIndex,
-              title: Text(
-                sortTimeOthers[index],
-                style: TextStyle(
-                    fontFamily: FontStyles().FontFamily,
-                    fontSize: 22,
-                    height: 1),
-              ),
-              onChanged: (val) {
-                _select(val as int);
-                print(val);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
+  void _submitCheckIn() async {
+    Map _map = {
+      "uid": widget.uid,
+      "time": widget.time_server.toString(),
+      "image": widget.pathImage,
+      "latitude": widget.myLat.toString(),
+      "longitude": widget.myLng.toString(),
+      "start_status": checkHoliday(widget.holiday)
+          ? '5'
+          : checkTimr(widget.time)
+              ? '0'
+              : (currentIndex + 1),
+      "start_note":
+          checkHoliday(widget.holiday) ? widget.ot_note : _inputNote.text,
+      "start_location_status": distanc() ? '0' : '1',
+      "log": 'timeid_${widget.timeId}',
+    };
+    print("CHECK-IN DATA: " + _map.toString());
 
-  _select(int val) {
-    setState(() {
-      currentIndex = val;
-    });
+    // Synchronous upload flow
+    final success = await processCheckIn(_map);
+
+    if (!success) {
+      return;
+    }
+
+    // Navigation
+    if (!distanc()) {
+      Navigator.pop(context);
+      showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (_) {
+            return OutsideDialog(
+              status: 1,
+              uid: widget.uid,
+              mainLat: widget.lat.toString(),
+              mainLng: widget.long.toString(),
+              lat: widget.myLat.toString(),
+              long: widget.myLng.toString(),
+              time: widget.time,
+              time_server: widget.time_server.toString(),
+            );
+          });
+    } else {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()),
+      );
+    }
   }
 }

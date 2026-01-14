@@ -5,7 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:geocoding/geocoding.dart' as geocoding;
+import 'package:google_place/google_place.dart';
 
 import 'package:awesome_dialog/awesome_dialog.dart';
 
@@ -120,13 +121,14 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
   Future<void> _getAddressFromLatLng(LatLng position) async {
     try {
       // Set Thai locale for address
-      await setLocaleIdentifier('th_TH');
-      List<Placemark> placemarks = await placemarkFromCoordinates(
+      await geocoding.setLocaleIdentifier('th_TH');
+      List<geocoding.Placemark> placemarks =
+          await geocoding.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
       if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
+        geocoding.Placemark place = placemarks[0];
         setState(() {
           _address =
               '${place.street ?? ''} ${place.subLocality ?? ''} ${place.locality ?? ''} ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}';
@@ -509,7 +511,7 @@ class _OrgSetupScreenState extends State<OrgSetupScreen> {
                                     Row(
                                       children: [
                                         Text(
-                                          'รัศมีในการล็อกอิน',
+                                          'รัศมีในการเข้าออกงาน',
                                           style: GoogleFonts.kanit(
                                             fontSize: 16,
                                             fontWeight: FontWeight.normal,
@@ -798,13 +800,14 @@ class _FullMapPickerScreenState extends State<FullMapPickerScreen>
   Future<void> _getAddressFromLatLng(LatLng position) async {
     try {
       // Set Thai locale for address
-      await setLocaleIdentifier('th_TH');
-      List<Placemark> placemarks = await placemarkFromCoordinates(
+      await geocoding.setLocaleIdentifier('th_TH');
+      List<geocoding.Placemark> placemarks =
+          await geocoding.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
       if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
+        geocoding.Placemark place = placemarks[0];
         setState(() {
           _address =
               '${place.street ?? ''} ${place.subLocality ?? ''} ${place.locality ?? ''} ${place.administrativeArea ?? ''} ${place.postalCode ?? ''}';
@@ -817,47 +820,81 @@ class _FullMapPickerScreenState extends State<FullMapPickerScreen>
     }
   }
 
+  // Google Places API key
+  static const String _googleApiKey = 'AIzaSyB91yhHGMRWDgLYajpg8ACtG5Dl1YUFFEw';
+
   Future<void> _searchPlace(String query) async {
     if (query.isEmpty) return;
 
     try {
-      // EasyLoading.show(status: 'กำลังค้นหา...');
-      List<Location> locations = await locationFromAddress(query);
-      // EasyLoading.dismiss();
+      // Use Google Places API to search for places/businesses
+      final googlePlace = GooglePlace(_googleApiKey);
 
-      if (locations.isNotEmpty) {
-        LatLng newPosition = LatLng(
-          locations[0].latitude,
-          locations[0].longitude,
-        );
+      // Search with text search (supports business names, POIs)
+      final result = await googlePlace.search.getTextSearch(
+        query,
+        language: 'th',
+        region: 'th',
+      );
 
-        setState(() {
-          _selectedPosition = newPosition;
-        });
+      if (result != null &&
+          result.results != null &&
+          result.results!.isNotEmpty) {
+        final place = result.results!.first;
+        final lat = place.geometry?.location?.lat;
+        final lng = place.geometry?.location?.lng;
 
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(newPosition, 16),
-        );
+        if (lat != null && lng != null) {
+          LatLng newPosition = LatLng(lat, lng);
 
-        _getAddressFromLatLng(newPosition);
+          setState(() {
+            _selectedPosition = newPosition;
+            // Use place name and formatted address
+            _address = place.formattedAddress ?? place.name ?? '';
+          });
+
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(newPosition, 16),
+          );
+        }
       } else {
-        AwesomeDialog(
-          context: context,
-          dialogType: DialogType.info,
-          animType: AnimType.bottomSlide,
-          title: 'ไม่พบสถานที่',
-          desc: 'กรุณาลองค้นหาด้วยชื่ออื่น',
-          btnOkOnPress: () {},
-        ).show();
+        // Fallback to Geocoding for addresses
+        List<geocoding.Location> locations =
+            await geocoding.locationFromAddress(query);
+
+        if (locations.isNotEmpty) {
+          LatLng newPosition = LatLng(
+            locations[0].latitude,
+            locations[0].longitude,
+          );
+
+          setState(() {
+            _selectedPosition = newPosition;
+          });
+
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(newPosition, 16),
+          );
+
+          _getAddressFromLatLng(newPosition);
+        } else {
+          AwesomeDialog(
+            context: context,
+            dialogType: DialogType.info,
+            animType: AnimType.bottomSlide,
+            title: 'ไม่พบสถานที่',
+            desc: 'กรุณาลองค้นหาด้วยชื่ออื่น',
+            btnOkOnPress: () {},
+          ).show();
+        }
       }
     } catch (e) {
-      // EasyLoading.dismiss();
       AwesomeDialog(
         context: context,
         dialogType: DialogType.error,
         animType: AnimType.bottomSlide,
         title: 'ไม่พบสถานที่',
-        desc: 'เกิดข้อผิดพลาดในการค้นหา',
+        desc: 'เกิดข้อผิดพลาดในการค้นหา: $e',
         btnOkOnPress: () {},
       ).show();
     }
