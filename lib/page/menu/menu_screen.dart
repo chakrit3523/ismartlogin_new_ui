@@ -20,6 +20,9 @@ import 'package:ismart_login/page/managements/org_screen.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
 
+import 'package:ismart_login/widgets/floating_bottom_navigation.dart';
+import 'package:ismart_login/page/main.dart'; // Import MainPage
+
 class MenuScreen extends StatelessWidget {
   final List<ItemsMemberResultManage> itemMember;
   final Function onBadgeUpdate;
@@ -44,6 +47,54 @@ class MenuScreen extends StatelessWidget {
     String orgSubId = member?.ORG_SUB_ID ?? '';
 
     return Scaffold(
+      floatingActionButton: FloatingClockFAB(
+        onPressed: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  MainPage(initialIndex: 1), // 1 = Front/Home
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                var begin = Offset(0.0, 1.0);
+                var end = Offset.zero;
+                var curve = Curves.ease;
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+                return SlideTransition(
+                    position: animation.drive(tween), child: child);
+              },
+            ),
+            (route) => false,
+          );
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: FloatingBottomNavigationBar(
+        currentIndex: 4, // Menu is index 4
+        onTap: (index) {
+          if (index == 4) return; // Already here
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  MainPage(initialIndex: index),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                var begin = Offset(0.0, 1.0);
+                var end = Offset.zero;
+                var curve = Curves.ease;
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+                return SlideTransition(
+                    position: animation.drive(tween), child: child);
+              },
+            ),
+            (route) => false,
+          );
+        },
+      ),
       body: Stack(
         children: [
           // 1. Blue Gradient Background
@@ -65,7 +116,8 @@ class MenuScreen extends StatelessWidget {
           // 2. Content
           SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding:
+                  EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 100),
               child: Column(
                 children: [
                   // Header Name & Avatar

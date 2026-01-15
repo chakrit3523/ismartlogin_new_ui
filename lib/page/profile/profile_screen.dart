@@ -18,7 +18,9 @@ import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart
 import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:ismart_login/widgets/bottom_menu_grid.dart';
+
+import 'package:ismart_login/widgets/floating_bottom_navigation.dart';
+import 'package:ismart_login/page/main.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -265,127 +267,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF21CCD4), // Cyan
-              Color(0xFF0663F7), // Deep Blue
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      floatingActionButton: FloatingClockFAB(
+        onPressed: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  MainPage(initialIndex: 1), // 1 = Front/Home
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                var begin = Offset(0.0, 1.0);
+                var end = Offset.zero;
+                var curve = Curves.ease;
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+                return SlideTransition(
+                    position: animation.drive(tween), child: child);
+              },
+            ),
+            (route) => false,
+          );
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: FloatingBottomNavigationBar(
+        currentIndex: 3, // Profile is index 3
+        onTap: (index) {
+          if (index == 3) return; // Already here
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  MainPage(initialIndex: index),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                var begin = Offset(0.0, 1.0);
+                var end = Offset.zero;
+                var curve = Curves.ease;
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+                return SlideTransition(
+                    position: animation.drive(tween), child: child);
+              },
+            ),
+            (route) => false,
+          );
+        },
+      ),
+      body: Stack(
+        children: [
+          // 1. Blue Gradient Background (Full Screen)
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF21CCD4), // Cyan
+                  Color(0xFF0663F7), // Blue
+                ],
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              // Custom AppBar
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back_ios,
-                          color:
-                              Colors.transparent), // Hidden but keeps spacing
-                      onPressed: () {}, // Removed functionality
-                    ),
-                    Text(
-                      'ข้อมูลของคุณ',
-                      style: GoogleFonts.kanit(
-                        fontSize: 24,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // Custom AppBar
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back_ios,
+                            color:
+                                Colors.transparent), // Hidden but keeps spacing
+                        onPressed: () {}, // Removed functionality
                       ),
-                    ),
-                    Visibility(
-                      visible: !_edit,
-                      child: TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _edit = true;
-                          });
-                        },
-                        icon: Icon(Icons.edit, color: Colors.white, size: 18),
-                        label: Text(
-                          'แก้ไข',
-                          style: GoogleFonts.kanit(color: Colors.white),
+                      Text(
+                        'ข้อมูลของคุณ',
+                        style: GoogleFonts.kanit(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                      ),
+                      Visibility(
+                        visible: !_edit,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _edit = true;
+                            });
+                          },
+                          icon: Icon(Icons.edit, color: Colors.white, size: 18),
+                          label: Text(
+                            'แก้ไข',
+                            style: GoogleFonts.kanit(color: Colors.white),
+                          ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Visibility(
-                      visible: _edit, // Placeholder to balance row
-                      child: SizedBox(width: 80),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Main Content
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(30)),
+                      Visibility(
+                        visible: _edit, // Placeholder to balance row
+                        child: SizedBox(width: 80),
+                      ),
+                    ],
                   ),
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(20),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          // Profile Image
-                          _buildProfileImage(),
-                          SizedBox(height: 30),
+                ),
 
-                          // Form Fields
-                          _buildFormFields(),
-
-                          SizedBox(height: 20),
-
-                          // Work Schedule Table
-                          if (dropdownValueTime != '0' && _schedule.isNotEmpty)
-                            _buildScheduleTable(),
-
-                          SizedBox(height: 30),
-
-                          // Bottom Menu
-                          if (!_edit) ...[
-                            BottomMenuGrid(
-                              uid: uid,
-                              lat:
-                                  0.0, // Profile might not have live location, pass 0 or current loc if available.
-                              long: 0.0,
-                              timeId: dropdownValueTime,
-                            ),
+                // Main Content
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(30)),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 20,
+                          bottom: 100), // Added bottom padding for FAB
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            // Profile Image
+                            _buildProfileImage(),
                             SizedBox(height: 30),
-                          ],
 
-                          // Action Buttons
-                          if (_edit) _buildActionButtons(),
-                          SizedBox(height: 40), // Bottom padding
-                        ],
+                            // Form Fields
+                            _buildFormFields(),
+
+                            SizedBox(height: 20),
+
+                            // Work Schedule Table
+                            if (dropdownValueTime != '0' &&
+                                _schedule.isNotEmpty)
+                              _buildScheduleTable(),
+
+                            SizedBox(height: 30),
+
+                            // Action Buttons
+                            if (_edit) _buildActionButtons(),
+                            SizedBox(height: 40), // Bottom padding
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

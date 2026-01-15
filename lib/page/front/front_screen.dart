@@ -43,6 +43,17 @@ import 'package:location/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'outtime_popup.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:ismart_login/page/managements/future/org_manage_future.dart';
+import 'package:ismart_login/page/managements/model/itemOrgResultManage.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'dart:typed_data';
 
 class FrontScreen extends StatefulWidget {
   @override
@@ -63,7 +74,7 @@ class _FrontScreenState extends State<FrontScreen>
   double _myLat = 0.0;
   double _myLng = 0.0;
   //--
-  late String _time_id;
+  String _time_id = '';
   String? OT_note;
   //---
   List<ItemsMemberList> _items = [];
@@ -630,24 +641,338 @@ class _FrontScreenState extends State<FrontScreen>
   }
 
   Widget _buildOrgName() {
-    return Text(
-      _itemMember.length > 0
-          ? (_itemMember[0].ORG_NAME ?? 'บริษัท เดอะสแตนดาร์ด จำกัด')
-          : 'ชื่อบริษัท',
-      style: TextStyle(
-          fontFamily: FontStyles().FontFamily,
-          color: Colors.white,
-          fontSize: 17,
-          height: 27 / 17, // Line height 27px
-          letterSpacing: 0,
-          shadows: [
-            Shadow(
-              color: Color(0x29000000),
-              offset: Offset(0, 3),
-              blurRadius: 6,
-            )
-          ]),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          _itemMember.length > 0
+              ? (_itemMember[0].ORG_NAME ?? 'บริษัท เดอะสแตนดาร์ด จำกัด')
+              : 'ชื่อบริษัท',
+          style: TextStyle(
+              fontFamily: FontStyles().FontFamily,
+              color: Colors.white,
+              fontSize: 26, // Increased size
+              fontWeight: FontWeight.bold, // Added bold
+              height: 1.2,
+              letterSpacing: 0,
+              shadows: [
+                Shadow(
+                  color: Color(0x29000000),
+                  offset: Offset(0, 3),
+                  blurRadius: 6,
+                )
+              ]),
+        ),
+        SizedBox(width: 15),
+        GestureDetector(
+          onTap: () {
+            if (_itemMember.isNotEmpty) {
+              _fetchAndShowInvite(_itemMember[0].ORG_ID ?? '');
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                )
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/images/other/join.png',
+                  width: 20,
+                  height: 20,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  'เพิ่มสมาชิก',
+                  style: GoogleFonts.kanit(
+                    fontSize: 14,
+                    color: Color(0xFF0663F7),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  // Invite Logic
+  Future<void> _fetchAndShowInvite(String orgId) async {
+    try {
+      EasyLoading.show(status: 'กำลังโหลด...');
+      var publicOrg = await OrgManageFuture().apiGetPublicOrg({"ID": orgId});
+      EasyLoading.dismiss();
+
+      if (publicOrg.isNotEmpty) {
+        String inviteCode = publicOrg[0].INVITE ?? '';
+        String subject = publicOrg[0].SUBJECT ?? '';
+        _showInviteSuccessDialog(inviteCode, subject, orgId);
+      } else {
+        EasyLoading.showError('ไม่พบข้อมูลองค์กร');
+      }
+    } catch (e) {
+      EasyLoading.dismiss();
+      print("Error fetching invite: $e");
+      EasyLoading.showError('เกิดข้อผิดพลาด');
+    }
+  }
+
+  Future<dynamic> _showInviteSuccessDialog(
+      String inviteCode, String orgName, String orgId) {
+    GlobalKey qrKey = GlobalKey();
+    return showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            backgroundColor: Colors.white,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "รหัสเข้าใช้งาน",
+                      style: TextStyle(
+                        fontFamily: FontStyles().FontFamily,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "กลุ่ม/องค์กร: $orgName",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: FontStyles().FontFamily,
+                        fontSize: 18,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "รหัสเข้าองค์กร",
+                      style: TextStyle(
+                        fontFamily: FontStyles().FontFamily,
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            inviteCode.length == 9
+                                ? "${inviteCode.substring(0, 3)} ${inviteCode.substring(3, 6)} ${inviteCode.substring(6, 9)}"
+                                : inviteCode,
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: inviteCode));
+                              EasyLoading.showToast("คัดลอกแล้ว");
+                            },
+                            child:
+                                Icon(Icons.copy, color: Colors.blue, size: 24),
+                          )
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    RepaintBoundary(
+                      key: qrKey,
+                      child: Container(
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey[200]!),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Column(
+                          children: [
+                            QrImageView(
+                              data: inviteCode,
+                              version: QrVersions.auto,
+                              size: 200.0,
+                              embeddedImage: AssetImage(
+                                  'assets/images/other/logo_app.png'),
+                              embeddedImageStyle: QrEmbeddedImageStyle(
+                                size: Size(40, 40),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: () => _captureAndSaveQr(qrKey, inviteCode),
+                      icon: Icon(Icons.save_alt, size: 20),
+                      label: Text(
+                        "บันทึก QR Code",
+                        style: TextStyle(fontFamily: FontStyles().FontFamily),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Builder(builder: (ctx) {
+                            return GestureDetector(
+                              onTap: () {
+                                final box =
+                                    ctx.findRenderObject() as RenderBox?;
+                                Rect? shareOrigin;
+                                if (box != null) {
+                                  shareOrigin =
+                                      box.localToGlobal(Offset.zero) & box.size;
+                                }
+
+                                String shareText =
+                                    "เชิญเข้าใช้งาน iSmartLogin\nสามารถดาวน์โหลดได้ที่: http://onelink.to/5np2ze\n\nรหัสเข้าใช้งาน: $inviteCode\nเข้าร่วมกลุ่ม: $orgName";
+                                Share.share(
+                                  shareText,
+                                  subject: 'คำเชิญเข้าร่วมกลุ่ม $orgName',
+                                  sharePositionOrigin: shareOrigin,
+                                );
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "แชร์คำเชิญ",
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      color: Colors.blue,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        SizedBox(width: 15),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFF21CCD4),
+                                    Color(0xFF0663F7)
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  "ปิด",
+                                  style: TextStyle(
+                                    fontFamily: FontStyles().FontFamily,
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+  }
+
+  Future<void> _captureAndSaveQr(GlobalKey key, String inviteCode) async {
+    try {
+      EasyLoading.show(status: 'กำลังบันทึก...');
+      await Future.delayed(Duration(milliseconds: 200));
+
+      final boundary =
+          key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData == null) {
+        EasyLoading.showError("ไม่สามารถแปลงภาพได้");
+        return;
+      }
+
+      final Uint8List bytes = byteData.buffer.asUint8List();
+      final result = await ImageGallerySaverPlus.saveImage(
+        bytes,
+        quality: 100,
+        name: "ismart_invite_$inviteCode",
+      );
+
+      bool isSuccess = false;
+      if (result is Map) {
+        isSuccess =
+            (result['isSuccess'] == true) || (result['success'] == true);
+      } else if (result == true) {
+        isSuccess = true;
+      } else if (result != null) {
+        isSuccess = true;
+      }
+
+      if (isSuccess) {
+        EasyLoading.showSuccess("บันทึกภาพแล้ว");
+      } else {
+        EasyLoading.showError("บันทึกไม่สำเร็จ");
+      }
+    } catch (e) {
+      print("Save QR Error: $e");
+      EasyLoading.showError("เกิดข้อผิดพลาดในการบันทึก");
+    }
   }
 
   Widget _buildActionButtons() {
@@ -784,19 +1109,33 @@ class _FrontScreenState extends State<FrontScreen>
   }
 
   Widget _buildStatusText() {
+    String status = '';
+    Color statusColor = Colors.white;
+
+    if (_login) {
+      status = 'ยังไม่เข้างาน';
+      statusColor = Colors.yellowAccent;
+    } else if (_logout) {
+      status = 'เข้างานแล้ว';
+      statusColor = Colors.greenAccent;
+    } else {
+      status = 'ออกงานแล้ว';
+      statusColor = Color(0xFFFF6B8A); // Coral pink to match checkout button
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.access_time_filled, color: Colors.yellowAccent, size: 20),
+        Icon(Icons.access_time_filled, color: statusColor, size: 20),
         SizedBox(width: 5),
         Text('สถานะ : ',
             style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontFamily: FontStyles().FontFamily)),
-        Text(_logout ? 'เข้างานแล้ว' : 'ยังไม่เข้างาน',
+        Text(status,
             style: TextStyle(
-                color: Colors.yellowAccent,
+                color: statusColor,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 fontFamily: FontStyles().FontFamily)),

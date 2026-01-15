@@ -19,6 +19,10 @@ import 'managements/future/member_manage_future.dart';
 import 'managements/model/itemMemberResultManage.dart';
 
 class MainPage extends StatefulWidget {
+  final int? initialIndex;
+
+  const MainPage({Key? key, this.initialIndex}) : super(key: key);
+
   @override
   _MainPageState createState() => _MainPageState();
 }
@@ -31,6 +35,9 @@ class _MainPageState extends State<MainPage> {
 
   @override
   void initState() {
+    if (widget.initialIndex != null) {
+      selectedIndex = widget.initialIndex!;
+    }
     onLoadMemberManage();
     super.initState();
   }
@@ -236,16 +243,22 @@ class _MainPageState extends State<MainPage> {
         if (index == 3) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ProfileScreen()),
+            _createSlideUpRoute(ProfileScreen()),
           );
           return;
         }
 
         // Menu button - Show full-screen menu sliding from bottom
         if (index == 4) {
-          setState(() {
-            selectedIndex = index;
-          });
+          Navigator.push(
+            context,
+            _createSlideUpRoute(
+              MenuScreen(
+                itemMember: _itemMember,
+                onBadgeUpdate: onLoadMemberManage,
+              ),
+            ),
+          );
           return;
         }
 
@@ -277,6 +290,20 @@ class _MainPageState extends State<MainPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Route _createSlideUpRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = Offset(0.0, 1.0);
+        var end = Offset.zero;
+        var curve = Curves.ease;
+        var tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
     );
   }
 

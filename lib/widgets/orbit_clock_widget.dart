@@ -112,7 +112,7 @@ class _OrbitClockWidgetState extends State<OrbitClockWidget> {
                     _getThaiDay(),
                     style: GoogleFonts.kanit(
                       fontSize: size * 0.11,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
                       color: Color(0xFF2D3142),
                       height: 1.0,
                     ),
@@ -131,9 +131,9 @@ class _OrbitClockWidgetState extends State<OrbitClockWidget> {
                     style: GoogleFonts.kanit(
                       fontSize: size * 0.22,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black,
+                      color: Color(0xFF2D3142),
                       height: 0.9,
-                      letterSpacing: -2,
+                      letterSpacing: -1,
                     ),
                   ),
                 ],
