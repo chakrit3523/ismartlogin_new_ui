@@ -24,12 +24,28 @@ class _OrgManageScreenState extends State<OrgManageScreen> {
     Map map = {
       "uid": await SharedCashe.getItemsWay(name: 'id'),
     };
-    await OrgManageFuture().apiGetOrgManageList(map).then((onValue) {
-      setState(() {
-        if (onValue[0].STATUS) {
-          _item = onValue[0].RESULT;
+    await OrgManageFuture().apiGetOrgManageList(map).then((onValue) async {
+      if (onValue[0].STATUS == false ||
+          (onValue[0].STATUS == true && onValue[0].RESULT.isEmpty)) {
+        // Fallback: Try fetching public org info using current org_id
+        var currentOrgId = await SharedCashe.getItemsWay(name: 'org_id');
+        if (currentOrgId != null && currentOrgId.toString().isNotEmpty) {
+          Map publicMap = {"ID": currentOrgId.toString()};
+          await OrgManageFuture()
+              .apiGetPublicOrg(publicMap)
+              .then((publicValue) {
+            setState(() {
+              _item = publicValue;
+            });
+          }).catchError((e) {
+            print("Fallback public org fetch failed: $e");
+          });
         }
-      });
+      } else {
+        setState(() {
+          _item = onValue[0].RESULT;
+        });
+      }
     });
     setState(() {});
     return true;

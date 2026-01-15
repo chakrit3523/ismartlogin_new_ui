@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/leave/confirm_leave.dart';
 import 'package:ismart_login/page/leave/leave_statistics.dart';
+import 'package:ismart_login/page/leave/leave_types.dart';
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
 import 'package:ismart_login/page/managements/future/time_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
@@ -447,6 +448,82 @@ class _LeaveScreenState extends State<LeaveScreen> {
                               ],
                             ),
                           ),
+
+                          // Dropdown for Other Types
+                          if (select3) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'ประเภทการลา',
+                                    style: GoogleFonts.kanit(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              LeaveTypesScreen(),
+                                        ),
+                                      ).then((value) {
+                                        onLoadGetAllTypes(); // Refresh list after returning
+                                      });
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: Icon(
+                                        Icons.settings,
+                                        size: 18,
+                                        color: Color(0xFF21CCD4),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Container(
+                              margin: EdgeInsets.symmetric(horizontal: 20),
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50], // Light blue bg
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[200]!),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: dropdownValueTime,
+                                  isExpanded: true,
+                                  icon: Icon(Icons.keyboard_arrow_down,
+                                      color: Color(0xFF21CCD4)),
+                                  items: _itemTypes
+                                      .map((ItemsTimeResultManage item) {
+                                    return DropdownMenuItem<String>(
+                                      value: item.ID,
+                                      child: Text(
+                                        item.SUBJECT!,
+                                        style: GoogleFonts.kanit(fontSize: 14),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      dropdownValueTime = newValue!;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                          ],
 
                           // 2. Reason Input Header
                           Padding(
@@ -985,8 +1062,8 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                             color: Color(0xFF21CCD4),
                                             style: BorderStyle.solid),
                                         borderRadius: BorderRadius.circular(12),
-                                        color:
-                                            Color(0xFF21CCD4).withValues(alpha: 0.05),
+                                        color: Color(0xFF21CCD4)
+                                            .withValues(alpha: 0.05),
                                       ),
                                       child: Row(
                                         mainAxisAlignment:

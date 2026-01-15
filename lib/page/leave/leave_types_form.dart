@@ -253,7 +253,12 @@ class _LeaveTypesFormScreenState extends State<LeaveTypesFormScreen> {
                                               'กรอกชื่อประเภทการลา');
                                           return;
                                         }
-                                        _updateCate();
+                                        // ถ้า id ว่าง = เพิ่มใหม่, ถ้ามีค่า = แก้ไข
+                                        if (widget.id.isEmpty) {
+                                          _insertCate();
+                                        } else {
+                                          _updateCate();
+                                        }
                                       },
                                       child: Container(
                                         decoration: BoxDecoration(

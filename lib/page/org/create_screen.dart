@@ -276,8 +276,8 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
   Future<bool> onLoadPostUpdateOrg(Map map) async {
     await OrgManageFuture().apiPostOrgManageList(map).then((onValue) async {
       if (onValue[0].STATUS == true) {
-        Navigator.pop(context);
         if (widget.type == "update") {
+          Navigator.pop(context);
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -286,8 +286,30 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
           );
         } else {
           print("add org success");
-          //ปิด aler dialog
           EasyLoading.showSuccess('สร้างทีม/องค์กรเรียบร้อยแล้ว');
+
+          // Fetch the new org details to get the Invite Code
+          String? newOrgId = onValue[0].ID;
+          if (newOrgId != null && newOrgId.isNotEmpty) {
+            try {
+              var publicOrg =
+                  await OrgManageFuture().apiGetPublicOrg({"ID": newOrgId});
+              if (publicOrg.isNotEmpty) {
+                String newInviteCode = publicOrg[0].INVITE;
+                String newSubject = publicOrg[0].SUBJECT;
+                // Dismiss loading before showing dialog
+                // Wait a bit for the success message to be visible
+                Future.delayed(Duration(milliseconds: 1000), () {
+                  _showInviteSuccessDialog(newInviteCode, newSubject, newOrgId);
+                });
+                return true; // Stop here, don't pop yet
+              }
+            } catch (e) {
+              print("Failed to fetch new org details: $e");
+            }
+          }
+
+          // Fallback if fetch fails or no ID
           Future.delayed(Duration(milliseconds: 200), () {
             _goToOrgManage();
           });
@@ -747,18 +769,15 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
 
                   SizedBox(height: 20),
 
-                  // Input Section (Glassmorphism)
+                  // Input Section (White Card)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
                       padding: EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.5),
-                          width: 1.5,
-                        ),
+                        // Removed border or made it very subtle
                       ),
                       child: Form(
                         key: _formKey,
@@ -766,7 +785,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.grey[100],
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: TextFormField(
@@ -776,19 +795,19 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                 style: TextStyle(
                                   fontFamily: FontStyles().FontFamily,
                                   fontSize: 24,
-                                  color: Colors.white,
+                                  color: Colors.black,
                                 ),
                                 decoration: InputDecoration(
                                   hintText: 'ชื่อทีม/องค์กร',
                                   hintStyle: TextStyle(
                                     fontFamily: FontStyles().FontFamily,
                                     fontSize: 24,
-                                    color: Colors.white70,
+                                    color: Colors.grey,
                                   ),
                                   prefixIcon: Icon(
                                     Icons.business,
                                     size: 26,
-                                    color: Colors.white70,
+                                    color: Colors.grey,
                                   ),
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
@@ -853,12 +872,8 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                       child: Container(
                         padding: EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
-                            width: 1.5,
-                          ),
                         ),
                         child: Column(
                           children: [
@@ -870,7 +885,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                     state ? "1" : "0", widget.id);
                               });
                             }),
-                            Divider(color: Colors.white30, height: 30),
+                            Divider(color: Colors.grey[200], height: 30),
                             _buildToggleRow(
                                 'การแจ้งเตือนก่อนเข้างาน 5 นาที', _switchNoti,
                                 (state) {
@@ -879,7 +894,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                 _updateNotiStatus(state ? "1" : "0", widget.id);
                               });
                             }),
-                            Divider(color: Colors.white30, height: 30),
+                            Divider(color: Colors.grey[200], height: 30),
                             _buildToggleRow('ทำงานนอกเวลา (OT)', _switchOT,
                                 (state) {
                               setState(() {
@@ -887,7 +902,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                 _updateOTStatus(state ? "1" : "0", widget.id);
                               });
                             }),
-                            Divider(color: Colors.white30, height: 30),
+                            Divider(color: Colors.grey[200], height: 30),
                             _buildToggleRow('ออกจากงานอัตโนมัติ', _switchLogout,
                                 (state) {
                               setState(() {
@@ -896,7 +911,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                     state ? "1" : "0", widget.id);
                               });
                             }),
-                            Divider(color: Colors.white30, height: 30),
+                            Divider(color: Colors.grey[200], height: 30),
                             _buildToggleRow(
                                 'สลับเวลาทำงานด้วยตนเอง', _switchSwapTime,
                                 (state) {
@@ -905,7 +920,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                 _updateTimeStatus(state ? "0" : "1", widget.id);
                               });
                             }),
-                            Divider(color: Colors.white30, height: 30),
+                            Divider(color: Colors.grey[200], height: 30),
                             _buildToggleRow(
                                 'อนุมัติยกเลิกการลา', _switchCancelLeave,
                                 (state) {
@@ -927,7 +942,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                     style: TextStyle(
                                       fontFamily: FontStyles().FontFamily,
                                       fontSize: 22,
-                                      color: Colors.white,
+                                      color: Colors.black,
                                     ),
                                   ),
                                 ),
@@ -936,7 +951,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                       horizontal: 20, vertical: 10),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: Colors.grey[100],
                                   ),
                                   child: Text(
                                     widget.invite.toString().substring(0, 3) +
@@ -951,7 +966,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                     style: TextStyle(
                                       fontFamily: FontStyles().FontFamily,
                                       fontSize: 24,
-                                      color: Colors.white,
+                                      color: Colors.black,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -966,7 +981,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                   child: Container(
                                     padding: EdgeInsets.all(8),
                                     child: Icon(Icons.copy_sharp,
-                                        color: Colors.white, size: 28),
+                                        color: Colors.grey, size: 28),
                                   ),
                                 ),
                               ],
@@ -980,9 +995,10 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                               child: Container(
                                 padding: EdgeInsets.all(15),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border:
+                                        Border.all(color: Colors.grey[200]!)),
                                 child: QrImageView(
                                   data: widget.invite,
                                   version: QrVersions.auto,
@@ -1102,19 +1118,15 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: 15),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
-                              width: 1.5,
-                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               FaIcon(
                                 FontAwesomeIcons.retweet,
-                                color: Colors.white,
+                                color: Color(0xFF0663F7),
                                 size: 24,
                               ),
                               SizedBox(width: 12),
@@ -1123,7 +1135,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                 style: TextStyle(
                                   fontFamily: FontStyles().FontFamily,
                                   fontSize: 24,
-                                  color: Colors.white,
+                                  color: Color(0xFF0663F7),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1152,7 +1164,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
             style: TextStyle(
               fontFamily: FontStyles().FontFamily,
               fontSize: 18,
-              color: Colors.white,
+              color: Colors.black,
             ),
           ),
         ),
@@ -1358,5 +1370,238 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
         );
       },
     );
+  }
+
+  _showInviteSuccessDialog(String inviteCode, String orgName, String orgId) {
+    GlobalKey qrKey = GlobalKey();
+
+    showDialog(
+        context: context,
+        barrierDismissible: false, // User must tap a button to close
+        builder: (BuildContext context) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "เชิญสมาชิกเข้ากลุ่ม/องค์กร",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: FontStyles().FontFamily,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "กลุ่ม/องค์กร: $orgName",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: FontStyles().FontFamily,
+                      fontSize: 18,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "รหัสเข้าองค์กร",
+                    style: TextStyle(
+                      fontFamily: FontStyles().FontFamily,
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          inviteCode.length == 9
+                              ? "${inviteCode.substring(0, 3)} ${inviteCode.substring(3, 6)} ${inviteCode.substring(6, 9)}"
+                              : inviteCode,
+                          style: TextStyle(
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: inviteCode));
+                            EasyLoading.showToast("คัดลอกแล้ว");
+                          },
+                          child: Icon(Icons.copy, color: Colors.blue, size: 24),
+                        )
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  RepaintBoundary(
+                    key: qrKey,
+                    child: Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey[200]!),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Column(
+                        children: [
+                          QrImageView(
+                            data: inviteCode,
+                            version: QrVersions.auto,
+                            size: 200.0,
+                            embeddedImage:
+                                AssetImage('assets/images/other/logo_app.png'),
+                            embeddedImageStyle: QrEmbeddedImageStyle(
+                              size: Size(40, 40),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () => _captureAndSaveQr(qrKey, inviteCode),
+                    icon: Icon(Icons.save_alt, size: 20),
+                    label: Text(
+                      "บันทึก QR Code",
+                      style: TextStyle(fontFamily: FontStyles().FontFamily),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            // Logic to share text
+                            Share.share(
+                                'iSmartLogin ขอเชิญท่านเข้าร่วมกลุ่ม/องค์กร "$orgName"\nกรอกรหัส: $inviteCode',
+                                subject: 'คำเชิญเข้าร่วมกลุ่ม/องค์กร $orgName');
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "แชร์คำเชิญ",
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  color: Colors.blue,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 15),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context); // Close dialog
+                            _goToOrgManage(); // Go logic
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "เสร็จสิ้น",
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          );
+        });
+  }
+
+  Future<void> _captureAndSaveQr(GlobalKey key, String inviteCode) async {
+    try {
+      EasyLoading.show(status: 'กำลังบันทึก...');
+      // Wait for build to complete if needed, but key context should be ready
+      // Small delay might help if UI is animating
+      await Future.delayed(Duration(milliseconds: 200));
+
+      final boundary =
+          key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData == null) {
+        EasyLoading.showError("ไม่สามารถแปลงภาพได้");
+        return;
+      }
+
+      final Uint8List bytes = byteData.buffer.asUint8List();
+      final result = await ImageGallerySaverPlus.saveImage(
+        bytes,
+        quality: 100,
+        name: "ismart_invite_$inviteCode",
+      );
+
+      // Handle different result types from the library
+      bool isSuccess = false;
+      if (result is Map) {
+        isSuccess =
+            (result['isSuccess'] == true) || (result['success'] == true);
+      } else if (result == true) {
+        // Sometimes returns boolean true
+        isSuccess = true;
+      } else if (result != null) {
+        isSuccess = true;
+      }
+
+      if (isSuccess) {
+        EasyLoading.showSuccess("บันทึกภาพแล้ว");
+      } else {
+        EasyLoading.showError("บันทึกไม่สำเร็จ");
+      }
+    } catch (e) {
+      print("Save QR Error: $e");
+      EasyLoading.showError("เกิดข้อผิดพลาดในการบันทึก");
+    }
   }
 }
