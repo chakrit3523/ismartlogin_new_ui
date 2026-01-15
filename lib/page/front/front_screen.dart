@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 // import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 import 'package:image_picker/image_picker.dart'
@@ -13,6 +13,7 @@ import 'package:image_picker/image_picker.dart'
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/drawer.dart';
 import 'package:ismart_login/page/front/front_count_widget.dart';
+import 'package:ismart_login/widgets/bottom_menu_grid.dart';
 
 import 'package:ismart_login/page/front/future/attend_future.dart';
 import 'package:ismart_login/page/front/future/org_future.dart';
@@ -29,7 +30,7 @@ import 'package:ismart_login/page/managements/model/itemDepartmentResultManage.d
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart';
 import 'package:ismart_login/page/managements/model/itemTimeResultMange.dart';
-import 'package:ismart_login/page/outside/outside_screen.dart';
+
 import 'package:ismart_login/widgets/orbit_clock_widget.dart';
 import 'package:ismart_login/page/sign/model/memberlist.dart';
 import 'package:ismart_login/server/server.dart';
@@ -804,86 +805,11 @@ class _FrontScreenState extends State<FrontScreen>
   }
 
   Widget _buildMenuGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildMenuIcon('assets/images/other/workout.png', 'ทำงาน\nนอกสถานที่',
-              onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OutsideScreen(
-                  uid: _itemMember.length > 0 ? (_itemMember[0].ID ?? '') : '',
-                  lat: _myLat,
-                  long: _myLng,
-                ),
-              ),
-            );
-          }),
-          _buildMenuIcon('assets/images/other/timeout.png', 'ทำงาน\nล่วงเวลา',
-              onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OutsideScreen(
-                  uid: _itemMember.length > 0 ? (_itemMember[0].ID ?? '') : '',
-                  lat: _myLat,
-                  long: _myLng,
-                  isOvertime: true,
-                  timeId: _time_id,
-                ),
-              ),
-            );
-          }),
-          _buildMenuIcon('assets/images/other/holiday.png', 'วันหยุด\nประจำปี',
-              onTap: () {
-            EasyLoading.showInfo('ยังไม่พร้อมใช้งาน');
-          }),
-          _buildMenuIcon('assets/images/other/Flat@2x.png', 'ระเบียบ\nบริษัท',
-              onTap: () {
-            EasyLoading.showInfo('ยังไม่พร้อมใช้งาน');
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuIcon(String assetPath, String title, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 55,
-            height: 55,
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  spreadRadius: 1,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Image.asset(assetPath),
-          ),
-          SizedBox(height: 8),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 14, // Updated to 14px as requested
-                  height: 1.2, // Default comfortable height for 14px
-                  color: Color(0xFF424242), // Dark grey for visibility
-                  fontFamily: FontStyles().FontFamily))
-        ],
-      ),
+    return BottomMenuGrid(
+      uid: _itemMember.length > 0 ? (_itemMember[0].ID ?? '') : '',
+      lat: _myLat,
+      long: _myLng,
+      timeId: _time_id,
     );
   }
 

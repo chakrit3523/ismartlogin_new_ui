@@ -18,6 +18,7 @@ import 'package:ismart_login/page/managements/model/itemTimeResultDayManage.dart
 import 'package:ismart_login/page/profile/future/profile_future.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
+import 'package:ismart_login/widgets/bottom_menu_grid.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -289,8 +290,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.arrow_back_ios,
+                          color:
+                              Colors.transparent), // Hidden but keeps spacing
+                      onPressed: () {}, // Removed functionality
                     ),
                     Text(
                       'ข้อมูลของคุณ',
@@ -358,6 +361,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildScheduleTable(),
 
                           SizedBox(height: 30),
+
+                          // Bottom Menu
+                          if (!_edit) ...[
+                            BottomMenuGrid(
+                              uid: uid,
+                              lat:
+                                  0.0, // Profile might not have live location, pass 0 or current loc if available.
+                              long: 0.0,
+                              timeId: dropdownValueTime,
+                            ),
+                            SizedBox(height: 30),
+                          ],
 
                           // Action Buttons
                           if (_edit) _buildActionButtons(),

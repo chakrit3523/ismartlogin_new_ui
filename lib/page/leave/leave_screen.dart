@@ -11,7 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/leave/confirm_leave.dart';
 import 'package:ismart_login/page/leave/leave_statistics.dart';
-import 'package:ismart_login/page/leave/leave_types.dart';
+
 import 'package:ismart_login/page/managements/future/member_manage_future.dart';
 import 'package:ismart_login/page/managements/future/time_manage_future.dart';
 import 'package:ismart_login/page/managements/model/itemMemberResultManage.dart';
@@ -212,7 +212,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
             select1: select1,
             select2: select2,
             select3: select3,
-            cidSub: dropdownValueTime,
+            cidSub: select3 ? dropdownValueTime : '',
             FirstDate: newFormat.format(FirstDate),
             LastDate: newFormat.format(LastDate),
             numDate: _inputTotalTimes.text != ""
@@ -286,10 +286,6 @@ class _LeaveScreenState extends State<LeaveScreen> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    leading: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   Form(
@@ -465,27 +461,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                       color: Colors.grey[700],
                                     ),
                                   ),
-                                  InkWell(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              LeaveTypesScreen(),
-                                        ),
-                                      ).then((value) {
-                                        onLoadGetAllTypes(); // Refresh list after returning
-                                      });
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(4.0),
-                                      child: Icon(
-                                        Icons.settings,
-                                        size: 18,
-                                        color: Color(0xFF21CCD4),
-                                      ),
-                                    ),
-                                  ),
+                                  Container(),
                                 ],
                               ),
                             ),
