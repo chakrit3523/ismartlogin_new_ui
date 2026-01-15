@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
@@ -26,7 +26,7 @@ import 'package:ismart_login/page/org/org_setup_screen.dart';
 import 'package:ismart_login/page/splashscreen/splashscreen_screen.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
-import 'package:ismart_login/style/page_style.dart';
+
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:path_provider/path_provider.dart';
@@ -102,42 +102,42 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
     } else {
       _switchHistory = true;
     }
-  
+
     //noti
     if (widget.noti == "0") {
       _switchNoti = false;
     } else {
       _switchNoti = true;
     }
-  
+
     //ot
     if (widget.ot == "0") {
       _switchOT = false;
     } else {
       _switchOT = true;
     }
-  
+
     //logout
     if (widget.logout == "0") {
       _switchLogout = false;
     } else {
       _switchLogout = true;
     }
-  
+
     //time status
     if (widget.time_status == "0") {
       _switchSwapTime = true;
     } else {
       _switchSwapTime = false;
     }
-  
+
     //leave cancel status
     if (widget.leave_cancel_status == "0") {
       _switchCancelLeave = false;
     } else {
       _switchCancelLeave = true;
     }
-    }
+  }
 
   _releaseData() async {
     String _subject = _inputSubject.text;
@@ -520,46 +520,62 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/other/bg_regis.png'),
-              fit: BoxFit.cover,
+            gradient: LinearGradient(
+              begin: Alignment(-0.3, -1.0),
+              end: Alignment(0.3, 1.0),
+              colors: [
+                Color(0xFF21CCD4), // 0%
+                Color(0xFF0663F7), // 100%
+              ],
             ),
           ),
           child: SafeArea(
             child: Column(
               children: [
-                // Spacer
                 Spacer(flex: 2),
 
-                SizedBox(height: 20),
+                // Icon / Header Graphic (Optional addition for modern feel, keeping it simple for now)
+
+                SizedBox(height: 10),
 
                 // Title
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30),
                   child: Text(
                     "ตั้งชื่อกลุ่ม/องค์กร",
-                    style: GoogleFonts.kanit(
-                      fontSize: 25,
+                    style: TextStyle(
+                      fontFamily: FontStyles().FontFamily,
+                      fontSize: 28, // Slightly larger
                       color: Colors.white,
-                      fontWeight: FontWeight.normal,
-                      height: 38 / 25, // line-height 38px
+                      fontWeight: FontWeight.w500, // Thicker font
+                      shadows: [
+                        Shadow(
+                          color: Colors.black12,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        )
+                      ],
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
 
-                SizedBox(height: 30),
+                SizedBox(height: 40),
 
-                // Text input
+                // Glassmorphism Input
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30),
                   child: Form(
                     key: _formKey,
                     child: Container(
-                      height: 50,
+                      height: 60, // Taller touch target
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white.withOpacity(0.2), // Glass effect
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.5),
+                          width: 1.5,
+                        ),
                       ),
                       child: Center(
                         child: TextFormField(
@@ -567,20 +583,27 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                           focusNode: _focusSubject,
                           keyboardType: TextInputType.text,
                           textAlignVertical: TextAlignVertical.center,
-                          style: GoogleFonts.kanit(
-                            fontSize: 18,
-                            color: Colors.black,
+                          style: TextStyle(
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 24,
+                            color: Colors.white, // White text
                           ),
                           decoration: InputDecoration(
                             isCollapsed: true,
                             hintText: 'ชื่อกลุ่ม/องค์กร',
-                            hintStyle: GoogleFonts.kanit(
-                              fontSize: 18,
-                              color: Colors.grey[400],
+                            hintStyle: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 24,
+                              color: Colors.white70, // Key change: White70 hint
+                            ),
+                            prefixIcon: Icon(
+                              Icons.business,
+                              color: Colors.white70,
+                              size: 28,
                             ),
                             border: InputBorder.none,
-                            contentPadding:
-                                EdgeInsets.symmetric(horizontal: 16),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
                           ),
                         ),
                       ),
@@ -588,25 +611,24 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                   ),
                 ),
 
-                SizedBox(height: 30),
+                SizedBox(height: 40), // More spacing
+
+                // Action Button Glow
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30),
                   child: SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 60, // Taller button
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
-                          begin: Alignment(-0.97, -0.24),
-                          end: Alignment(0.97, 0.24),
-                        ),
+                        borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0x29000000),
-                            offset: Offset(0, 3),
-                            blurRadius: 6,
+                            color: Color(0xFF0663F7)
+                                .withOpacity(0.4), // Glow color
+                            offset: Offset(0, 8),
+                            blurRadius: 20,
+                            spreadRadius: -5,
                           ),
                         ],
                       ),
@@ -616,7 +638,6 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                             alert(context, 'กรุณาป้อนข้อมูลให้ครบถ้วน');
                           } else {
                             if (_formKey.currentState?.validate() ?? false) {
-                              // Navigate to setup screen with callback
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -624,11 +645,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                                     orgName: _inputSubject.text,
                                     onCreateOrg: (lat, lng, address, radius) {
                                       _releaseDataWithLocation(
-                                        lat,
-                                        lng,
-                                        address,
-                                        radius,
-                                      );
+                                          lat, lng, address, radius);
                                     },
                                   ),
                                 ),
@@ -637,20 +654,21 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
+                          backgroundColor: Colors.white,
+                          foregroundColor: Color(0xFF0663F7),
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           elevation: 0,
                         ),
                         child: Text(
                           "สร้าง",
-                          style: GoogleFonts.kanit(
-                            fontSize: 21,
-                            color: Colors.white,
-                            fontWeight: FontWeight.normal,
-                            height: 30 / 21,
+                          style: TextStyle(
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            height: 1,
                           ),
                         ),
                       ),
@@ -659,6 +677,7 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
                 ),
 
                 SizedBox(height: 60),
+                Spacer(flex: 3),
               ],
             ),
           ),
@@ -669,741 +688,486 @@ class _OrganizationCreateScreenState extends State<OrganizationCreateScreen> {
 
   // Original design for updating organization
   Widget _buildUpdateModeUI() {
-    return Scaffold(
-      body: Container(
-        decoration: StylePage().background,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        backgroundColor: Colors.transparent,
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(-0.3, -1.0),
+              end: Alignment(0.3, 1.0),
+              colors: [
+                Color(0xFF21CCD4),
+                Color(0xFF0663F7),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  AppBar(
-                    centerTitle: true,
-                    leading: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                      onPressed: () {
-                        print('Back to list');
-                        widget.refresh();
-                        Navigator.of(context).pop();
-                      },
+                  // AppBar-like header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios,
+                              color: Colors.white, size: 26),
+                          onPressed: () {
+                            widget.refresh();
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            widget.title,
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 28,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        SizedBox(width: 48), // Balance the back button
+                      ],
                     ),
-                    title: Text(
-                      widget.title,
-                      style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          fontSize: 40,
-                          color: Colors.white,
-                          fontWeight: FontWeight.normal),
-                    ),
-                    actions: [
-                      // action button
-                      widget.type == "update_1"
-                          ? IconButton(
-                              icon: Icon(Icons.add),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        OrganizationCreateScreen(
-                                      type: 'insert',
-                                      title: 'สร้างทีม/องค์กรใหม่',
-                                      invite: "000000000",
-                                      id: '0',
-                                      action: true,
-                                      history: "1",
-                                      noti: "1",
-                                      refresh: () {},
-                                      logout: "1",
-                                      ot: "1",
-                                      time_status: "0",
-                                      leave_cancel_status: "0",
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(),
-                    ],
-                    backgroundColor: Colors.white.withValues(alpha: 0),
-                    elevation: 0,
                   ),
-                  Container(
-                    child: Column(children: [
-                      Container(
-                        padding: EdgeInsets.only(left: 20, right: 20),
-                        child: Container(
-                          padding: EdgeInsets.only(
-                              left: 10, right: 10, top: 20, bottom: 10),
-                          width: WidhtDevice().widht(context),
-                          decoration: StylePage().boxWhite,
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              children: [
-                                TextFormField(
-                                  controller: _inputSubject,
-                                  focusNode: _focusSubject,
-                                  keyboardType: TextInputType.text,
-                                  style: TextStyle(
-                                      fontFamily: FontStyles().FontFamily,
-                                      fontSize: 24),
-                                  decoration: InputDecoration(
-                                    hintText: 'ชื่อทีม/องค์กร',
-                                    hintStyle: TextStyle(
-                                        fontFamily: FontStyles().FontFamily,
-                                        fontSize: 24),
-                                    prefixIcon: Padding(
-                                      padding: EdgeInsets.all(
-                                          0), // add padding to adjust icon
-                                      child: Icon(
-                                        Icons.work,
-                                        size: 26,
+
+                  SizedBox(height: 20),
+
+                  // Input Section (Glassmorphism)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: TextFormField(
+                                controller: _inputSubject,
+                                focusNode: _focusSubject,
+                                keyboardType: TextInputType.text,
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'ชื่อทีม/องค์กร',
+                                  hintStyle: TextStyle(
+                                    fontFamily: FontStyles().FontFamily,
+                                    fontSize: 24,
+                                    color: Colors.white70,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.business,
+                                    size: 26,
+                                    color: Colors.white70,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 15),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 15),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_inputSubject.text == '') {
+                                    alert(context, 'กรุณาป้อนข้อมูลให้ครบถ้วน');
+                                  } else {
+                                    if (_formKey.currentState?.validate() ??
+                                        false) {
+                                      _releaseData();
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 30, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(25),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            Color(0xFF0663F7).withOpacity(0.3),
+                                        offset: Offset(0, 6),
+                                        blurRadius: 15,
+                                        spreadRadius: -3,
                                       ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    "บันทึก",
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      color: Color(0xFF0663F7),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                Padding(padding: EdgeInsets.all(10)),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        if (_inputSubject.text == '') {
-                                          alert(context,
-                                              'กรุณาป้อนข้อมูลให้ครบถ้วน');
-                                        } else {
-                                          if (_formKey.currentState
-                                                  ?.validate() ??
-                                              false) {
-                                            print('สร้าง');
-                                            if (widget.type == "insert") {
-                                              if (btn) {
-                                                alert_new_org(context,
-                                                    'คุณต้องการสร้างทีม/องค์กร\n"${_inputSubject.text}"\nใช่หรือไม่ ?');
-                                              } else {
-                                                alert(context,
-                                                    'กำลังสร้างทีม/องค์กร');
-                                              }
-                                            } else {
-                                              _releaseData();
-                                            }
-                                          }
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.only(
-                                            left: 25, right: 25),
-                                        decoration: BoxDecoration(
-                                          color: btn
-                                              ? Color(0xFF079CFD)
-                                              : Colors.grey,
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                        child: Text(
-                                          widget.type == "insert"
-                                              ? "สร้าง"
-                                              : "บันทึก",
-                                          style: TextStyle(
-                                              fontFamily:
-                                                  FontStyles().FontFamily,
-                                              color: Colors.white,
-                                              fontSize: 26),
-                                        ),
-                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 15),
+
+                  // Settings Toggle Section
+                  if (widget.type == "update")
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.4),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildToggleRow('ประวัติการเข้า/ออกงานของสมาชิก',
+                                _switchHistory, (state) {
+                              setState(() {
+                                _switchHistory = state;
+                                _updateHistoryStatus(
+                                    state ? "1" : "0", widget.id);
+                              });
+                            }),
+                            Divider(color: Colors.white30, height: 30),
+                            _buildToggleRow(
+                                'การแจ้งเตือนก่อนเข้างาน 5 นาที', _switchNoti,
+                                (state) {
+                              setState(() {
+                                _switchNoti = state;
+                                _updateNotiStatus(state ? "1" : "0", widget.id);
+                              });
+                            }),
+                            Divider(color: Colors.white30, height: 30),
+                            _buildToggleRow('ทำงานนอกเวลา (OT)', _switchOT,
+                                (state) {
+                              setState(() {
+                                _switchOT = state;
+                                _updateOTStatus(state ? "1" : "0", widget.id);
+                              });
+                            }),
+                            Divider(color: Colors.white30, height: 30),
+                            _buildToggleRow('ออกจากงานอัตโนมัติ', _switchLogout,
+                                (state) {
+                              setState(() {
+                                _switchLogout = state;
+                                _updateLogoutStatus(
+                                    state ? "1" : "0", widget.id);
+                              });
+                            }),
+                            Divider(color: Colors.white30, height: 30),
+                            _buildToggleRow(
+                                'สลับเวลาทำงานด้วยตนเอง', _switchSwapTime,
+                                (state) {
+                              setState(() {
+                                _switchSwapTime = state;
+                                _updateTimeStatus(state ? "0" : "1", widget.id);
+                              });
+                            }),
+                            Divider(color: Colors.white30, height: 30),
+                            _buildToggleRow(
+                                'อนุมัติยกเลิกการลา', _switchCancelLeave,
+                                (state) {
+                              setState(() {
+                                _switchCancelLeave = state;
+                                _updateLeaveCancelStatus(
+                                    state ? "1" : "0", widget.id);
+                              });
+                            }),
+
+                            SizedBox(height: 20),
+
+                            // Invite Code Section
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'รหัสทีม',
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      fontSize: 22,
+                                      color: Colors.white,
                                     ),
-                                  ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                  child: Text(
+                                    widget.invite.toString().substring(0, 3) +
+                                        " " +
+                                        widget.invite
+                                            .toString()
+                                            .substring(3, 6) +
+                                        " " +
+                                        widget.invite
+                                            .toString()
+                                            .substring(6, 9),
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      fontSize: 24,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                GestureDetector(
+                                  onTap: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: widget.invite));
+                                    _showToast();
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.all(8),
+                                    child: Icon(Icons.copy_sharp,
+                                        color: Colors.white, size: 28),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      ),
-                      Padding(padding: EdgeInsets.all(4)),
-                      Container(
-                        child: Visibility(
-                          visible: widget.type == "insert" ? false : true,
-                          child: Container(
-                            padding:
-                                EdgeInsets.only(left: 20, right: 20, bottom: 5),
-                            child: Container(
-                              padding: EdgeInsets.only(
-                                  left: 10, right: 10, top: 20, bottom: 10),
-                              width: WidhtDevice().widht(context),
-                              decoration: StylePage().boxWhite,
-                              child: Column(
-                                children: [
-                                  Container(
-                                    height: 40,
-                                    child: Container(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                              child: Container(
-                                            child: Text(
-                                              'ประวัติการเข้า/ออกงานของสมาชิก',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 22),
-                                            ),
-                                          )),
-                                          FlutterSwitch(
-                                            value:
-                                                _switchHistory ? true : false,
-                                            width: 60.0,
-                                            height: 30.0,
-                                            valueFontSize: 13.0,
-                                            toggleSize: 30.0,
-                                            borderRadius: 20.0,
-                                            padding: 2.0,
-                                            showOnOff: true,
-                                            activeText: '',
-                                            activeColor: Colors.green,
-                                            inactiveText: '',
-                                            inactiveColor: Colors.grey,
-                                            onToggle: (state) {
-                                              setState(() {
-                                                _switchHistory = state;
-                                                if (_switchHistory) {
-                                                  var status = "1";
-                                                  _updateHistoryStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                } else {
-                                                  var status = "0";
-                                                  _updateHistoryStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Divider(),
-                                  Container(
-                                    height: 40,
-                                    child: Container(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                              child: Container(
-                                            child: Text(
-                                              'การแจ้งเตือนก่อนเข้างาน 5 นาที',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 22),
-                                            ),
-                                          )),
-                                          FlutterSwitch(
-                                            value: _switchNoti ? true : false,
-                                            width: 60.0,
-                                            height: 30.0,
-                                            valueFontSize: 13.0,
-                                            toggleSize: 30.0,
-                                            borderRadius: 20.0,
-                                            padding: 2.0,
-                                            showOnOff: true,
-                                            activeText: '',
-                                            activeColor: Colors.green,
-                                            inactiveText: '',
-                                            inactiveColor: Colors.grey,
-                                            onToggle: (state) {
-                                              setState(() {
-                                                _switchNoti = state;
-                                                if (_switchNoti) {
-                                                  var status = "1";
-                                                  _updateNotiStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                } else {
-                                                  var status = "0";
-                                                  _updateNotiStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Divider(),
-                                  Container(
-                                    height: 40,
-                                    child: Container(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                              child: Container(
-                                            child: Text(
-                                              'ทำงานนอกเวลา (OT)',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 22),
-                                            ),
-                                          )),
-                                          FlutterSwitch(
-                                            value: _switchOT ? true : false,
-                                            width: 60.0,
-                                            height: 30.0,
-                                            valueFontSize: 13.0,
-                                            toggleSize: 30.0,
-                                            borderRadius: 20.0,
-                                            padding: 2.0,
-                                            showOnOff: true,
-                                            activeText: '',
-                                            activeColor: Colors.green,
-                                            inactiveText: '',
-                                            inactiveColor: Colors.grey,
-                                            onToggle: (state) {
-                                              setState(() {
-                                                _switchOT = state;
-                                                if (_switchOT) {
-                                                  var status = "1";
-                                                  _updateOTStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                } else {
-                                                  var status = "0";
-                                                  _updateOTStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Divider(),
-                                  Container(
-                                    height: 40,
-                                    child: Container(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                              child: Container(
-                                            child: Text(
-                                              'ออกจากงานอัตโนมัติ',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 22),
-                                            ),
-                                          )),
-                                          FlutterSwitch(
-                                            value: _switchLogout ? true : false,
-                                            width: 60.0,
-                                            height: 30.0,
-                                            valueFontSize: 13.0,
-                                            toggleSize: 30.0,
-                                            borderRadius: 20.0,
-                                            padding: 2.0,
-                                            showOnOff: true,
-                                            activeText: '',
-                                            activeColor: Colors.green,
-                                            inactiveText: '',
-                                            inactiveColor: Colors.grey,
-                                            onToggle: (state) {
-                                              setState(() {
-                                                _switchLogout = state;
-                                                if (_switchLogout) {
-                                                  var status = "1";
-                                                  _updateLogoutStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                } else {
-                                                  var status = "0";
-                                                  _updateLogoutStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Divider(),
-                                  Container(
-                                    height: 40,
-                                    child: Container(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                              child: Container(
-                                            child: Text(
-                                              'สลับเวลาทำงานด้วยตนเอง',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 22),
-                                            ),
-                                          )),
-                                          FlutterSwitch(
-                                            value:
-                                                _switchSwapTime ? true : false,
-                                            width: 60.0,
-                                            height: 30.0,
-                                            valueFontSize: 13.0,
-                                            toggleSize: 30.0,
-                                            borderRadius: 20.0,
-                                            padding: 2.0,
-                                            showOnOff: true,
-                                            activeText: '',
-                                            activeColor: Colors.green,
-                                            inactiveText: '',
-                                            inactiveColor: Colors.grey,
-                                            onToggle: (state) {
-                                              setState(() {
-                                                _switchSwapTime = state;
-                                                if (_switchSwapTime) {
-                                                  print("state : " +
-                                                      state.toString());
-                                                  var status = "0";
-                                                  _updateTimeStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                } else {
-                                                  var status = "1";
-                                                  _updateTimeStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                  print("state : " +
-                                                      state.toString());
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Divider(),
-                                  Container(
-                                    height: 40,
-                                    child: Container(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                              child: Container(
-                                            child: Text(
-                                              'อนุมัติยกเลิกการลา',
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 22),
-                                            ),
-                                          )),
-                                          FlutterSwitch(
-                                            value: _switchCancelLeave
-                                                ? true
-                                                : false,
-                                            width: 60.0,
-                                            height: 30.0,
-                                            valueFontSize: 13.0,
-                                            toggleSize: 30.0,
-                                            borderRadius: 20.0,
-                                            padding: 2.0,
-                                            showOnOff: true,
-                                            activeText: '',
-                                            activeColor: Colors.green,
-                                            inactiveText: '',
-                                            inactiveColor: Colors.grey,
-                                            onToggle: (state) {
-                                              setState(() {
-                                                _switchCancelLeave = state;
-                                                if (_switchCancelLeave) {
-                                                  print("state : " +
-                                                      state.toString());
-                                                  var status = "1";
-                                                  _updateLeaveCancelStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                } else {
-                                                  var status = "0";
-                                                  _updateLeaveCancelStatus(
-                                                      status.toString(),
-                                                      widget.id.toString());
-                                                  print("state : " +
-                                                      state.toString());
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Divider(),
-                                  Container(
-                                    padding: EdgeInsets.only(left: 5, right: 5),
-                                    margin: EdgeInsets.only(bottom: 20),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 1,
-                                          child: Container(
-                                            child: Text(
-                                              'รหัสทีม',
-                                              style: TextStyle(
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 26,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Container(
-                                            padding: EdgeInsets.only(
-                                                top: 5,
-                                                bottom: 5,
-                                                right: 15,
-                                                left: 15),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              color: Colors.grey[300],
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              widget.invite
-                                                      .toString()
-                                                      .substring(0, 3) +
-                                                  " " +
-                                                  widget.invite
-                                                      .toString()
-                                                      .substring(3, 6) +
-                                                  " " +
-                                                  widget.invite
-                                                      .toString()
-                                                      .substring(6, 9),
-                                              style: TextStyle(
-                                                  fontFamily:
-                                                      FontStyles().FontFamily,
-                                                  fontSize: 26,
-                                                  fontWeight:
-                                                      FontWeight.normal),
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(padding: EdgeInsets.all(5)),
-                                        GestureDetector(
-                                          onTap: () {
-                                            print('copy');
-                                            Clipboard.setData(ClipboardData(
-                                                text: widget.invite));
-                                            _showToast();
-                                          },
-                                          child: Container(
-                                              padding: EdgeInsets.only(
-                                                  left: 8,
-                                                  right: 8,
-                                                  top: 5,
-                                                  bottom: 5),
-                                              child: Icon(Icons.copy_sharp)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding:
-                                        EdgeInsets.only(left: 30, right: 30),
-                                    child: Center(
-                                      child: RepaintBoundary(
-                                        key: globalKey,
-                                        child: Container(
-                                          color: Colors.white,
-                                          padding: EdgeInsets.all(8),
-                                          child: QrImageView(
-                                            data: widget.invite,
-                                            version: QrVersions.auto,
-                                            size: 260.0,
-                                            embeddedImage: AssetImage(
-                                                'assets/images/other/logo_app.png'),
-                                            embeddedImageStyle:
-                                                QrEmbeddedImageStyle(
-                                              size: Size(100, 100),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding:
-                                        EdgeInsets.only(left: 30, right: 30),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: _captureAndSharePng,
-                                            child: Container(
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: Color(0xFF079CFD),
-                                                borderRadius:
-                                                    BorderRadius.circular(5),
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.save,
-                                                    color: Colors.white,
-                                                  ),
-                                                  Text(
-                                                    "บันทึก",
-                                                    style: TextStyle(
-                                                        fontFamily: FontStyles()
-                                                            .FontFamily,
-                                                        color: Colors.white,
-                                                        fontSize: 24),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(padding: EdgeInsets.all(5)),
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: _captureAndShareOtherPng,
-                                            child: Container(
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: Color(0xFF079CFD),
-                                                borderRadius:
-                                                    BorderRadius.circular(5),
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.share,
-                                                    color: Colors.white,
-                                                  ),
-                                                  Text(
-                                                    "แบ่งปัน",
-                                                    style: TextStyle(
-                                                        fontFamily: FontStyles()
-                                                            .FontFamily,
-                                                        color: Colors.white,
-                                                        fontSize: 24),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Visibility(
-                        visible: widget.type == "insert"
-                            ? false
-                            : widget.type == 'update' && !widget.action
-                                ? true
-                                : false,
-                        child: GestureDetector(
-                          onTap: () {
-                            onLoadUpdateSwitchOrg();
-                          },
-                          child: Container(
-                            padding: EdgeInsets.only(
-                                left: 20, right: 20, bottom: 20),
-                            child: Container(
-                              padding: EdgeInsets.only(
-                                  left: 10, right: 10, top: 10, bottom: 10),
-                              width: WidhtDevice().widht(context),
-                              decoration: StylePage().boxWhite,
-                              child: GestureDetector(
-                                child: Container(
-                                  padding: EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(15.0),
-                                      topRight: Radius.circular(15.0),
-                                      bottomLeft: Radius.circular(15.0),
-                                      bottomRight: Radius.circular(15.0),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 0.5),
-                                        spreadRadius: 1,
-                                        blurRadius: 5,
-                                        offset: Offset(
-                                            0, 0), // changes position of shadow
-                                      ),
-                                    ],
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      FaIcon(
-                                        FontAwesomeIcons.retweet,
-                                        color: Colors.white,
-                                      ),
-                                      Padding(padding: EdgeInsets.all(2)),
-                                      Text(
-                                        'ใช้งานบน ทีม/องค์กร นี้',
-                                        style: TextStyle(
-                                          fontFamily: FontStyles().FontFamily,
-                                          fontSize: 28,
-                                          color: Colors.white,
-                                          height: 1,
-                                        ),
-                                        overflow: TextOverflow.fade,
-                                        maxLines: 1,
-                                        softWrap: false,
-                                      ),
-                                    ],
+
+                            SizedBox(height: 25),
+
+                            // QR Code
+                            RepaintBoundary(
+                              key: globalKey,
+                              child: Container(
+                                padding: EdgeInsets.all(15),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: QrImageView(
+                                  data: widget.invite,
+                                  version: QrVersions.auto,
+                                  size: 240.0,
+                                  embeddedImage: AssetImage(
+                                      'assets/images/other/logo_app.png'),
+                                  embeddedImageStyle: QrEmbeddedImageStyle(
+                                    size: Size(80, 80),
                                   ),
                                 ),
                               ),
                             ),
+
+                            SizedBox(height: 20),
+
+                            // Action Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _captureAndSharePng,
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(15),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Color(0xFF0663F7)
+                                                .withOpacity(0.3),
+                                            offset: Offset(0, 6),
+                                            blurRadius: 15,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.save,
+                                              color: Color(0xFF0663F7)),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            "บันทึก",
+                                            style: TextStyle(
+                                              fontFamily:
+                                                  FontStyles().FontFamily,
+                                              color: Color(0xFF0663F7),
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 15),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _captureAndShareOtherPng,
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(15),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Color(0xFF0663F7)
+                                                .withOpacity(0.3),
+                                            offset: Offset(0, 6),
+                                            blurRadius: 15,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.share,
+                                              color: Color(0xFF0663F7)),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            "แบ่งปัน",
+                                            style: TextStyle(
+                                              fontFamily:
+                                                  FontStyles().FontFamily,
+                                              color: Color(0xFF0663F7),
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  SizedBox(height: 15),
+
+                  // Switch Organization Button
+                  if (widget.type == 'update' && !widget.action)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: GestureDetector(
+                        onTap: () {
+                          onLoadUpdateSwitchOrg();
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FaIcon(
+                                FontAwesomeIcons.retweet,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'ใช้งานบน ทีม/องค์กร นี้',
+                                style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ]),
-                  ),
+                    ),
+
+                  SizedBox(height: 30),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildToggleRow(String label, bool value, Function(bool) onToggle) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: FontStyles().FontFamily,
+              fontSize: 18,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        FlutterSwitch(
+          value: value,
+          width: 60.0,
+          height: 30.0,
+          toggleSize: 26.0,
+          borderRadius: 20.0,
+          padding: 2.0,
+          activeColor: Color(0xFF4CAF50),
+          inactiveColor: Colors.grey.shade400,
+          onToggle: onToggle,
+        ),
+      ],
     );
   }
 
