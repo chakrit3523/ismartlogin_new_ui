@@ -18,6 +18,7 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isCapturing = false;
+  FlashMode _flashMode = FlashMode.off; // Flash off by default
 
   @override
   void initState() {
@@ -54,6 +55,9 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
 
       await _cameraController!.initialize();
 
+      // Set flash mode to off by default
+      await _cameraController!.setFlashMode(FlashMode.off);
+
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
@@ -61,6 +65,28 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
       }
     } catch (e) {
       print('Error initializing camera: $e');
+    }
+  }
+
+  Future<void> _toggleFlash() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
+    try {
+      FlashMode newFlashMode;
+      if (_flashMode == FlashMode.off) {
+        newFlashMode = FlashMode.torch; // Use torch for continuous light
+      } else {
+        newFlashMode = FlashMode.off;
+      }
+
+      await _cameraController!.setFlashMode(newFlashMode);
+      setState(() {
+        _flashMode = newFlashMode;
+      });
+    } catch (e) {
+      print('Error toggling flash: $e');
     }
   }
 
@@ -116,7 +142,34 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               ),
 
-            // 2. Close Button (Top Right)
+            // 2. Flash Toggle Button (Top Left)
+            Positioned(
+              top: 20,
+              left: 20,
+              child: SafeArea(
+                child: GestureDetector(
+                  onTap: _toggleFlash,
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _flashMode == FlashMode.torch
+                          ? Colors.yellow.withValues(alpha: 0.9)
+                          : Colors.white.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _flashMode == FlashMode.torch
+                          ? Icons.flash_on
+                          : Icons.flash_off,
+                      color: Colors.black,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. Close Button (Top Right)
             Positioned(
               top: 20,
               right: 20,
