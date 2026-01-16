@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/future/attend_future.dart';
-import 'package:ismart_login/page/front/outside_popup.dart';
+
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/utils/image_helper.dart';
@@ -200,7 +201,10 @@ class _InsiteDialogState extends State<InsiteDialog> {
       return false;
     }
   }
-  //---
+
+  // Offsite Reason Variables
+  int currentOffsiteIndex = -1;
+  TextEditingController _offsiteNote = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -406,22 +410,30 @@ class _InsiteDialogState extends State<InsiteDialog> {
                       SizedBox(height: 15),
                     ],
 
-                    // Reason Input (only show if late and not holiday)
+                    // Reason Input (Late)
                     if (isLate) ...[
-                      // Quick Reason Chips
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "เหตุผลการเข้าสาย",
+                          style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
-                        alignment: WrapAlignment.center,
+                        alignment: WrapAlignment.start,
                         children: [
-                          _buildReasonChip('สาย', 0),
-                          _buildReasonChip('ลาไม่เต็มวัน', 1),
-                          _buildReasonChip('ลืมลงชื่อ', 2),
-                          _buildReasonChip('นอกสถานที่', 3),
+                          _buildReasonChip('สาย', 0, false),
+                          _buildReasonChip('ลาไม่เต็มวัน', 1, false),
+                          _buildReasonChip('ลืมลงชื่อ', 2, false),
+                          _buildReasonChip('นอกสถานที่', 3, false),
                         ],
                       ),
                       SizedBox(height: 15),
-
                       // Input Field
                       Container(
                         decoration: BoxDecoration(
@@ -434,7 +446,7 @@ class _InsiteDialogState extends State<InsiteDialog> {
                               fontFamily: FontStyles().FontFamily,
                               fontSize: 16),
                           decoration: InputDecoration(
-                            hintText: 'ระบุเหตุผลเพิ่มเติม (ถ้ามี)',
+                            hintText: 'ระบุเหตุผลเข้าสาย (ถ้ามี)',
                             hintStyle: TextStyle(color: Colors.grey),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -446,9 +458,70 @@ class _InsiteDialogState extends State<InsiteDialog> {
                       SizedBox(height: 20),
                     ],
 
+                    // Offsite Warning & Input (Aligned with OffsideDialog)
+                    if (isOffsite) ...[
+                      // Warning Header (Simple Row like OffsideDialog)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.warning_rounded,
+                              color: Colors.redAccent, size: 30),
+                          SizedBox(width: 10),
+                          Text(
+                            'เหตุผลที่คุณอยู่นอกพื้นที่',
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+
+                      // Input Field (Top)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: TextFormField(
+                          controller: _offsiteNote,
+                          style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'กรุณาระบุเหตุผล',
+                            hintStyle: TextStyle(color: Colors.grey),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 15, vertical: 15),
+                            suffixIcon: Icon(Icons.edit, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+
+                      // Chips (Bottom)
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildReasonChip('WFH (ทำงานที่บ้าน)', 0, true),
+                          _buildReasonChip('ทำงานนอกสถานที่', 1, true),
+                          _buildReasonChip('ระบุตำแหน่งผิดพลาด', 2, true),
+                          _buildReasonChip('อื่น ๆ', 3, true),
+                        ],
+                      ),
+                      SizedBox(height: 30),
+                    ],
+
                     // Submit Button
                     GestureDetector(
-                      onTap: _isUploading ? null : _submitCheckIn,
+                      onTap:
+                          _isUploading ? null : () => _submitCheckIn(isOffsite),
                       child: Container(
                         width: double.infinity,
                         height: 50,
@@ -507,12 +580,23 @@ class _InsiteDialogState extends State<InsiteDialog> {
     );
   }
 
-  Widget _buildReasonChip(String label, int index) {
-    bool isSelected = currentIndex == index;
+  Widget _buildReasonChip(String label, int index, bool isOffsiteGroup) {
+    bool isSelected =
+        isOffsiteGroup ? currentOffsiteIndex == index : currentIndex == index;
+
     return GestureDetector(
       onTap: () {
         setState(() {
-          currentIndex = index;
+          if (isOffsiteGroup) {
+            currentOffsiteIndex = index;
+            // Auto fill suggest text
+            if (index == 0) _offsiteNote.text = "WFH (ทำงานที่บ้าน)";
+            if (index == 1) _offsiteNote.text = "ทำงานนอกสถานที่";
+            if (index == 2) _offsiteNote.text = "ระบุตำแหน่งผิดพลาด";
+            if (index == 3) _offsiteNote.text = "";
+          } else {
+            currentIndex = index;
+          }
         });
       },
       child: Container(
@@ -535,7 +619,14 @@ class _InsiteDialogState extends State<InsiteDialog> {
     );
   }
 
-  void _submitCheckIn() async {
+  void _submitCheckIn(bool isOffsite) async {
+    // Validate if offsite
+    if (isOffsite && currentOffsiteIndex == -1 && _offsiteNote.text.isEmpty) {
+      DialogHelper.showError(
+          context, "กรุณาระบุ", "กรุณาระบุเหตุผลที่อยู่นอกพื้นที่");
+      return;
+    }
+
     Map _map = {
       "uid": widget.uid,
       "time": widget.time_server.toString(),
@@ -561,30 +652,36 @@ class _InsiteDialogState extends State<InsiteDialog> {
       return;
     }
 
-    // Navigation
-    if (!distanc()) {
-      Navigator.pop(context);
-      showDialog(
-          barrierDismissible: false,
-          context: context,
-          builder: (_) {
-            return OutsideDialog(
-              status: 1,
-              uid: widget.uid,
-              mainLat: widget.lat.toString(),
-              mainLng: widget.long.toString(),
-              lat: widget.myLat.toString(),
-              long: widget.myLng.toString(),
-              time: widget.time,
-              time_server: widget.time_server.toString(),
-            );
-          });
-    } else {
-      Navigator.pop(context);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => MainPage()),
-      );
+    // If Offsite, update location note immediately (chaining)
+    if (isOffsite) {
+      try {
+        setState(() {
+          _uploadStatus = 'กำหลังอัพเดทข้อมูลตำแหน่ง...';
+        });
+        List<String> selectedReasons = [];
+        if (currentOffsiteIndex != -1) {
+          selectedReasons.add(currentOffsiteIndex.toString());
+        }
+
+        Map _mapOffsite = {
+          "status": "1", // 1 = Check In
+          "uid": widget.uid,
+          "start_location_note": json.encode(selectedReasons),
+          "start_location_sub_status": _offsiteNote.text,
+        };
+
+        await AttandFuture().apiUpdateAttandStart(_mapOffsite);
+      } catch (e) {
+        print("Offsite update error: $e");
+        // We don't block success here, just log it, or maybe show toast
+      }
     }
+
+    // Success Navigation
+    Navigator.pop(context);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => MainPage()),
+    );
   }
 }

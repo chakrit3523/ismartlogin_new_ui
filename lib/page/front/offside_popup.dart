@@ -371,9 +371,9 @@ class _OffsideDialogState extends State<OffsideDialog> {
                         runSpacing: 10,
                         alignment: WrapAlignment.center,
                         children: [
-                          _buildReasonChip('ทำงานที่บ้าน', 0),
+                          _buildReasonChip('WFH (ทำงานที่บ้าน)', 0),
                           _buildReasonChip('พบลูกค้า', 1),
-                          _buildReasonChip('ตำแหน่งผิดพลาด', 2),
+                          _buildReasonChip('ระบุตำแหน่งผิดพลาด', 2),
                         ],
                       ),
                       SizedBox(height: 30),
