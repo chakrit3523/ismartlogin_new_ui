@@ -99,6 +99,8 @@ class Server {
   String insertCateLeave = _baseUrl + 'manage/insertCateLeave';
   String updateCateLeave = _baseUrl + 'manage/updateCateLeave';
   String getListNotiLeave = _baseUrl + 'manage/getListNotiLeave';
+  String uploadLeaveMedicalCertificate =
+      _baseUrl + 'manage/uploadLeaveMedicalCertificate';
 
   // -- * ตั้งค่า -------
   String checkAppVersion = _baseUrl + 'manage/checkAppVersion';

@@ -2342,8 +2342,75 @@ function testSendLineLatest()
         exit();
     }
 
+    function uploadLeaveMedicalCertificate()
+    {
+        $org_id = request('org_id');
+        $uid = request('uid');
+        $leave_id = request('leave_id');
+        
+        if (!$org_id || !$uid || !$leave_id) {
+            $rs = [
+                'msg' => 'Missing required parameters',
+                'status' => false,
+            ];
+            response_json(json_encode($rs));
+            exit();
+        }
+        
+        // Get leave information and uploadKey
+        $table = 'leave_' . $org_id . '_information';
+        $db = getDBO();
+        $sql = "SELECT * FROM {$table} WHERE id = '{$leave_id}' AND status = '1'";
+        $db->setQuery($sql);
+        $data = $db->loadAssocList();
+        
+        if (!$data) {
+            $rs = [
+                'msg' => 'Leave not found',
+                'status' => false,
+            ];
+            response_json(json_encode($rs));
+            exit();
+        }
+        
+        // Verify the user is the owner of the leave
+        if ($data[0]['create_by'] != $uid) {
+            $rs = [
+                'msg' => 'Not authorized',
+                'status' => false,
+            ];
+            response_json(json_encode($rs));
+            exit();
+        }
+        
+        // Get the uploadKey from the leave record
+        $uploadKey = $data[0]['uploadKey'];
+        
+        // Check if files are uploaded
+        if (!$_FILES) {
+            $rs = [
+                'msg' => 'No files uploaded',
+                'status' => false,
+            ];
+            response_json(json_encode($rs));
+            exit();
+        }
+        
+        // Upload files using existing function
+        $tableFile = 'leave_' . $org_id;
+        $this->uploadFileImagesFlutter($uploadKey, $_FILES, $tableFile);
+        
+        $rs = [
+            'msg' => 'success',
+            'status' => true,
+        ];
+        response_json(json_encode($rs));
+        exit();
+    }
+
     function updateStatusLeave()
     {
+
         $var = json_decode(file_get_contents('php://input'));
         $var = (array) $var;
         //-----

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -98,7 +100,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   void dispose() {
     super.dispose();
     widget.loadData();
-    }
+  }
 
   showLoaderDialog(BuildContext context) {
     AlertDialog alert = AlertDialog(
@@ -165,8 +167,67 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     setState(() {});
   }
 
+  Future<void> _pickAndUploadMedicalCertificate() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image == null) return;
+
+    showLoaderDialog(context);
+
+    try {
+      var uri = Uri.parse(Server().uploadLeaveMedicalCertificate);
+      var request = http.MultipartRequest('POST', uri);
+
+      request.fields['org_id'] = await SharedCashe.getItemsWay(name: 'org_id');
+      request.fields['uid'] = await SharedCashe.getItemsWay(name: 'id');
+      request.fields['leave_id'] = widget.id;
+
+      var ext = image.path.split('.').last;
+      var file = await http.MultipartFile.fromPath('file[0]', image.path,
+          contentType: MediaType('image', ext));
+      request.files.add(file);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      Navigator.of(context, rootNavigator: true).pop('dialog');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['msg'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('อัพโหลดใบรับรองแพทย์สำเร็จ'),
+                backgroundColor: Colors.green),
+          );
+          onLoadDetailLeaveManage();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('ไม่สามารถอัพโหลดได้'),
+                backgroundColor: Colors.red),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์'),
+              backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      Navigator.of(context, rootNavigator: true).pop('dialog');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   Future<void> _launchInBrowser(String url) async {
-    final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+    final _uri = Uri.parse(url);
+    if (await canLaunchUrl(_uri)) {
       await launch(
         url,
         forceSafariVC: false,
@@ -591,7 +652,44 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                                       ),
                                     );
                                   }).toList(),
-                                ]
+                                ],
+                                // Show upload button for sick leave (cid == "2") owned by user
+                                if (cid == "2" &&
+                                    createBy == uid &&
+                                    (leaveStatus == "1" ||
+                                        leaveStatus == "2")) ...[
+                                  Divider(height: 20),
+                                  InkWell(
+                                    onTap: _pickAndUploadMedicalCertificate,
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFFE8F5E9),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                            color: Colors.green.shade300),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.add_photo_alternate,
+                                              color: Colors.green, size: 24),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'แนบใบรับรองแพทย์',
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.green.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -631,8 +729,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                   SizedBox(height: 32),
 
                   // Action Buttons
-                  if (data.length > 0)
-                    _buildActionButtons(context),
+                  if (data.length > 0) _buildActionButtons(context),
 
                   SizedBox(height: 40),
                 ],
