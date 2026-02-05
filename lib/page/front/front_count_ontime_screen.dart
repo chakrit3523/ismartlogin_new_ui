@@ -168,6 +168,20 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                               textAlign: TextAlign.center,
                             ),
                           ),
+                        if (item.START_ADDRESS != null &&
+                            item.START_ADDRESS != '')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text(
+                              item.START_ADDRESS!,
+                              style: TextStyle(
+                                fontFamily: FontStyles().FontFamily,
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -386,7 +400,8 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                           onTap: () async {
                             String url =
                                 'https://www.google.com/maps/search/?api=1&query=$lat,$long';
-                            final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                            final _uri = Uri.parse(url);
+                            if (await canLaunchUrl(_uri)) {
                               await launchUrl(Uri.parse(url));
                             } else {
                               // EasyLoading.showError('Could not launch map');

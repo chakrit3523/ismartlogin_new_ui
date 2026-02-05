@@ -193,6 +193,22 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
                                 : Container(
                                     height: 0,
                                   ),
+                            _items[index].START_ADDRESS != ''
+                                ? Container(
+                                    alignment: Alignment.center,
+                                    width: WidhtDevice().widht(context) / 3.5,
+                                    child: Text(
+                                      _items[index].START_ADDRESS,
+                                      style: TextStyle(
+                                          fontFamily: FontStyles().FontFamily,
+                                          fontSize: 14,
+                                          color: Colors.grey[600]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  )
+                                : Container(
+                                    height: 0,
+                                  ),
                           ],
                         ),
                       ),

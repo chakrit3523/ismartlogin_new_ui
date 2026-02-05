@@ -12,6 +12,7 @@ class ItemsSummaryToDay_Late {
   final String? START_IMAGE;
   final String? START_IMAGE_SMALL;
   final String? START_NOTE;
+  final String? START_ADDRESS;
   final String? START_LOCATION_NOTE;
   final String? START_LOCATION_STATUS;
   final String? START_LOCATION_SUB_STATUS;
@@ -41,6 +42,7 @@ class ItemsSummaryToDay_Late {
     this.START_IMAGE,
     this.START_IMAGE_SMALL,
     this.START_NOTE,
+    this.START_ADDRESS,
     this.START_LOCATION_NOTE,
     this.START_LOCATION_STATUS,
     this.START_LOCATION_SUB_STATUS,
@@ -72,6 +74,7 @@ class ItemsSummaryToDay_Late {
       START_IMAGE: json['start_image'],
       START_IMAGE_SMALL: json['start_image_small'],
       START_NOTE: json['start_note'],
+      START_ADDRESS: json['start_address'],
       START_LOCATION_NOTE: json['start_location_note'],
       START_LOCATION_STATUS: json['start_location_status'],
       START_LOCATION_SUB_STATUS: json['start_location_sub_status'],

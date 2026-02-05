@@ -183,16 +183,50 @@ class _LongdoMapPageState extends State<LongdoMapPage> {
              { lon: lon, lat: lat },
              function(result) {
                 if (result) {
-                  var addr = result.road || '';
-                  if (result.subdistrict) addr += ' ' + result.subdistrict;
-                  if (result.district) addr += ' ' + result.district;
-                  if (result.province) addr += ' ' + result.province;
-                  if (result.postcode) addr += ' ' + result.postcode;
+                  // Replicate LongdoMapService.fullAddress logic
+                  var parts = [];
                   
-                  if (addr.trim() === '') addr = result.aoi || 'Unknown Location';
+                  // AOI
+                  if (result.aoi) parts.push(result.aoi);
+                  
+                  // Road
+                  if (result.road) {
+                    var r = result.road;
+                    if (!r.startsWith('ถ.') && !r.startsWith('ถนน')) r = 'ถ.' + r;
+                    parts.push(r);
+                  }
+                  
+                  // Subdistrict
+                  if (result.subdistrict) {
+                    var s = result.subdistrict;
+                    if (!s.startsWith('ต.') && !s.startsWith('ตำบล') && !s.startsWith('แขวง')) s = 'ต.' + s;
+                    parts.push(s);
+                  }
+                  
+                  // District
+                  if (result.district) {
+                    var d = result.district;
+                    if (!d.startsWith('อ.') && !d.startsWith('อำเภอ') && !d.startsWith('เขต')) d = 'อ.' + d;
+                    parts.push(d);
+                  }
+                  
+                  // Province
+                  if (result.province) {
+                    var p = result.province;
+                    if (!p.startsWith('จ.') && !p.startsWith('จังหวัด') && p !== 'กรุงเทพมหานคร') p = 'จ.' + p;
+                    parts.push(p);
+                  }
+                  
+                  // Postcode
+                  if (result.postcode) parts.push(result.postcode);
+                  
+                  var addr = parts.join(' ');
+                  if (addr.trim() === '') addr = 'ไม่พบข้อมูลที่อยู่';
                   
                   var data = {
                     "address": addr.trim(),
+                    // COMPATIBILITY: alias start_address for other project
+                    "start_address": addr.trim(), 
                     "lat": lat,
                     "lon": lon
                   };
@@ -230,6 +264,7 @@ class _LongdoMapPageState extends State<LongdoMapPage> {
               onPressed: () {
                 Navigator.of(context).pop({
                   "address": _currentAddress,
+                  "start_address": _currentAddress,
                   "lat": _selectedLat,
                   "lon": _selectedLon,
                 });
@@ -240,7 +275,6 @@ class _LongdoMapPageState extends State<LongdoMapPage> {
       body: Column(
         children: [
           Expanded(child: WebViewWidget(controller: _controller)),
-
           if (!isRoute)
             Container(
               padding: EdgeInsets.all(16),
@@ -269,6 +303,7 @@ class _LongdoMapPageState extends State<LongdoMapPage> {
                       onPressed: () {
                         Navigator.of(context).pop({
                           "address": _currentAddress,
+                          "start_address": _currentAddress,
                           "lat": _selectedLat,
                           "lon": _selectedLon,
                         });
@@ -282,7 +317,6 @@ class _LongdoMapPageState extends State<LongdoMapPage> {
                 ],
               ),
             ),
-
           if (isRoute)
             Container(
               padding: EdgeInsets.all(16),

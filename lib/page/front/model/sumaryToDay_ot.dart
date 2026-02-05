@@ -12,6 +12,7 @@ class ItemsSummaryToDay_OT {
   final String START_IMAGE;
   final String START_IMAGE_SMALL;
   final String START_NOTE;
+  final String START_ADDRESS;
   final String START_LOCATION_NOTE;
   final String START_LOCATION_STATUS;
   final String START_LOCATION_SUB_STATUS;
@@ -37,6 +38,7 @@ class ItemsSummaryToDay_OT {
     required this.START_IMAGE,
     required this.START_IMAGE_SMALL,
     required this.START_NOTE,
+    required this.START_ADDRESS,
     required this.START_LOCATION_NOTE,
     required this.START_LOCATION_STATUS,
     required this.START_LOCATION_SUB_STATUS,
@@ -63,8 +65,9 @@ class ItemsSummaryToDay_OT {
       START_TIME: json['start_time'],
       START_IMAGE: json['start_image'],
       START_IMAGE_SMALL: json['start_image_small'],
-      START_NOTE: json['start_note'],
-      START_LOCATION_NOTE: json['start_location_note'],
+      START_NOTE: json['start_note']?.toString() ?? '',
+      START_ADDRESS: json['start_address']?.toString() ?? '',
+      START_LOCATION_NOTE: json['start_location_note']?.toString() ?? '',
       START_LOCATION_STATUS: json['start_location_status'],
       START_LOCATION_SUB_STATUS: json['start_location_sub_status'],
       END_DATE: json['end_date'],

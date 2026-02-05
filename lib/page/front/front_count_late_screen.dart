@@ -104,7 +104,8 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                       child: Container(
                         child: Text(
                           _subFullname(_items[index].FULLNAME ?? '') +
-                              (_items[index].NICKNAME != null && _items[index].NICKNAME != ''
+                              (_items[index].NICKNAME != null &&
+                                      _items[index].NICKNAME != ''
                                   ? ' (' + _items[index].NICKNAME! + ')'
                                   : ''),
                           style: TextStyle(
@@ -135,7 +136,8 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                 color: Colors.white,
                               ),
                               child: Image.network(
-                                Server.url + (_items[index].START_IMAGE_SMALL ?? ''),
+                                Server.url +
+                                    (_items[index].START_IMAGE_SMALL ?? ''),
                                 fit: BoxFit.cover,
                                 width: WidhtDevice().widht(context) / 2,
                               ),
@@ -188,6 +190,23 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                 : Container(
                                     height: 0,
                                   ),
+                            _items[index].START_ADDRESS != null &&
+                                    _items[index].START_ADDRESS != ''
+                                ? Container(
+                                    alignment: Alignment.center,
+                                    width: WidhtDevice().widht(context) / 3.5,
+                                    child: Text(
+                                      _items[index].START_ADDRESS!,
+                                      style: TextStyle(
+                                          fontFamily: FontStyles().FontFamily,
+                                          fontSize: 14,
+                                          color: Colors.grey[600]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  )
+                                : Container(
+                                    height: 0,
+                                  ),
                           ],
                         ),
                       ),
@@ -231,8 +250,9 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                             children: [
                                               Container(
                                                 child: Text(
-                                                  _getEndStatus(
-                                                      _items[index].END_STATUS ?? ''),
+                                                  _getEndStatus(_items[index]
+                                                          .END_STATUS ??
+                                                      ''),
                                                   style: TextStyle(
                                                       fontFamily: FontStyles()
                                                           .FontFamily,
@@ -321,7 +341,8 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                             ? (_items[index].START_IMAGE ?? '')
                             : (_items[index].END_IMAGE ?? '')),
                     fit: BoxFit.cover,
-                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                    loadingBuilder: (BuildContext context, Widget child,
+                        ImageChunkEvent? loadingProgress) {
                       if (loadingProgress == null) {
                         return child;
                       } else {
@@ -365,11 +386,15 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                       onTap: () async {
                                         String url =
                                             'https://www.google.com/maps/search/?api=1&query=' +
-                                                (_items[index].START_LATITUDE ?? '') +
+                                                (_items[index].START_LATITUDE ??
+                                                    '') +
                                                 ',' +
-                                                (_items[index].START_LONGITUDE ?? '') +
+                                                (_items[index]
+                                                        .START_LONGITUDE ??
+                                                    '') +
                                                 '';
-                                        final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                                        final _uri = Uri.parse(url);
+                                        if (await canLaunchUrl(_uri)) {
                                           await launchUrl(Uri.parse(url));
                                         } else {
                                           throw 'Could not launch $url';
@@ -436,11 +461,14 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                       onTap: () async {
                                         String url =
                                             'https://www.google.com/maps/search/?api=1&query=' +
-                                                (_items[index].END_LATITUDE ?? '') +
+                                                (_items[index].END_LATITUDE ??
+                                                    '') +
                                                 ',' +
-                                                (_items[index].END_LONGITUDE ?? '') +
+                                                (_items[index].END_LONGITUDE ??
+                                                    '') +
                                                 '';
-                                        final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                                        final _uri = Uri.parse(url);
+                                        if (await canLaunchUrl(_uri)) {
                                           await launchUrl(Uri.parse(url));
                                         } else {
                                           throw 'Could not launch $url';

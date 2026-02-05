@@ -8,6 +8,7 @@ class ItemsMyHistory {
   final String START_IMAGE_SMALL;
   final String START_NOTE;
   final String START_STATUS;
+  final String START_ADDRESS;
   final String START_LATITUDE;
   final String START_LONGITUDE;
   final String START_LOCATION_STATUS;
@@ -29,6 +30,7 @@ class ItemsMyHistory {
     required this.START_IMAGE_SMALL,
     required this.START_NOTE,
     required this.START_STATUS,
+    required this.START_ADDRESS,
     required this.START_LATITUDE,
     required this.START_LONGITUDE,
     required this.START_LOCATION_STATUS,
@@ -53,6 +55,7 @@ class ItemsMyHistory {
       START_IMAGE_SMALL: json['start_image']?.toString() ?? '',
       START_NOTE: json['start_note']?.toString() ?? '',
       START_STATUS: json['start_status']?.toString() ?? '',
+      START_ADDRESS: json['start_address']?.toString() ?? '',
       START_LATITUDE: json['start_latitude']?.toString() ?? '',
       START_LONGITUDE: json['start_longitude']?.toString() ?? '',
       START_LOCATION_STATUS: json['start_location_status']?.toString() ?? '',

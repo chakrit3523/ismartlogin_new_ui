@@ -13,7 +13,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 class FrontCountOutsideScreen extends StatefulWidget {
   final List<ItemsSummaryToDay_Outside> items;
-  const FrontCountOutsideScreen({Key? key, required this.items}) : super(key: key);
+  const FrontCountOutsideScreen({Key? key, required this.items})
+      : super(key: key);
   @override
   _FrontCountOutsideScreenState createState() =>
       _FrontCountOutsideScreenState();
@@ -73,12 +74,10 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
               ),
               Padding(padding: EdgeInsets.all(10)),
             ],
-          
           ),
         ),
       ),
     );
-  
   }
 
   Widget _list() {
@@ -144,7 +143,7 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                                   // mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                     Expanded(
+                                    Expanded(
                                       flex: 2,
                                       child: Container(
                                         child: Column(
@@ -153,9 +152,10 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text('ไม่อยู่ในพื้นที่ : ' +
-                                            _items[index]
-                                                .START_LOCATION_SUB_STATUS,
+                                            Text(
+                                              'ไม่อยู่ในพื้นที่ : ' +
+                                                  _items[index]
+                                                      .START_LOCATION_SUB_STATUS,
                                               style: TextStyle(
                                                 fontFamily:
                                                     FontStyles().FontFamily,
@@ -278,7 +278,8 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                                                       _items[index]
                                                           .START_LONGITUDE +
                                                       '';
-                                              final _uri = Uri.parse(url); if (await canLaunchUrl(_uri)) {
+                                              final _uri = Uri.parse(url);
+                                              if (await canLaunchUrl(_uri)) {
                                                 await launchUrl(Uri.parse(url));
                                               } else {
                                                 throw 'Could not launch $url';
@@ -304,13 +305,26 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                                                   Padding(
                                                       padding:
                                                           EdgeInsets.all(2)),
-                                                  Text(
-                                                    'ดูพิกัด',
-                                                    style: TextStyle(
-                                                      color: Colors.grey[600],
-                                                      fontFamily: FontStyles()
-                                                          .FontFamily,
-                                                      fontSize: 18,
+                                                  Flexible(
+                                                    child: Text(
+                                                      _items[index]
+                                                                  .START_ADDRESS !=
+                                                              ''
+                                                          ? _items[index]
+                                                              .START_ADDRESS
+                                                          : 'ดูพิกัด',
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontFamily: FontStyles()
+                                                            .FontFamily,
+                                                        fontSize: _items[index]
+                                                                    .START_ADDRESS !=
+                                                                ''
+                                                            ? 14
+                                                            : 18,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   )
                                                 ],
@@ -328,9 +342,7 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                     ),
                   ],
                 ),
-              
               ],
-            
             ),
           );
         },

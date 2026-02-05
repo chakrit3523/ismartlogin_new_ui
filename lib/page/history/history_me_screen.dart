@@ -465,6 +465,44 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
                               color: Colors.cyan,
                             ),
                           ),
+                        if (item.START_ADDRESS.isNotEmpty)
+                          GestureDetector(
+                            onTap: () async {
+                              if (item.START_LATITUDE.isNotEmpty &&
+                                  item.START_LONGITUDE.isNotEmpty) {
+                                String url =
+                                    'https://www.google.com/maps/search/?api=1&query=${item.START_LATITUDE},${item.START_LONGITUDE}';
+                                final uri = Uri.parse(url);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri);
+                                }
+                              }
+                            },
+                            child: Container(
+                              margin: EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  FaIcon(
+                                    FontAwesomeIcons.mapMarkerAlt,
+                                    size: 12,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      item.START_ADDRESS,
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
