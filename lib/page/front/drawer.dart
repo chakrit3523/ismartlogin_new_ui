@@ -22,6 +22,7 @@ import 'package:ismart_login/page/managements/org_member_screen.dart';
 import 'package:ismart_login/page/managements/org_screen.dart';
 import 'package:ismart_login/page/managements/org_time_screen.dart';
 import 'package:ismart_login/page/managements/org_timedatail_screen.dart';
+import 'package:ismart_login/page/map/longdo_map_page.dart';
 import 'package:ismart_login/page/profile/profile_screen.dart';
 import 'package:ismart_login/page/sign/signout_popup.dart';
 import 'package:ismart_login/server/server.dart';
@@ -661,6 +662,29 @@ class _MenuDrawerState extends State<MenuDrawer> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => ContactDeveloper(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  minLeadingWidth: 0.5,
+                  leading: FaIcon(
+                    FontAwesomeIcons.mapMarkedAlt,
+                    size: 20,
+                  ),
+                  title: Text(
+                    'Longdo Map',
+                    style: _txt,
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LongdoMapPage(
+                          lat: latMain != 0.0 ? latMain : 13.7563,
+                          lon: logMain != 0.0 ? logMain : 100.5018,
+                        ),
                       ),
                     );
                   },
