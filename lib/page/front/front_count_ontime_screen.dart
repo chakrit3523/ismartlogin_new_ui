@@ -8,6 +8,7 @@ import 'package:ismart_login/page/front/model/sumaryToDay_ontime.dart';
 import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
+import 'package:ismart_login/page/map/osm_map_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class FrontCountOntimeScreen extends StatefulWidget {
@@ -284,40 +285,6 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
     String time = _status == 1
         ? (_items[index].START_TIME ?? '')
         : (_items[index].END_TIME ?? '');
-    bool hasLocation = _status == 1
-        ? (_items[index].START_LOCATION_STATUS == '1')
-        : (_items[index].START_LOCATION_STATUS ==
-            '1'); // Note: Original logic checked START_LOCATION_STATUS for both? Let's check logic.
-    // Logic check:
-    // Original Check-in: _items[index].START_LOCATION_STATUS == '1' -> launch START_LATITUDE
-    // Original Check-out: _items[index].START_LOCATION_STATUS == '1' -> launch START_LATITUDE ?? Wait.
-    // Looking at original code:
-    // for _status == 2 (End):
-    //   it checked `_items[index].START_LOCATION_STATUS == '1'`
-    //   BUT it launched `START_LATITUDE`/`START_LONGITUDE`.
-    //   This seems like a BUG in the original code or a weird logic (using start location for end?).
-    //   However, for End, it SHOULD likely be END_LATITUDE.
-    //   Let's see: `_items[index]` has `END_LATITUDE`, `END_LONGITUDE`.
-    //   I will try to use the correct one for End if available, or fall back to what it was if unsure.
-    //   Actually, looking carefully at the original code's lines ~428:
-    //   For _status != 1 (End), it checked `START_LOCATION_STATUS == '1'` and used `START_LATITUDE`.
-    //   This is extremely suspicious.
-    //   However, if I look at line 366 (Check-in block): `query=` + `END_LATITUDE` + `,` + `END_LATITUDE`.
-    //   WAIT. The original code was:
-    //   Block 1 (Status 1/Start): Checks `START_LOCATION_STATUS`. Uses `END_LATITUDE` ??? That's definitely a bug in old code.
-    //   Block 2 (Status 2/End): Checks `START_LOCATION_STATUS`. Uses `START_LATITUDE`.
-    //
-    //   I will Fix this logic to be sane:
-    //   Status 1 (Start): Check `START_LOCATION_STATUS`, use `START_LATITUDE`/`START_LONGITUDE`.
-    //   Status 2 (End): Check `END_LOCATION_STATUS`? The model has `END_LOCATION_NOT` and `END_STATUS`.
-    //   Note: The model `ItemsSummaryToDay_Ontime` has `START_LATITUDE`, `END_LATITUDE`.
-    //   I will assume:
-    //   If Status 1: Use Start data.
-    //   If Status 2: Use End data.
-    //   The field `START_LOCATION_STATUS` might indicate if location tracking was on.
-    //   Let's assume `START_LOCATION_STATUS` applies to the whole record or check specific fields.
-    //   Based on the previous screen's list, we display "ไม่อยู่ในพื้นที่" for Start and End separately.
-    //   I'll attempt to use the respective coordinates.
 
     String lat = _status == 1
         ? (_items[index].START_LATITUDE ?? '')
@@ -326,7 +293,9 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
         ? (_items[index].START_LONGITUDE ?? '')
         : (_items[index].END_LONGITUDE ?? '');
 
-    // Fallback if empty/invalid, don't show map button?
+    // Check if outside area
+    bool isOutsideArea = _items[index].START_LOCATION_STATUS == '1';
+    String address = _items[index].START_ADDRESS ?? '';
 
     return showDialog(
       barrierDismissible: true,
@@ -349,7 +318,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                   child: Container(
                     width: double.infinity,
                     constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                      maxHeight: MediaQuery.of(context).size.height * 0.5,
                     ),
                     child: Image.network(
                       Server.url + imageUrl,
@@ -380,7 +349,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
 
                 // 2. Info Section
                 Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
                       Text(
@@ -388,51 +357,165 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                         style: GoogleFonts.kanit(
                           fontSize: 18,
                           color: Colors.black87,
-                          fontWeight: FontWeight.w500, // Medium
+                          fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 20),
 
-                      // Location Button (if coordinates exist)
-                      if (lat.isNotEmpty && long.isNotEmpty && lat != "null")
-                        GestureDetector(
-                          onTap: () async {
-                            String url =
-                                'https://www.google.com/maps/search/?api=1&query=$lat,$long';
-                            final _uri = Uri.parse(url);
-                            if (await canLaunchUrl(_uri)) {
-                              await launchUrl(Uri.parse(url));
-                            } else {
-                              // EasyLoading.showError('Could not launch map');
-                              print('Could not launch $url');
-                            }
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius:
-                                  BorderRadius.circular(50), // Capsule
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                FaIcon(FontAwesomeIcons.locationDot,
-                                    size: 16, color: Colors.grey[600]),
-                                SizedBox(width: 8),
-                                Text(
-                                  'สถานที่',
-                                  style: GoogleFonts.kanit(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
+                      // Always show location details if lat/long available
+                      if (lat.isNotEmpty &&
+                          long.isNotEmpty &&
+                          lat != "null") ...[
+                        SizedBox(height: 12),
+                        // Lat/Long display
+                        Text(
+                          'พิกัด: $lat, $long',
+                          style: GoogleFonts.kanit(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        // Address display (red if outside, grey if inside)
+                        if (address.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OSMMapPage(
+                                      lat: double.tryParse(lat) ?? 0.0,
+                                      lon: double.tryParse(long) ?? 0.0,
+                                      address: address,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                );
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  FaIcon(
+                                    FontAwesomeIcons.locationDot,
+                                    size: 14,
+                                    color: isOutsideArea
+                                        ? Colors.red
+                                        : Colors.grey[600],
+                                  ),
+                                  SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      address,
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 14,
+                                        color: isOutsideArea
+                                            ? Colors.red
+                                            : Colors.grey[700],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        SizedBox(height: 16),
+
+                        // Map buttons Row
+                        Row(
+                          children: [
+                            // Longdo Map Button
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (lat.isNotEmpty &&
+                                      long.isNotEmpty &&
+                                      lat != "null") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => OSMMapPage(
+                                          lat: double.tryParse(lat) ?? 0.0,
+                                          lon: double.tryParse(long) ?? 0.0,
+                                          address: address,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border:
+                                        Border.all(color: Colors.blue.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FaIcon(FontAwesomeIcons.map,
+                                          size: 14, color: Colors.blue),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'ดูแผนที่',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            // Google Maps Navigation Button
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () async {
+                                  if (lat.isNotEmpty &&
+                                      long.isNotEmpty &&
+                                      lat != "null") {
+                                    String url =
+                                        'https://www.google.com/maps/dir/?api=1&destination=$lat,$long&travelmode=driving';
+                                    final uri = Uri.parse(url);
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: Colors.green.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FaIcon(FontAwesomeIcons.diamondTurnRight,
+                                          size: 14, color: Colors.green),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'นำทาง',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                      ],
 
                       SizedBox(height: 16),
 
@@ -443,8 +526,7 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.grey[300]!),
+                            color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(50),
                           ),
                           child: Text(

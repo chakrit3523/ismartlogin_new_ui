@@ -51,7 +51,7 @@ dependencies:
   flutter_calendar_carousel: ^2.0.1
   fluttertoast: ^9.0.0
   flutter_easyloading: ^3.0.0
-  awesome_dialog: 3.2.0
+  awesome_dialog: ^3.3.0
   loading_gifs: ^0.3.0
   google_maps_webservice: ^0.0.19
   location:
@@ -78,6 +78,8 @@ dependencies:
   # flutter_app_badger: ^1.2.0
   app_badge_plus: ^1.2.3
   video_player:
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
   wakelock_web: ^0.4.0
   flutter_svg: ^2.2.1
   platform: ^3.1.4

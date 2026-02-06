@@ -8,6 +8,8 @@ import 'package:ismart_login/server/server.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
+import 'package:ismart_login/page/map/osm_map_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:loading_gifs/loading_gifs.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -311,227 +313,265 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
   }
 
   alert_show_images(BuildContext context, int _status, int index) async {
+    // Determine data based on status (1 = Start/Check-in, 2 = End/Check-out)
+    String imageUrl = _status == 1
+        ? (_items[index].START_IMAGE ?? '')
+        : (_items[index].END_IMAGE ?? '');
+    String dateTh = _items[index].CREATE_DATE_TH ?? '';
+    String time = _status == 1
+        ? (_items[index].START_TIME ?? '')
+        : (_items[index].END_TIME ?? '');
+
+    String lat = _status == 1
+        ? (_items[index].START_LATITUDE ?? '')
+        : (_items[index].END_LATITUDE ?? '');
+    String long = _status == 1
+        ? (_items[index].START_LONGITUDE ?? '')
+        : (_items[index].END_LONGITUDE ?? '');
+
+    // Check if outside area
+    bool isOutsideArea = _items[index].START_LOCATION_STATUS == '1';
+    String address = _items[index].START_ADDRESS ?? '';
+
     return showDialog(
       barrierDismissible: true,
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(20.0))),
-          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-          content: Container(
-            width: WidhtDevice().widht(context),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.all(20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(20.0),
-                      bottomRight: Radius.circular(20.0),
+                // 1. Image
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.5,
                     ),
-                  ),
-                  padding:
-                      EdgeInsets.only(top: 10, bottom: 10, left: 3, right: 3),
-                  alignment: Alignment.center,
-                  child: Image.network(
-                    Server.url +
-                        (_status == 1
-                            ? (_items[index].START_IMAGE ?? '')
-                            : (_items[index].END_IMAGE ?? '')),
-                    fit: BoxFit.cover,
-                    loadingBuilder: (BuildContext context, Widget child,
-                        ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) {
-                        return child;
-                      } else {
-                        return Center(
-                          child: FadeInImage.assetNetwork(
-                            placeholder: cupertinoActivityIndicatorSmall,
-                            placeholderScale: 5,
-                            image: Server.url +
-                                (_status == 1
-                                    ? _items[index].START_IMAGE ?? ''
-                                    : _items[index].END_IMAGE ?? ''),
+                    child: Image.network(
+                      Server.url + imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 300,
+                          child: Center(
+                            child: FadeInImage.assetNetwork(
+                              placeholder: cupertinoActivityIndicatorSmall,
+                              placeholderScale: 5,
+                              image: Server.url + imageUrl,
+                            ),
                           ),
                         );
-                      }
-                    },
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 300,
+                        color: Colors.grey[200],
+                        child: Icon(Icons.broken_image,
+                            size: 50, color: Colors.grey),
+                      ),
+                    ),
                   ),
                 ),
-                _status == 1
-                    ? Column(
-                        children: [
-                          Container(
-                            child: Container(
-                              child: Text(
-                                'วันที่ ' +
-                                    (_items[index].CREATE_DATE_TH ?? '') +
-                                    ' เวลา' +
-                                    (_items[index].START_TIME ?? ''),
-                                style: TextStyle(
-                                    fontFamily: FontStyles().FontFamily,
-                                    fontSize: 24,
-                                    color: Colors.black),
+
+                // 2. Info Section
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'วันที่ $dateTh เวลา $time',
+                        style: GoogleFonts.kanit(
+                          fontSize: 18,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      // Always show location details if lat/long available
+                      if (lat.isNotEmpty &&
+                          long.isNotEmpty &&
+                          lat != "null") ...[
+                        SizedBox(height: 12),
+                        // Lat/Long display
+                        Text(
+                          'พิกัด: $lat, $long',
+                          style: GoogleFonts.kanit(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        // Address display (red if outside, grey if inside)
+                        if (address.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OSMMapPage(
+                                      lat: double.tryParse(lat) ?? 0.0,
+                                      lon: double.tryParse(long) ?? 0.0,
+                                      address: address,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  FaIcon(
+                                    FontAwesomeIcons.locationDot,
+                                    size: 14,
+                                    color: isOutsideArea
+                                        ? Colors.red
+                                        : Colors.grey[600],
+                                  ),
+                                  SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      address,
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 14,
+                                        color: isOutsideArea
+                                            ? Colors.red
+                                            : Colors.grey[700],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          _items[index].START_LOCATION_STATUS == '1'
-                              ? Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: 10, left: 10, right: 10),
-                                  alignment: Alignment.center,
-                                  child: GestureDetector(
-                                      onTap: () async {
-                                        String url =
-                                            'https://www.google.com/maps/search/?api=1&query=' +
-                                                (_items[index].START_LATITUDE ??
-                                                    '') +
-                                                ',' +
-                                                (_items[index]
-                                                        .START_LONGITUDE ??
-                                                    '') +
-                                                '';
-                                        final _uri = Uri.parse(url);
-                                        if (await canLaunchUrl(_uri)) {
-                                          await launchUrl(Uri.parse(url));
-                                        } else {
-                                          throw 'Could not launch $url';
-                                        }
-                                      },
-                                      child: Container(
-                                        padding:
-                                            EdgeInsets.only(top: 2, bottom: 2),
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: Colors.grey[100]),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            FaIcon(
-                                              FontAwesomeIcons.mapLocationDot,
-                                              size: 18,
-                                              color: Colors.grey[600],
-                                            ),
-                                            Padding(padding: EdgeInsets.all(2)),
-                                            Text(
-                                              'สถานที่',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 18,
-                                              ),
-                                            )
-                                          ],
+                        SizedBox(height: 16),
+
+                        // Map buttons Row
+                        Row(
+                          children: [
+                            // Longdo Map Button
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (lat.isNotEmpty &&
+                                      long.isNotEmpty &&
+                                      lat != "null") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => OSMMapPage(
+                                          lat: double.tryParse(lat) ?? 0.0,
+                                          lon: double.tryParse(long) ?? 0.0,
+                                          address: address,
                                         ),
-                                      )),
-                                )
-                              : SizedBox()
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          Container(
-                            child: Container(
-                              child: Text(
-                                'วันที่ ' +
-                                    (_items[index].CREATE_DATE_TH ?? '') +
-                                    ' เวลา ' +
-                                    (_items[index].END_TIME ?? ''),
-                                style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 24,
-                                  color: (_items[index].END_STATUS == '0'
-                                      ? Colors.black
-                                      : Colors.redAccent),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border:
+                                        Border.all(color: Colors.blue.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FaIcon(FontAwesomeIcons.map,
+                                          size: 14, color: Colors.blue),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'ดูแผนที่',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          _items[index].START_LOCATION_STATUS == '1'
-                              ? Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: 10, left: 10, right: 10),
-                                  alignment: Alignment.center,
-                                  child: GestureDetector(
-                                      onTap: () async {
-                                        String url =
-                                            'https://www.google.com/maps/search/?api=1&query=' +
-                                                (_items[index].END_LATITUDE ??
-                                                    '') +
-                                                ',' +
-                                                (_items[index].END_LONGITUDE ??
-                                                    '') +
-                                                '';
-                                        final _uri = Uri.parse(url);
-                                        if (await canLaunchUrl(_uri)) {
-                                          await launchUrl(Uri.parse(url));
-                                        } else {
-                                          throw 'Could not launch $url';
-                                        }
-                                      },
-                                      child: Container(
-                                        padding:
-                                            EdgeInsets.only(top: 2, bottom: 2),
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: Colors.grey[100]),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            FaIcon(
-                                              FontAwesomeIcons.mapLocationDot,
-                                              size: 18,
-                                              color: Colors.grey[600],
-                                            ),
-                                            Padding(padding: EdgeInsets.all(2)),
-                                            Text(
-                                              'สถานที่',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontFamily:
-                                                    FontStyles().FontFamily,
-                                                fontSize: 18,
-                                              ),
-                                            )
-                                          ],
+                            SizedBox(width: 10),
+                            // Google Maps Navigation Button
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () async {
+                                  if (lat.isNotEmpty &&
+                                      long.isNotEmpty &&
+                                      lat != "null") {
+                                    String url =
+                                        'https://www.google.com/maps/dir/?api=1&destination=$lat,$long&travelmode=driving';
+                                    final uri = Uri.parse(url);
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: Colors.green.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FaIcon(FontAwesomeIcons.diamondTurnRight,
+                                          size: 14, color: Colors.green),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'นำทาง',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.green,
                                         ),
-                                      )),
-                                )
-                              : SizedBox()
-                        ],
-                      ),
-                Container(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.0),
-                                bottomRight: Radius.circular(20.0),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'ปิด',
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold),
+                          ],
+                        ),
+                      ],
+
+                      SizedBox(height: 16),
+
+                      // Close Button
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Text(
+                            'ปิด',
+                            style: GoogleFonts.kanit(
+                              fontSize: 16,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),
