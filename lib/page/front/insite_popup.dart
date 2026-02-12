@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/future/attend_future.dart';
+import 'package:ismart_login/services/longdo_map_service.dart';
 
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -77,6 +78,33 @@ class _InsiteDialogState extends State<InsiteDialog> {
         ? print("holiday, ${widget.holiday}")
         : print("NOT holiday, ${widget.holiday}");
     print('holiday final : ${widget.holiday}');
+    _fetchAddress();
+  }
+
+  String? _currentAddress;
+  bool _isLoadingAddress = false;
+
+  Future<void> _fetchAddress() async {
+    setState(() {
+      _isLoadingAddress = true;
+    });
+    try {
+      String? address = await LongdoMapService()
+          .getFormattedAddress(widget.myLat, widget.myLng);
+      if (mounted) {
+        setState(() {
+          _currentAddress = address;
+          _isLoadingAddress = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAddress = false;
+        });
+      }
+      print("Error fetching address: $e");
+    }
   }
 
   @override
@@ -342,6 +370,48 @@ class _InsiteDialogState extends State<InsiteDialog> {
                   ],
                 ),
               ),
+
+              // Address Display
+              if (_isLoadingAddress)
+                Container(
+                  padding: EdgeInsets.all(10),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                      SizedBox(width: 10),
+                      Text("กำลังระบุตำแหน่ง...",
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                )
+              else if (_currentAddress != null)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  color: Colors.grey[100],
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on,
+                          color: Color(0xFF4CAF50), size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _currentAddress!,
+                          style: TextStyle(
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // 3. Warning & Reason Section
               Padding(
@@ -633,6 +703,7 @@ class _InsiteDialogState extends State<InsiteDialog> {
       "image": widget.pathImage,
       "latitude": widget.myLat.toString(),
       "longitude": widget.myLng.toString(),
+      "start_address": _currentAddress ?? "", // Add address field
       "start_status": checkHoliday(widget.holiday)
           ? '5'
           : checkTimr(widget.time)

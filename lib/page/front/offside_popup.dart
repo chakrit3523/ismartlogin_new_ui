@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/page/front/future/attend_future.dart';
+import 'package:ismart_login/services/longdo_map_service.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/utils/image_helper.dart';
@@ -68,6 +69,33 @@ class _OffsideDialogState extends State<OffsideDialog> {
         ? print("holiday, ${widget.holiday}")
         : print("NOT holiday, ${widget.holiday}");
     print(widget.time);
+    _fetchAddress();
+  }
+
+  String? _currentAddress;
+  bool _isLoadingAddress = false;
+
+  Future<void> _fetchAddress() async {
+    setState(() {
+      _isLoadingAddress = true;
+    });
+    try {
+      String? address = await LongdoMapService()
+          .getFormattedAddress(widget.myLat, widget.myLng);
+      if (mounted) {
+        setState(() {
+          _currentAddress = address;
+          _isLoadingAddress = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAddress = false;
+        });
+      }
+      print("Error fetching address: $e");
+    }
   }
 
   @override
@@ -317,6 +345,48 @@ class _OffsideDialogState extends State<OffsideDialog> {
                   ),
                 ),
 
+                // Address Display
+                if (_isLoadingAddress)
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 10),
+                        Text("กำลังระบุตำแหน่ง...",
+                            style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  )
+                else if (_currentAddress != null)
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    color: Colors.grey[100],
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on,
+                            color: Color(0xFF0099CC), size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _currentAddress!,
+                            style: TextStyle(
+                              fontFamily: FontStyles().FontFamily,
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // 3. Warning & Reason
                 Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -450,6 +520,7 @@ class _OffsideDialogState extends State<OffsideDialog> {
       "image": widget.pathImage,
       "latitude": widget.myLat.toString(),
       "longitude": widget.myLng.toString(),
+      "end_address": _currentAddress ?? "", // Add address field
       "end_status": (currentIndex + 1)
           .toString(), // +1 to match old logic (1-based index?)
       "end_note": _inputNote.text,

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ismart_login/page/front/future/attend_future.dart';
+import 'package:ismart_login/services/longdo_map_service.dart';
 import 'package:ismart_login/page/front/model/attendUpdateStart.dart';
 import 'package:ismart_login/page/main.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -73,6 +74,33 @@ class _OutsideDialogState extends State<OutsideDialog> {
     setLong = double.parse(widget.long);
     // fToast = FToast();
     // fToast.init(context);
+    _fetchAddress();
+  }
+
+  String? _currentAddress;
+  bool _isLoadingAddress = false;
+
+  Future<void> _fetchAddress() async {
+    setState(() {
+      _isLoadingAddress = true;
+    });
+    try {
+      String? address = await LongdoMapService().getFormattedAddress(
+          double.parse(widget.lat), double.parse(widget.long));
+      if (mounted) {
+        setState(() {
+          _currentAddress = address;
+          _isLoadingAddress = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAddress = false;
+        });
+      }
+      print("Error fetching address: $e");
+    }
   }
 
   ///--
@@ -207,6 +235,47 @@ class _OutsideDialogState extends State<OutsideDialog> {
                   circles: _circle(),
                 ),
               ),
+
+              // Address Display
+              if (_isLoadingAddress)
+                Container(
+                  padding: EdgeInsets.all(10),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                      SizedBox(width: 10),
+                      Text("กำลังระบุตำแหน่ง...",
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                )
+              else if (_currentAddress != null)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  color: Colors.grey[100],
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, color: Colors.blue, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _currentAddress!,
+                          style: TextStyle(
+                            fontFamily: FontStyles().FontFamily,
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Container(
                 child: Text(
                   'กรุณาระบุเหตุผล',
@@ -268,11 +337,15 @@ class _OutsideDialogState extends State<OutsideDialog> {
                                   Expanded(
                                     child: InkWell(
                                       onTap: () {
-                                        if (_formKey.currentState?.validate() ?? false) {
+                                        if (_formKey.currentState?.validate() ??
+                                            false) {
                                           if (widget.status == 1) {
                                             Map _map = {
                                               "status": "1", //เข้างาน
                                               "uid": widget.uid,
+                                              "start_address":
+                                                  _currentAddress ??
+                                                      "", // Add address
                                               "start_location_note":
                                                   json.encode(_select),
                                               "start_location_sub_status":
@@ -285,6 +358,8 @@ class _OutsideDialogState extends State<OutsideDialog> {
                                             Map _map = {
                                               "status": "2", //ออกงาน
                                               "uid": widget.uid,
+                                              "end_address": _currentAddress ??
+                                                  "", // Add address
                                               "end_location_note":
                                                   json.encode(_select),
                                               "end_location_sub_status":

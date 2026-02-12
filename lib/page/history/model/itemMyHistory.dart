@@ -18,6 +18,11 @@ class ItemsMyHistory {
   final String END_IMAGE_SMALL;
   final String END_NOTE;
   final String END_STATUS;
+  final String END_ADDRESS;
+  final String END_LATITUDE;
+  final String END_LONGITUDE;
+  final String END_LOCATION_STATUS;
+  final String END_LOCATION_SUB_STATUS;
   final String ORG_SUB_NAME;
 
   ItemsMyHistory({
@@ -40,6 +45,11 @@ class ItemsMyHistory {
     required this.END_IMAGE_SMALL,
     required this.END_NOTE,
     required this.END_STATUS,
+    required this.END_ADDRESS,
+    required this.END_LATITUDE,
+    required this.END_LONGITUDE,
+    required this.END_LOCATION_STATUS,
+    required this.END_LOCATION_SUB_STATUS,
     required this.ORG_SUB_NAME,
   });
 
@@ -67,6 +77,12 @@ class ItemsMyHistory {
       END_IMAGE_SMALL: json['end_image']?.toString() ?? '',
       END_NOTE: json['end_note']?.toString() ?? '',
       END_STATUS: json['end_status']?.toString() ?? '',
+      END_ADDRESS: json['end_address']?.toString() ?? '',
+      END_LATITUDE: json['end_latitude']?.toString() ?? '',
+      END_LONGITUDE: json['end_longitude']?.toString() ?? '',
+      END_LOCATION_STATUS: json['end_location_status']?.toString() ?? '',
+      END_LOCATION_SUB_STATUS:
+          json['end_location_sub_status']?.toString() ?? '',
       ORG_SUB_NAME: json['org_sub_name']?.toString() ?? '',
     );
   }

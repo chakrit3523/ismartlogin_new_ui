@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'dart:async'; // Add async
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // Add google_maps_flutter
 import 'package:ismart_login/page/front/model/attendOutsideDescriptionPop.dart';
 import 'package:ismart_login/page/history/future/history_future.dart';
 import 'package:ismart_login/page/history/model/itemMyHistory.dart';
@@ -470,12 +472,17 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
                             onTap: () async {
                               if (item.START_LATITUDE.isNotEmpty &&
                                   item.START_LONGITUDE.isNotEmpty) {
-                                String url =
-                                    'https://www.google.com/maps/search/?api=1&query=${item.START_LATITUDE},${item.START_LONGITUDE}';
-                                final uri = Uri.parse(url);
-                                if (await canLaunchUrl(uri)) {
-                                  await launchUrl(uri);
-                                }
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return MapViewerPopup(
+                                      lat: double.parse(item.START_LATITUDE),
+                                      long: double.parse(item.START_LONGITUDE),
+                                      title: 'สถานที่เข้างาน',
+                                      address: item.START_ADDRESS,
+                                    );
+                                  },
+                                );
                               }
                             },
                             child: Container(
@@ -566,12 +573,55 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        if (item.END_NOTE.isNotEmpty && item.END_STATUS == '2')
+                        if (item.END_LOCATION_STATUS == '1' || item.CID == '3')
                           Text(
-                            'ทำงานที่บ้าน',
+                            'อยู่นอกพื้นที่ : ใช่',
                             style: GoogleFonts.kanit(
-                              fontSize: 11,
-                              color: Colors.grey[500],
+                              fontSize: 10,
+                              color: Colors.cyan,
+                            ),
+                          ),
+                        if (item.END_ADDRESS.isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              if (item.END_LATITUDE.isNotEmpty &&
+                                  item.END_LONGITUDE.isNotEmpty) {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return MapViewerPopup(
+                                      lat: double.parse(item.END_LATITUDE),
+                                      long: double.parse(item.END_LONGITUDE),
+                                      title: 'สถานที่ออกงาน',
+                                      address: item.END_ADDRESS,
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            child: Container(
+                              margin: EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  FaIcon(
+                                    FontAwesomeIcons.mapMarkerAlt,
+                                    size: 12,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      item.END_ADDRESS,
+                                      style: GoogleFonts.kanit(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                       ],
@@ -732,6 +782,172 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class MapViewerPopup extends StatefulWidget {
+  final double lat;
+  final double long;
+  final String title;
+  final String address;
+
+  const MapViewerPopup({
+    Key? key,
+    required this.lat,
+    required this.long,
+    required this.title,
+    required this.address,
+  }) : super(key: key);
+
+  @override
+  _MapViewerPopupState createState() => _MapViewerPopupState();
+}
+
+class _MapViewerPopupState extends State<MapViewerPopup> {
+  Completer<GoogleMapController> _controller = Completer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Map Header
+            Container(
+              height: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(widget.lat, widget.long),
+                    zoom: 16,
+                  ),
+                  markers: {
+                    Marker(
+                      markerId: MarkerId('target'),
+                      position: LatLng(widget.lat, widget.long),
+                      infoWindow: InfoWindow(title: widget.title),
+                    ),
+                  },
+                  myLocationEnabled: false,
+                  zoomControlsEnabled: true,
+                  onMapCreated: (GoogleMapController controller) {
+                    _controller.complete(controller);
+                  },
+                ),
+              ),
+            ),
+
+            // Address Info
+            Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, color: Colors.red),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          widget.title,
+                          style: GoogleFonts.kanit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      widget.address,
+                      style: GoogleFonts.kanit(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              'ปิด',
+                              style: GoogleFonts.kanit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 15),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            String url =
+                                'https://www.google.com/maps/search/?api=1&query=${widget.lat},${widget.long}';
+                            final uri = Uri.parse(url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF21CCD4),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              'เปิดใน Google Maps',
+                              style: GoogleFonts.kanit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
