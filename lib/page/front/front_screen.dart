@@ -412,6 +412,9 @@ class _FrontScreenState extends State<FrontScreen>
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
+    double bottomSafeInset = MediaQuery.of(context).padding.bottom;
+    // Keep content above custom bottom nav + center action button.
+    double bottomDockReserve = 110 + bottomSafeInset;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -442,21 +445,23 @@ class _FrontScreenState extends State<FrontScreen>
               : 'member'),
       body: Stack(
         children: [
-          // 1. Blue Gradient Background (Full Screen)
+          // 1. Layered Background
           Container(
             height: screenHeight,
             width: screenWidth,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment(-0.3, -1.0),
-                end: Alignment(0.3, 1.0),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF21CCD4), // 0%
-                  Color(0xFF0663F7), // 100%
+                  Color(0xFF1FD2DA),
+                  Color(0xFF1787E9),
+                  Color(0xFF0B5CE3),
                 ],
               ),
             ),
           ),
+          _buildBackgroundDecor(screenWidth, screenHeight),
 
           // 2. Main Scrollable Content
           SingleChildScrollView(
@@ -467,7 +472,7 @@ class _FrontScreenState extends State<FrontScreen>
                 children: [
                   Column(
                     children: [
-                      SizedBox(height: MediaQuery.of(context).padding.top + 10),
+                      SizedBox(height: MediaQuery.of(context).padding.top + 12),
                       // Header
                       _buildHeader(),
                       SizedBox(height: 10),
@@ -475,21 +480,26 @@ class _FrontScreenState extends State<FrontScreen>
                       if (_itemMember != null)
                         if (_itemMember.length > 0)
                           if (_itemMember[0].MEMBER_TYPE == 'admin')
-                            FrontCountWidget(),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              child: FrontCountWidget(
+                                scheduledEndTime: timeOut,
+                              ),
+                            ),
                       SizedBox(height: 10),
                       // Clock
                       _buildCircularClock(),
                       SizedBox(height: 8),
                       // Org Name
                       _buildOrgName(),
-                      SizedBox(height: 12),
+                      SizedBox(height: 10),
                       // Check In/Out Buttons
                       _buildActionButtons(),
                       SizedBox(height: 8),
                       // Status Text
                       _buildStatusText(),
-                      SizedBox(
-                          height: 0), // Removed spacing to move panel higher
+                      SizedBox(height: 8),
                     ],
                   ),
 
@@ -497,23 +507,66 @@ class _FrontScreenState extends State<FrontScreen>
                   Container(
                     width: screenWidth,
                     padding: EdgeInsets.only(
-                        top: 20, bottom: 100, left: 20, right: 20),
+                        top: 18,
+                        bottom: bottomDockReserve,
+                        left: 20,
+                        right: 20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Color(0xFFF8FAFD),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.14),
+                          blurRadius: 24,
+                          offset: Offset(0, -6),
+                        ),
+                      ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildMenuGrid(),
-                        SizedBox(height: 75),
+                        SizedBox(height: 8),
                       ],
                     ),
                   )
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackgroundDecor(double width, double height) {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -90,
+            right: -70,
+            child: Container(
+              width: width * 0.6,
+              height: width * 0.6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.10),
+              ),
+            ),
+          ),
+          Positioned(
+            top: height * 0.35,
+            left: -80,
+            child: Container(
+              width: width * 0.42,
+              height: width * 0.42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.07),
               ),
             ),
           ),
@@ -641,71 +694,78 @@ class _FrontScreenState extends State<FrontScreen>
   }
 
   Widget _buildOrgName() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          _itemMember.length > 0
-              ? (_itemMember[0].ORG_NAME ?? 'บริษัท เดอะสแตนดาร์ด จำกัด')
-              : 'ชื่อบริษัท',
-          style: TextStyle(
-              fontFamily: FontStyles().FontFamily,
-              color: Colors.white,
-              fontSize: 26, // Increased size
-              fontWeight: FontWeight.bold, // Added bold
-              height: 1.2,
-              letterSpacing: 0,
-              shadows: [
-                Shadow(
-                  color: Color(0x29000000),
-                  offset: Offset(0, 3),
-                  blurRadius: 6,
-                )
-              ]),
-        ),
-        SizedBox(width: 15),
-        GestureDetector(
-          onTap: () {
-            if (_itemMember.isNotEmpty) {
-              _fetchAndShowInvite(_itemMember[0].ORG_ID ?? '');
-            }
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                )
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/images/other/join.png',
-                  width: 20,
-                  height: 20,
-                ),
-                SizedBox(width: 5),
-                Text(
-                  'เพิ่มสมาชิก',
-                  style: GoogleFonts.kanit(
-                    fontSize: 14,
-                    color: Color(0xFF0663F7),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              _itemMember.length > 0
+                  ? (_itemMember[0].ORG_NAME ?? 'บริษัท เดอะสแตนดาร์ด จำกัด')
+                  : 'ชื่อบริษัท',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontFamily: FontStyles().FontFamily,
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                  letterSpacing: 0,
+                  shadows: [
+                    Shadow(
+                      color: Color(0x29000000),
+                      offset: Offset(0, 3),
+                      blurRadius: 6,
+                    )
+                  ]),
             ),
           ),
-        ),
-      ],
+          SizedBox(width: 15),
+          GestureDetector(
+            onTap: () {
+              if (_itemMember.isNotEmpty) {
+                _fetchAndShowInvite(_itemMember[0].ORG_ID ?? '');
+              }
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  )
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/images/other/join.png',
+                    width: 20,
+                    height: 20,
+                  ),
+                  SizedBox(width: 5),
+                  Text(
+                    'เพิ่มสมาชิก',
+                    style: GoogleFonts.kanit(
+                      fontSize: 14,
+                      color: Color(0xFF0663F7),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -977,34 +1037,39 @@ class _FrontScreenState extends State<FrontScreen>
 
   Widget _buildActionButtons() {
     return Padding(
-      // Reduced padding to accommodate 187px buttons
-      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildButtonCard(context, true),
-          // Vertical Dashed Line
-          Container(
-            height: 50,
-            margin: EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(
-                  8,
-                  (index) => Container(
-                        width: 2,
-                        height: 3,
-                        color: Colors.white.withValues(alpha: 0.5),
-                      )),
-            ),
-          ),
-          _buildButtonCard(context, false),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const dividerSpace = 18.0;
+          final buttonWidth = (constraints.maxWidth - dividerSpace) / 2;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildButtonCard(context, true, buttonWidth),
+              Container(
+                height: 50,
+                margin: EdgeInsets.symmetric(horizontal: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(
+                      8,
+                      (index) => Container(
+                            width: 2,
+                            height: 3,
+                            color: Colors.white.withValues(alpha: 0.5),
+                          )),
+                ),
+              ),
+              _buildButtonCard(context, false, buttonWidth),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildButtonCard(BuildContext context, bool isCheckIn) {
+  Widget _buildButtonCard(
+      BuildContext context, bool isCheckIn, double buttonWidth) {
     bool isEnabled = isCheckIn ? _login : _logout;
     String imageAsset;
     if (isCheckIn) {
@@ -1018,7 +1083,9 @@ class _FrontScreenState extends State<FrontScreen>
     }
 
     String timeLabel = isCheckIn ? 'เข้า' : 'ออก';
-    String timeValue = isCheckIn ? '8:30' : '17.30'; // Should be dynamic
+    String defaultIn = _normalizeDisplayTime(timeIn, fallback: '8:30');
+    String defaultOut = _normalizeDisplayTime(timeOut, fallback: '17:30');
+    String timeValue = isCheckIn ? defaultIn : defaultOut;
     String mainText = isCheckIn ? 'เข้างาน' : 'ออกงาน';
     Color textColor = isCheckIn
         ? Color(0xFF0099CC)
@@ -1059,7 +1126,7 @@ class _FrontScreenState extends State<FrontScreen>
         }
       },
       child: Container(
-        width: 175, // Adjusted width
+        width: buttonWidth,
         height: 90, // Adjusted height
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(45), // Pill shape
@@ -1069,7 +1136,7 @@ class _FrontScreenState extends State<FrontScreen>
                 )),
         child: Padding(
           padding: EdgeInsets.only(
-              left: 80, right: 8), // Better centering in text area
+              left: (buttonWidth * 0.45).clamp(56.0, 84.0), right: 8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1123,24 +1190,37 @@ class _FrontScreenState extends State<FrontScreen>
       statusColor = Color(0xFFFF6B8A); // Coral pink to match checkout button
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.access_time_filled, color: statusColor, size: 20),
-        SizedBox(width: 5),
-        Text('สถานะ : ',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontFamily: FontStyles().FontFamily)),
-        Text(status,
-            style: TextStyle(
-                color: statusColor,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                fontFamily: FontStyles().FontFamily)),
-      ],
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.access_time_filled, color: statusColor, size: 20),
+          SizedBox(width: 5),
+          Text('สถานะ : ',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: FontStyles().FontFamily)),
+          Text(status,
+              style: TextStyle(
+                  color: statusColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: FontStyles().FontFamily)),
+        ],
+      ),
     );
+  }
+
+  String _normalizeDisplayTime(String raw, {required String fallback}) {
+    if (raw.trim().isEmpty) return fallback;
+    return raw.replaceAll('.', ':').trim();
   }
 
   Widget _buildMenuGrid() {

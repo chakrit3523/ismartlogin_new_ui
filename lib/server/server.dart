@@ -101,6 +101,8 @@ class Server {
   String getListNotiLeave = _baseUrl + 'manage/getListNotiLeave';
   String uploadLeaveMedicalCertificate =
       _baseUrl + 'manage/uploadLeaveMedicalCertificate';
+  // Backward-compatible alias used by some flows/docs.
+  String uploadSickCert = _baseUrl + 'manage/uploadLeaveMedicalCertificate';
 
   // -- * ตั้งค่า -------
   String checkAppVersion = _baseUrl + 'manage/checkAppVersion';

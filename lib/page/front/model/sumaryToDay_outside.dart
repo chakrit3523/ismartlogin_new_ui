@@ -23,6 +23,7 @@ class ItemsSummaryToDay_Outside {
   final String END_IMAGE;
   final String END_IMAGE_SMALL;
   final String END_NOTE;
+  final String END_ADDRESS;
   final String END_LOCATION_NOT;
   final String END_STATUS;
   final String END_LATITUDE;
@@ -53,6 +54,7 @@ class ItemsSummaryToDay_Outside {
     required this.END_IMAGE,
     required this.END_IMAGE_SMALL,
     required this.END_NOTE,
+    required this.END_ADDRESS,
     required this.END_LOCATION_NOT,
     required this.END_LATITUDE,
     required this.END_LONGITUDE,
@@ -85,6 +87,7 @@ class ItemsSummaryToDay_Outside {
       END_IMAGE: json['end_image'],
       END_IMAGE_SMALL: json['end_image_small'],
       END_NOTE: json['end_note'],
+      END_ADDRESS: json['end_address']?.toString() ?? '',
       END_LOCATION_NOT: json['end_location_note'],
       END_LATITUDE: json['end_latitude'],
       END_LONGITUDE: json['end_longitude'],

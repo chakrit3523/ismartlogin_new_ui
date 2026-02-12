@@ -21,6 +21,7 @@ class ItemsSummaryToDay_OT {
   final String END_IMAGE;
   final String END_IMAGE_SMALL;
   final String END_NOTE;
+  final String END_ADDRESS;
   final String END_LOCATION_NOT;
   final String END_STATUS;
 
@@ -47,6 +48,7 @@ class ItemsSummaryToDay_OT {
     required this.END_IMAGE,
     required this.END_IMAGE_SMALL,
     required this.END_NOTE,
+    required this.END_ADDRESS,
     required this.END_LOCATION_NOT,
     required this.END_STATUS,
   });
@@ -75,6 +77,7 @@ class ItemsSummaryToDay_OT {
       END_IMAGE: json['end_image'],
       END_IMAGE_SMALL: json['end_image_small'],
       END_NOTE: json['end_note'],
+      END_ADDRESS: json['end_address']?.toString() ?? '',
       END_LOCATION_NOT: json['end_location_note'],
       END_STATUS: json['end_status'],
     );

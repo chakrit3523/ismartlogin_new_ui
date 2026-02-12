@@ -11,7 +11,10 @@ import 'package:loading_gifs/loading_gifs.dart';
 
 class FrontCountOtScreen extends StatefulWidget {
   final List<ItemsSummaryToDay_OT> items;
-  const FrontCountOtScreen({Key? key, required this.items}) : super(key: key);
+  final String? scheduledEndTime;
+  const FrontCountOtScreen(
+      {Key? key, required this.items, this.scheduledEndTime})
+      : super(key: key);
   @override
   _FrontCountOtScreenState createState() => _FrontCountOtScreenState();
 }
@@ -170,29 +173,6 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
                                 : Container(
                                     height: 0,
                                   ),
-                            _items[index].START_LOCATION_STATUS == '1' &&
-                                    _items[index].START_LOCATION_SUB_STATUS !=
-                                        ''
-                                ? GestureDetector(
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      width: WidhtDevice().widht(context) / 3.5,
-                                      child: Text(
-                                        'ไม่อยู่ในพื้นที่ : ' +
-                                            _items[index]
-                                                .START_LOCATION_SUB_STATUS
-                                                .toString(),
-                                        style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 18,
-                                            height: 1.2,
-                                            color: Colors.red[200]),
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    height: 0,
-                                  ),
                             _items[index].START_ADDRESS != ''
                                 ? Container(
                                     alignment: Alignment.center,
@@ -244,14 +224,15 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
                                           fontSize: 20),
                                     ),
                                   ),
-                                  _items[index].END_STATUS != '0'
+                                  _isEarlyCheckout(_items[index].END_TIME,
+                                      _items[index].END_STATUS)
                                       ? Container(
                                           alignment: Alignment.center,
                                           child: Column(
                                             children: [
                                               Container(
                                                 child: Text(
-                                                  "",
+                                                  _getEndStatus(),
                                                   style: TextStyle(
                                                       fontFamily: FontStyles()
                                                           .FontFamily,
@@ -261,6 +242,24 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
                                                 ),
                                               ),
                                             ],
+                                          ),
+                                        )
+                                      : Container(
+                                          height: 0,
+                                        ),
+                                  _items[index].END_ADDRESS != ''
+                                      ? Container(
+                                          alignment: Alignment.center,
+                                          width:
+                                              WidhtDevice().widht(context) / 3.5,
+                                          child: Text(
+                                            _items[index].END_ADDRESS,
+                                            style: TextStyle(
+                                                fontFamily:
+                                                    FontStyles().FontFamily,
+                                                fontSize: 14,
+                                                color: Colors.grey[600]),
+                                            textAlign: TextAlign.center,
                                           ),
                                         )
                                       : Container(
@@ -295,18 +294,27 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
     return _txt;
   }
 
-  _getEndStatus(String _status) {
-    String _txt = '';
-    print("getEndStatus : ${int.parse(_status) - 1}");
-    if (_status != '' && _status != '0') {
-      List _checkboxListTile = [
-        'ออกงานก่อนเวลา',
-        'ออกงานก่อนเวลา',
-        'ออกงานก่อนเวลา'
-      ];
-      _txt = _checkboxListTile[int.parse(_status) - 1];
+  String _getEndStatus() {
+    return 'ออกงานก่อนเวลา';
+  }
+
+  int? _parseTimeToMinutes(String? time) {
+    if (time == null || time.isEmpty) return null;
+    final parts = time.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return (hour * 60) + minute;
+  }
+
+  bool _isEarlyCheckout(String? endTime, String? endStatus) {
+    final endMinutes = _parseTimeToMinutes(endTime);
+    final scheduledMinutes = _parseTimeToMinutes(widget.scheduledEndTime);
+    if (endMinutes != null && scheduledMinutes != null) {
+      return endMinutes < scheduledMinutes;
     }
-    return _txt;
+    return (endStatus ?? '') == '1';
   }
 
   alert_show_images(BuildContext context, int _status, int index) async {
@@ -383,9 +391,10 @@ class _FrontCountOtScreenState extends State<FrontCountOtScreen> {
                             style: TextStyle(
                               fontFamily: FontStyles().FontFamily,
                               fontSize: 24,
-                              color: (_items[index].END_STATUS == '0'
-                                  ? Colors.black
-                                  : Colors.redAccent),
+                              color: (_isEarlyCheckout(_items[index].END_TIME,
+                                      _items[index].END_STATUS)
+                                  ? Colors.redAccent
+                                  : Colors.black),
                             ),
                           ),
                         ),

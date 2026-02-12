@@ -15,7 +15,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class FrontCountOutsideScreen extends StatefulWidget {
   final List<ItemsSummaryToDay_Outside> items;
-  const FrontCountOutsideScreen({Key? key, required this.items})
+  final String? scheduledEndTime;
+  const FrontCountOutsideScreen(
+      {Key? key, required this.items, this.scheduledEndTime})
       : super(key: key);
   @override
   _FrontCountOutsideScreenState createState() =>
@@ -155,8 +157,9 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'ไม่อยู่ในพื้นที่ : ' +
-                                                  _items[index]
+                                              _items[index].START_ADDRESS != ''
+                                                  ? _items[index].START_ADDRESS
+                                                  : _items[index]
                                                       .START_LOCATION_SUB_STATUS,
                                               style: TextStyle(
                                                 fontFamily:
@@ -368,12 +371,7 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
   }
 
   _getEndStatus(String _status) {
-    String _txt = '';
-    if (_status != '' && _status != '0') {
-      List _checkboxListTile = ['ออกงานก่อนเวลา', ''];
-      _txt = _checkboxListTile[int.parse(_status) - 1];
-    }
-    return _txt;
+    return _status == '1' ? 'ออกงานก่อนเวลา' : '';
   }
 
   alert_show_images(BuildContext context, int _status, int index) async {
@@ -392,7 +390,11 @@ class _FrontCountOutsideScreenState extends State<FrontCountOutsideScreen> {
         : _items[index].END_LONGITUDE;
 
     // For outside screen, always show address (they're already outside)
-    String address = _items[index].START_ADDRESS;
+    String address = _status == 1
+        ? _items[index].START_ADDRESS
+        : (_items[index].END_ADDRESS != ''
+            ? _items[index].END_ADDRESS
+            : _items[index].START_ADDRESS);
 
     return showDialog(
       barrierDismissible: true,

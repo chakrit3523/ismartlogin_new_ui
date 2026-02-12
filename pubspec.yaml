@@ -51,7 +51,7 @@ dependencies:
   flutter_calendar_carousel: ^2.0.1
   fluttertoast: ^9.0.0
   flutter_easyloading: ^3.0.0
-  awesome_dialog: ^3.3.0
+  awesome_dialog: 3.2.1
   loading_gifs: ^0.3.0
   google_maps_webservice: ^0.0.19
   location:

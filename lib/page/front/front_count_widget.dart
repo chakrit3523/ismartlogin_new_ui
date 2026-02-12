@@ -19,6 +19,8 @@ import 'front_count_ot_screen.dart';
 import 'model/sumaryToDay_ot.dart';
 
 class FrontCountWidget extends StatefulWidget {
+  final String? scheduledEndTime;
+  const FrontCountWidget({super.key, this.scheduledEndTime});
   @override
   _FrontCountWidgetState createState() => _FrontCountWidgetState();
 }
@@ -108,6 +110,7 @@ class _FrontCountWidgetState extends State<FrontCountWidget> {
                 MaterialPageRoute(
                   builder: (context) => FrontCountOntimeScreen(
                     items: _result_ontime,
+                    scheduledEndTime: widget.scheduledEndTime,
                   ),
                 ),
               );
@@ -124,6 +127,7 @@ class _FrontCountWidgetState extends State<FrontCountWidget> {
                 MaterialPageRoute(
                   builder: (context) => FrontCountLateScreen(
                     items: _result_late,
+                    scheduledEndTime: widget.scheduledEndTime,
                   ),
                 ),
               );
@@ -140,6 +144,7 @@ class _FrontCountWidgetState extends State<FrontCountWidget> {
                 MaterialPageRoute(
                   builder: (context) => FrontCountOutsideScreen(
                     items: _result_outside,
+                    scheduledEndTime: widget.scheduledEndTime,
                   ),
                 ),
               );
@@ -157,6 +162,7 @@ class _FrontCountWidgetState extends State<FrontCountWidget> {
                   MaterialPageRoute(
                     builder: (context) => FrontCountOtScreen(
                       items: _result_ot,
+                      scheduledEndTime: widget.scheduledEndTime,
                     ),
                   ),
                 );

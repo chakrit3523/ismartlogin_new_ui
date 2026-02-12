@@ -15,7 +15,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class FrontCountLateScreen extends StatefulWidget {
   final List<ItemsSummaryToDay_Late> items;
-  const FrontCountLateScreen({super.key, required this.items});
+  final String? scheduledEndTime;
+  const FrontCountLateScreen(
+      {super.key, required this.items, this.scheduledEndTime});
   @override
   _FrontCountLateScreenState createState() => _FrontCountLateScreenState();
 }
@@ -169,29 +171,6 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                 : Container(
                                     height: 0,
                                   ),
-                            _items[index].START_LOCATION_STATUS == '1' &&
-                                    _items[index].START_LOCATION_SUB_STATUS !=
-                                        ''
-                                ? GestureDetector(
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      width: WidhtDevice().widht(context) / 3.5,
-                                      child: Text(
-                                        'ไม่อยู่ในพื้นที่ : ' +
-                                            _items[index]
-                                                .START_LOCATION_SUB_STATUS
-                                                .toString(),
-                                        style: TextStyle(
-                                            fontFamily: FontStyles().FontFamily,
-                                            fontSize: 18,
-                                            height: 1.2,
-                                            color: Colors.red[200]),
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    height: 0,
-                                  ),
                             _items[index].START_ADDRESS != null &&
                                     _items[index].START_ADDRESS != ''
                                 ? Container(
@@ -245,16 +224,15 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                           fontSize: 20),
                                     ),
                                   ),
-                                  _items[index].END_STATUS != '0'
+                                  _isEarlyCheckout(_items[index].END_TIME,
+                                      _items[index].END_STATUS)
                                       ? Container(
                                           alignment: Alignment.center,
                                           child: Column(
                                             children: [
                                               Container(
                                                 child: Text(
-                                                  _getEndStatus(_items[index]
-                                                          .END_STATUS ??
-                                                      ''),
+                                                  _getEndStatus(),
                                                   style: TextStyle(
                                                       fontFamily: FontStyles()
                                                           .FontFamily,
@@ -264,6 +242,25 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
                                                 ),
                                               ),
                                             ],
+                                          ),
+                                        )
+                                      : Container(
+                                          height: 0,
+                                        ),
+                                  _items[index].END_ADDRESS != null &&
+                                          _items[index].END_ADDRESS != ''
+                                      ? Container(
+                                          alignment: Alignment.center,
+                                          width:
+                                              WidhtDevice().widht(context) / 3.5,
+                                          child: Text(
+                                            _items[index].END_ADDRESS!,
+                                            style: TextStyle(
+                                                fontFamily:
+                                                    FontStyles().FontFamily,
+                                                fontSize: 14,
+                                                color: Colors.grey[600]),
+                                            textAlign: TextAlign.center,
                                           ),
                                         )
                                       : Container(
@@ -298,18 +295,27 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
     return _txt;
   }
 
-  _getEndStatus(String _status) {
-    String _txt = '';
-    print("getEndStatus : ${int.parse(_status) - 1}");
-    if (_status != '' && _status != '0') {
-      List _checkboxListTile = [
-        'ออกงานก่อนเวลา',
-        'ออกงานก่อนเวลา',
-        'ออกงานก่อนเวลา'
-      ];
-      _txt = _checkboxListTile[int.parse(_status) - 1];
+  String _getEndStatus() {
+    return 'ออกงานก่อนเวลา';
+  }
+
+  int? _parseTimeToMinutes(String? time) {
+    if (time == null || time.isEmpty) return null;
+    final parts = time.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return (hour * 60) + minute;
+  }
+
+  bool _isEarlyCheckout(String? endTime, String? endStatus) {
+    final endMinutes = _parseTimeToMinutes(endTime);
+    final scheduledMinutes = _parseTimeToMinutes(widget.scheduledEndTime);
+    if (endMinutes != null && scheduledMinutes != null) {
+      return endMinutes < scheduledMinutes;
     }
-    return _txt;
+    return (endStatus ?? '') == '1';
   }
 
   alert_show_images(BuildContext context, int _status, int index) async {
@@ -331,7 +337,9 @@ class _FrontCountLateScreenState extends State<FrontCountLateScreen> {
 
     // Check if outside area
     bool isOutsideArea = _items[index].START_LOCATION_STATUS == '1';
-    String address = _items[index].START_ADDRESS ?? '';
+    String address = _status == 1
+        ? (_items[index].START_ADDRESS ?? '')
+        : (_items[index].END_ADDRESS ?? '');
 
     return showDialog(
       barrierDismissible: true,

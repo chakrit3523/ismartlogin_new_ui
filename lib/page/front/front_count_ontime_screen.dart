@@ -13,7 +13,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 class FrontCountOntimeScreen extends StatefulWidget {
   final List<ItemsSummaryToDay_Ontime> items;
-  FrontCountOntimeScreen({Key? key, required this.items}) : super(key: key);
+  final String? scheduledEndTime;
+  FrontCountOntimeScreen(
+      {Key? key, required this.items, this.scheduledEndTime})
+      : super(key: key);
   @override
   _FrontCountOntimeScreenState createState() => _FrontCountOntimeScreenState();
 }
@@ -155,20 +158,6 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        if (item.START_LOCATION_STATUS == '1')
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              'ไม่อยู่ในพื้นที่ : ' +
-                                  (item.START_LOCATION_SUB_STATUS ?? ''),
-                              style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                fontSize: 12,
-                                color: Colors.redAccent,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
                         if (item.START_ADDRESS != null &&
                             item.START_ADDRESS != '')
                           Padding(
@@ -226,15 +215,30 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
                                   color: Colors.black87,
                                 ),
                               ),
-                              if (item.END_STATUS != '0')
+                              if (_isEarlyCheckout(
+                                  item.END_TIME, item.END_STATUS))
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Text(
-                                    _getEndStatus(item.END_STATUS ?? ''),
+                                    _getEndStatus(),
                                     style: TextStyle(
                                       fontFamily: FontStyles().FontFamily,
                                       fontSize: 12,
                                       color: Colors.redAccent,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              if (item.END_ADDRESS != null &&
+                                  item.END_ADDRESS != '')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    item.END_ADDRESS!,
+                                    style: TextStyle(
+                                      fontFamily: FontStyles().FontFamily,
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -267,13 +271,27 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
     return _txt;
   }
 
-  _getEndStatus(String _status) {
-    String _txt = '';
-    if (_status != '' && _status != '0') {
-      List _checkboxListTile = ['ออกงานก่อนเวลา', ''];
-      _txt = _checkboxListTile[int.parse(_status) - 1];
+  String _getEndStatus() {
+    return 'ออกงานก่อนเวลา';
+  }
+
+  int? _parseTimeToMinutes(String? time) {
+    if (time == null || time.isEmpty) return null;
+    final parts = time.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return (hour * 60) + minute;
+  }
+
+  bool _isEarlyCheckout(String? endTime, String? endStatus) {
+    final endMinutes = _parseTimeToMinutes(endTime);
+    final scheduledMinutes = _parseTimeToMinutes(widget.scheduledEndTime);
+    if (endMinutes != null && scheduledMinutes != null) {
+      return endMinutes < scheduledMinutes;
     }
-    return _txt;
+    return (endStatus ?? '') == '1';
   }
 
   alert_show_images(BuildContext context, int _status, int index) async {
@@ -295,7 +313,9 @@ class _FrontCountOntimeScreenState extends State<FrontCountOntimeScreen> {
 
     // Check if outside area
     bool isOutsideArea = _items[index].START_LOCATION_STATUS == '1';
-    String address = _items[index].START_ADDRESS ?? '';
+    String address = _status == 1
+        ? (_items[index].START_ADDRESS ?? '')
+        : (_items[index].END_ADDRESS ?? '');
 
     return showDialog(
       barrierDismissible: true,

@@ -21,6 +21,7 @@ class ItemsSummaryToDay_Late {
   final String? END_IMAGE;
   final String? END_IMAGE_SMALL;
   final String? END_NOTE;
+  final String? END_ADDRESS;
   final String? END_LOCATION_NOT;
   final String? END_STATUS;
   final String? START_LATITUDE;
@@ -51,6 +52,7 @@ class ItemsSummaryToDay_Late {
     this.END_IMAGE,
     this.END_IMAGE_SMALL,
     this.END_NOTE,
+    this.END_ADDRESS,
     this.END_LOCATION_NOT,
     this.END_STATUS,
     this.START_LATITUDE,
@@ -83,6 +85,7 @@ class ItemsSummaryToDay_Late {
       END_IMAGE: json['end_image'],
       END_IMAGE_SMALL: json['end_image_small'],
       END_NOTE: json['end_note'],
+      END_ADDRESS: json['end_address']?.toString() ?? '',
       END_LOCATION_NOT: json['end_location_note'],
       END_STATUS: json['end_status'],
       START_LATITUDE: json['start_latitude'],

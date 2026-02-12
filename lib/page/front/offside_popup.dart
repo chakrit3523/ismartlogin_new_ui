@@ -128,7 +128,8 @@ class _OffsideDialogState extends State<OffsideDialog> {
     DateTime timeInsite = DateFormat("HH:mm").parse(time);
     String insiteNow = DateFormat("HH:mm").format(now);
     DateTime timeNow = DateFormat("HH:mm").parse(insiteNow);
-    if (timeNow.isAfter(timeInsite)) {
+    // Treat equal time as on-time (not early checkout).
+    if (timeNow.isAfter(timeInsite) || timeNow.isAtSameMomentAs(timeInsite)) {
       return true;
     } else {
       return false;
@@ -514,6 +515,7 @@ class _OffsideDialogState extends State<OffsideDialog> {
   }
 
   void _submitOffsideForm() async {
+    final bool isEarlyCheckout = !checkTimr(widget.time);
     Map _map = {
       "uid": widget.uid,
       "time": widget.time_server.toString(),
@@ -521,8 +523,8 @@ class _OffsideDialogState extends State<OffsideDialog> {
       "latitude": widget.myLat.toString(),
       "longitude": widget.myLng.toString(),
       "end_address": _currentAddress ?? "", // Add address field
-      "end_status": (currentIndex + 1)
-          .toString(), // +1 to match old logic (1-based index?)
+      // 1 = early checkout, 0 = normal checkout
+      "end_status": isEarlyCheckout ? "1" : "0",
       "end_note": _inputNote.text,
       "log": 'timeid_${widget.timeId}',
     };
