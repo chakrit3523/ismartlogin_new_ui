@@ -63,20 +63,27 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
     AwesomeDialog loadingDialog =
         DialogHelper.showLoading(context, 'กำลังส่ง OTP...');
     Map map = {"PHONE": phone};
+    bool isSuccess = false;
     try {
       await new MemberFuture().apiPostOtp(map).then((onValue) {
         loadingDialog.dismiss();
         _result = onValue;
-        print(_result[0].MSG);
-        print(onValue.length);
-        DialogHelper.showSuccess(context, 'ส่ง OTP สำเร็จ');
+        if (_result.isNotEmpty) {
+          print(_result[0].MSG);
+          print(onValue.length);
+          DialogHelper.showSuccess(context, 'ส่ง OTP สำเร็จ');
+          isSuccess = true;
+        } else {
+          DialogHelper.showError(
+              context, 'เกิดข้อผิดพลาด', 'ไม่สามารถส่ง OTP ได้');
+        }
       });
     } catch (e) {
       loadingDialog.dismiss();
       DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ไม่สามารถส่ง OTP ได้');
     }
     setState(() {});
-    return true;
+    return isSuccess;
   }
 
   @override
@@ -382,8 +389,16 @@ class _SearchAccountScreenState extends State<SearchAccountScreen> {
                                           ),
                                           Expanded(
                                             child: GestureDetector(
-                                              onTap: () {
-                                                onLoadSendOtp(_item[0].PHONE);
+                                              onTap: () async {
+                                                if (_item.isEmpty) {
+                                                  return;
+                                                }
+                                                final sent =
+                                                    await onLoadSendOtp(
+                                                        _item[0].PHONE);
+                                                if (!mounted || !sent) {
+                                                  return;
+                                                }
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(

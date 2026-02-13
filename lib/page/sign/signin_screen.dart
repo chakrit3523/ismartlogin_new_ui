@@ -652,57 +652,65 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _showLoginBottomSheet(BuildContext context) {
+    bool hidePassword = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.5),
-      builder: (context) => GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.white,
-                Color(0xFFF5F9FF),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white,
+                  Color(0xFFF5F9FF),
+                ],
+              ),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withValues(alpha: 0.3),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                  offset: Offset(0, -10),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withValues(alpha: 0.3),
-                blurRadius: 30,
-                spreadRadius: 5,
-                offset: Offset(0, -10),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 12),
-                width: 50,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: EdgeInsets.only(top: 12),
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                  child: Column(
-                    children: [
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                    child: Column(
+                      children: [
                       // Avatar with gradient border
                       Container(
                         margin: EdgeInsets.only(top: 10),
@@ -765,6 +773,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         hint: 'รหัสผ่าน',
                         icon: Icons.lock_outline,
                         isPassword: true,
+                        hidePassword: hidePassword,
+                        onTogglePasswordVisibility: () {
+                          setModalState(() {
+                            hidePassword = !hidePassword;
+                          });
+                        },
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) {
                           if (_inputUsername.text.isNotEmpty &&
@@ -849,11 +863,13 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            ),
           ),
         ),
       ),
@@ -867,6 +883,8 @@ class _SignInScreenState extends State<SignInScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     bool isPassword = false,
+    bool hidePassword = true,
+    VoidCallback? onTogglePasswordVisibility,
     TextInputAction? textInputAction,
     void Function(String)? onSubmitted,
   }) {
@@ -887,7 +905,7 @@ class _SignInScreenState extends State<SignInScreen> {
         controller: controller,
         focusNode: focusNode,
         keyboardType: keyboardType,
-        obscureText: isPassword,
+        obscureText: isPassword ? hidePassword : false,
         textInputAction: textInputAction,
         onFieldSubmitted: onSubmitted,
         style: GoogleFonts.kanit(
@@ -909,6 +927,18 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ),
           prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
+          suffixIcon: isPassword
+              ? IconButton(
+                  onPressed: onTogglePasswordVisibility,
+                  icon: Icon(
+                    hidePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey[500],
+                    size: 22,
+                  ),
+                )
+              : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,

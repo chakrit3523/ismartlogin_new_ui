@@ -60,6 +60,34 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
 // API
   //-- check OTP
   List<ItemsOTPList> _resultOtp = [];
+  bool _isSuccessResult(String? result) {
+    final normalized = (result ?? '').trim().toLowerCase();
+    return normalized == 'success' ||
+        normalized == 'ok' ||
+        normalized == 'true' ||
+        normalized == '1';
+  }
+
+  Future<void> _requestOtpAgain() async {
+    AwesomeDialog loadingDialog =
+        DialogHelper.showLoading(context, 'กำลังส่ง OTP...');
+    try {
+      final result = await MemberFuture().apiPostOtp({"PHONE": _items['PHONE']});
+      loadingDialog.dismiss();
+      if (result.isEmpty) {
+        DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ไม่สามารถส่ง OTP ได้');
+        return;
+      }
+      DialogHelper.showSuccess(context, 'ส่ง OTP ใหม่แล้ว');
+      _inputOtp.clear();
+      endTime = DateTime.now().millisecondsSinceEpoch + 1000 * 600;
+      onReset();
+    } catch (e) {
+      loadingDialog.dismiss();
+      DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ไม่สามารถส่ง OTP ได้');
+    }
+  }
+
   Future<bool> onLoadCheckOtp(Map map) async {
     AwesomeDialog loadingDialog =
         DialogHelper.showLoading(context, 'กำลังตรวจสอบ...');
@@ -67,8 +95,13 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
       await new MemberFuture().apiGetCheckOtp(map).then((onValue) {
         _resultOtp = onValue;
         print(onValue.length);
+        if (_resultOtp.isEmpty) {
+          loadingDialog.dismiss();
+          DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ไม่พบผลการตรวจสอบ OTP');
+          return;
+        }
         print(_resultOtp[0].RESULT);
-        if (_resultOtp[0].RESULT == "success") {
+        if (_isSuccessResult(_resultOtp[0].RESULT)) {
           loadingDialog.dismiss();
           Navigator.push(
             context,
@@ -157,14 +190,8 @@ class _OtpRepasswordScreenState extends State<OtpRepasswordScreen>
                       (BuildContext context, CurrentRemainingTime? time) {
                     if (time == null) {
                       return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OtpRepasswordScreen(
-                                  key: UniqueKey(), map: widget.map),
-                            ),
-                          );
+                        onTap: () async {
+                          await _requestOtpAgain();
                         },
                         child: Container(
                           alignment: Alignment.center,
