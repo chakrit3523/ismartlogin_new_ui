@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 
 /// Custom clipper for a white container with single wave curve.
 /// Starts high on the left side, curves down to the right side.

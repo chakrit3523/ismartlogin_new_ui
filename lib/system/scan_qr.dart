@@ -1,6 +1,6 @@
 // ignore_for_file: unused_element
 
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
@@ -40,7 +40,7 @@ class _RScanCameraDialogState extends State<RScanCameraDialog> {
     //       if (!mounted) {
     //         return;
     //       }
-    //       setState(() {});
+    //       blocSetState(() {});
     //     });
     // }
   }
@@ -170,7 +170,7 @@ class _RScanCameraDialogState extends State<RScanCameraDialog> {
                     // _controller.setFlashMode(true);
                   }
 
-                  setState(() {});
+                  blocSetState(() {});
                 }),
           )
         : Container();

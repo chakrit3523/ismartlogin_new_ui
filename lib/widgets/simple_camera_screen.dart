@@ -1,5 +1,5 @@
 import 'package:camera/camera.dart';
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 
 /// Simple Camera Screen without AI face detection
 class SimpleCameraScreen extends StatefulWidget {
@@ -59,7 +59,7 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
       await _cameraController!.setFlashMode(FlashMode.off);
 
       if (mounted) {
-        setState(() {
+        blocSetState(() {
           _isCameraInitialized = true;
         });
       }
@@ -82,7 +82,7 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
       }
 
       await _cameraController!.setFlashMode(newFlashMode);
-      setState(() {
+      blocSetState(() {
         _flashMode = newFlashMode;
       });
     } catch (e) {
@@ -97,7 +97,7 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
 
     if (_isCapturing) return;
 
-    setState(() {
+    blocSetState(() {
       _isCapturing = true;
     });
 
@@ -110,7 +110,7 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
       }
     } catch (e) {
       print('Error capturing photo: $e');
-      setState(() {
+      blocSetState(() {
         _isCapturing = false;
       });
     }

@@ -1,5 +1,5 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DialogHelper {

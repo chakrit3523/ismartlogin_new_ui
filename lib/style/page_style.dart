@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 
 class StylePage {
   BoxDecoration boxWhite = BoxDecoration(

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 
 /// Atom Animation that exactly matches the CSS reference
 /// 8 Rings structure with specific delays and animations.

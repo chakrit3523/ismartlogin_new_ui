@@ -1,21 +1,30 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:ismart_login/main.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/global_ui_refresh_cubit.dart';
 
 void main() {
-  testWidgets('App smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp(key: const Key('test')));
+  testWidgets('GlobalUiRefreshCubit can rebuild widget tree',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      BlocProvider<GlobalUiRefreshCubit>(
+        create: (_) => GlobalUiRefreshCubit(),
+        child: MaterialApp(
+          home: Scaffold(
+            body: BlocBuilder<GlobalUiRefreshCubit, int>(
+              builder: (context, state) {
+                return Text('state:$state', textDirection: TextDirection.ltr);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
 
-    // Just verify that the app renders without errors
-    expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.text('state:0'), findsOneWidget);
+
+    tester.element(find.byType(Text)).read<GlobalUiRefreshCubit>().refresh();
+    await tester.pump();
+
+    expect(find.text('state:1'), findsOneWidget);
   });
 }

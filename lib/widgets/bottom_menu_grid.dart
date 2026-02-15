@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:ismart_login/page/outside/outside_screen.dart';
+import 'package:ismart_login/src/features/outside/presentation/pages/outside_screen.dart';
 import 'package:ismart_login/style/font_style.dart';
 
 class BottomMenuGrid extends StatelessWidget {
@@ -85,7 +85,7 @@ class BottomMenuGrid extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 10,
                   spreadRadius: 1,
                   offset: Offset(0, 4),

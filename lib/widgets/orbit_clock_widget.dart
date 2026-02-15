@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OrbitClockWidget extends StatefulWidget {
@@ -48,7 +48,7 @@ class _OrbitClockWidgetState extends State<OrbitClockWidget> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() => _now = DateTime.now());
+      if (mounted) blocSetState(() => _now = DateTime.now());
     });
   }
 
@@ -98,7 +98,7 @@ class _OrbitClockWidgetState extends State<OrbitClockWidget> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04), // Softer shadow
+                    color: Colors.black.withValues(alpha: 0.04), // Softer shadow
                     blurRadius: 30, // Smoother blur
                     spreadRadius: 2,
                     offset: const Offset(0, 12),
@@ -186,7 +186,7 @@ class _OrbitClockWidgetState extends State<OrbitClockWidget> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08), // Softer shadow
+              color: Colors.black.withValues(alpha: 0.08), // Softer shadow
               blurRadius: 12, // Smoother blur
               offset: const Offset(0, 4),
             ),
@@ -219,13 +219,13 @@ class OrbitPainter extends CustomPainter {
 
     // ตั้งค่าปากกาสำหรับวงแหวนพื้นหลัง
     final bgPaint = Paint()
-      ..color = Colors.white.withOpacity(0.08) // More subtle
+      ..color = Colors.white.withValues(alpha: 0.08) // More subtle
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8; // Thinner
 
     // ตั้งค่าปากกาสำหรับ Progress Arc (เส้นที่วิ่งตาม)
     final arcPaint = Paint()
-      ..color = Colors.white.withOpacity(0.5) // Less opaque
+      ..color = Colors.white.withValues(alpha: 0.5) // Less opaque
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 1.5; // Thinner

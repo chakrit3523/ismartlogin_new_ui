@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 /// Professional rectangular frame overlay for face detection with face bounding box

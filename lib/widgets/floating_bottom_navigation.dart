@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -23,7 +23,7 @@ class FloatingBottomNavigationBar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2), // Standard opacity
+            color: Colors.black.withValues(alpha: 0.2), // Standard opacity
             blurRadius: 20,
             spreadRadius: 5,
             offset: Offset(0, -10),
@@ -60,12 +60,12 @@ class FloatingBottomNavigationBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildMaterialNavItem(
-                    icon: FontAwesomeIcons.history,
+                    icon: FontAwesomeIcons.clockRotateLeft,
                     label: 'ประวัติ',
                     index: 2,
                   ),
                   _buildMaterialNavItem(
-                    icon: FontAwesomeIcons.thLarge,
+                    icon: FontAwesomeIcons.tableCellsLarge,
                     label: 'เมนู',
                     index: 4,
                   ),
@@ -135,7 +135,7 @@ class FloatingClockFAB extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 8,
             spreadRadius: 2,
             offset: Offset(0, 4),

@@ -1,0 +1,19 @@
+import 'package:ismart_login/src/features/front/presentation/pages/model/attendHistoryResult.dart';
+
+class ItemsAttendHistory {
+  final String MSG;
+  final List<ItemsAttendHistoryResult> RESULT;
+
+  ItemsAttendHistory({
+    required this.MSG,
+    required this.RESULT,
+  });
+
+  factory ItemsAttendHistory.fromJson(Map<String, dynamic> json) {
+    return ItemsAttendHistory(
+      MSG: json['msg'],
+      RESULT: List.from(
+          json['result'].map((m) => ItemsAttendHistoryResult.fromJson(m))),
+    );
+  }
+}

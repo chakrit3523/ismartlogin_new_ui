@@ -5,12 +5,14 @@ import 'dart:async';
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/global_ui_refresh_cubit.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
-import 'package:ismart_login/page/splashscreen/splashscreen_screen.dart';
+import 'package:ismart_login/src/features/splashscreen/presentation/pages/splashscreen_screen.dart';
 import 'package:ismart_login/server/server.dart';
+import 'package:ismart_login/src/app/bootstrap.dart';
 import 'package:ismart_login/system/FirebaseNotification.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 // import 'package:package_info/package_info.dart';
@@ -61,6 +63,7 @@ AndroidNotificationChannel? channel;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await bootstrapApp();
 
   // ✅ ตั้งค่า background handler ของ FCM
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -84,11 +87,18 @@ Future<void> main() async {
   await FirebaseNotification().setupInteractedMessage();
 
   // ✅ runApp หลังเตรียมระบบเสร็จแล้ว
-  runApp(MaterialApp(
-    navigatorKey: navigatorKey,
-    home: const MyApp(key: Key('MainApp')),
-    debugShowCheckedModeBanner: false,
-  ));
+  runApp(
+    BlocProvider<GlobalUiRefreshCubit>(
+      create: (_) => GlobalUiRefreshCubit(),
+      child: BlocBuilder<GlobalUiRefreshCubit, int>(
+        builder: (_, __) => MaterialApp(
+          navigatorKey: navigatorKey,
+          home: const MyApp(key: Key('MainApp')),
+          debugShowCheckedModeBanner: false,
+        ),
+      ),
+    ),
+  );
 
   // configLoading removed
 }

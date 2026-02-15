@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:ismart_login/style/font_style.dart';
@@ -97,7 +97,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
       await _cameraController!.initialize();
 
       if (mounted) {
-        setState(() {
+        blocSetState(() {
           _isCameraInitialized = true;
           _statusMessage = 'จัดตำแหน่งใบหน้าให้อยู่ในกรอบ';
         });
@@ -109,7 +109,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
     } catch (e) {
       print('Error initializing camera: $e');
       if (mounted) {
-        setState(() {
+        blocSetState(() {
           _statusMessage = 'ไม่สามารถเปิดกล้องได้';
         });
       }
@@ -156,7 +156,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
         final currentFaceCenter =
             faces.isNotEmpty ? faces.first.boundingBox.center : null;
 
-        setState(() {
+        blocSetState(() {
           _faces = faces;
           _faceQuality = _calculateFaceQuality(faces);
           _updateStatusMessage(faces);
@@ -356,7 +356,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
   Future<void> _manualCapture() async {
     if (_captureInProgress || !_isCameraInitialized) return;
 
-    setState(() {
+    blocSetState(() {
       _captureInProgress = true;
       _statusMessage = 'กำลังถ่ายภาพ...';
     });
@@ -373,7 +373,7 @@ class _FaceDetectionCameraState extends State<FaceDetectionCamera>
       widget.onCapture(File(file.path));
     } catch (e) {
       print('Error in manual capture: $e');
-      setState(() {
+      blocSetState(() {
         _captureInProgress = false;
         _statusMessage = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
       });
