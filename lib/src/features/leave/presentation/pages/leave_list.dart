@@ -500,6 +500,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                           itemCount: rs.length,
                                           itemBuilder: (BuildContext context,
                                               int index) {
+                                            final item = rs[index];
                                             return GestureDetector(
                                               onTap: () {
                                                 Navigator.push(
@@ -507,8 +508,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                   MaterialPageRoute(
                                                     builder: (context) =>
                                                         LeaveDetailScreen(
-                                                      id: rs[index]['id']
-                                                          .toString(),
+                                                      id: item['id'].toString(),
                                                       loadListLeave:
                                                           onLoadListLeaveManage,
                                                       loadData:
@@ -566,12 +566,11 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                                 width: 100,
                                                                 decoration:
                                                                     BoxDecoration(
-                                                                  color: colorCodes[rs[index]
-                                                                              [
+                                                                  color: colorCodes[item[
                                                                               'cid'] ==
                                                                           "1"
                                                                       ? 0
-                                                                      : rs[index]['cid'] ==
+                                                                      : item['cid'] ==
                                                                               "2"
                                                                           ? 1
                                                                           : 2],
@@ -588,8 +587,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                                 ),
                                                                 child: Center(
                                                                   child: Text(
-                                                                    rs[index][
-                                                                            'cate_name']
+                                                                    item['cate_name']
                                                                         .toString(),
                                                                     style: TextStyle(
                                                                         color: Colors
@@ -607,8 +605,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                                           left:
                                                                               10),
                                                                   child: Text(
-                                                                    rs[index][
-                                                                            'dateLeave']
+                                                                    item['dateLeave']
                                                                         .toString(),
                                                                     style: TextStyle(
                                                                         color: Color(
@@ -645,21 +642,31 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                             padding:
                                                                 EdgeInsets.only(
                                                                     left: 20),
-                                                            child: Text(
-                                                              rs[index][
-                                                                      'fullname']
-                                                                  .toString(),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .left,
-                                                              style: TextStyle(
-                                                                  color: Color(
-                                                                      0xFF3E3E3E),
-                                                                  fontSize: 16),
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              maxLines: 1,
+                                                            child: Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    item['fullname']
+                                                                        .toString(),
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: TextStyle(
+                                                                        color: Color(
+                                                                            0xFF3E3E3E),
+                                                                        fontSize:
+                                                                            16),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    maxLines: 1,
+                                                                  ),
+                                                                ),
+                                                                SizedBox(
+                                                                    width: 8),
+                                                                _buildEvidenceBadge(
+                                                                    item),
+                                                              ],
                                                             ),
                                                           ),
                                                         ),
@@ -691,7 +698,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                                               20),
                                                                   child: Text(
                                                                     "ส่งใบลา " +
-                                                                        rs[index]['create_date']
+                                                                        item['create_date']
                                                                             .toString(),
                                                                     style: TextStyle(
                                                                         color: Color(
@@ -714,8 +721,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                                                                     right: 20,
                                                                   ),
                                                                   child: Text(
-                                                                    rs[index][
-                                                                            'status_leave_text']
+                                                                    item['status_leave_text']
                                                                         .toString(),
                                                                     textAlign:
                                                                         TextAlign
@@ -794,6 +800,36 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
         //     ),
         //   ),
         );
+  }
+
+  Widget _buildEvidenceBadge(dynamic item) {
+    final count =
+        int.tryParse((item['attachment_count'] ?? '0').toString()) ?? 0;
+    final hasAttachment = (item['has_attachment'] ?? '0').toString() == "1";
+    final bgColor = hasAttachment ? Color(0xFFE8F5E9) : Color(0xFFFFEBEE);
+    final borderColor = hasAttachment ? Color(0xFFA5D6A7) : Color(0xFFEF9A9A);
+    final textColor = hasAttachment ? Color(0xFF2E7D32) : Color(0xFFC62828);
+
+    final label = hasAttachment
+        ? (count > 0 ? "มีหลักฐาน $count" : "มีหลักฐาน")
+        : "ไม่มีหลักฐาน";
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 
   Widget _fileView() {

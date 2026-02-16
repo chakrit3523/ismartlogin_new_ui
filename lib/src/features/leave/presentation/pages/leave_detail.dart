@@ -205,6 +205,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   void initState() {
     onLoadDetailLeaveManage();
     onLoadMemberManage();
+    onLoadLeaveSummary();
     super.initState();
   }
 
@@ -346,6 +347,171 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     }
   }
 
+  bool _isImageAttachment(dynamic file) {
+    final extension = (file['extension'] ?? '').toString().toLowerCase();
+    const imageExtensions = {
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'webp',
+      'bmp',
+      'heic',
+      'heif',
+    };
+
+    if (imageExtensions.contains(extension)) {
+      return true;
+    }
+
+    final path = (file['path'] ?? '').toString().toLowerCase();
+    return imageExtensions.any((ext) => path.endsWith('.$ext'));
+  }
+
+  void _showImagePreview(String path, String filename) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: Image.network(
+                        path,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image,
+                                color: Colors.white70, size: 48),
+                            SizedBox(height: 12),
+                            Text(
+                              'ไม่สามารถโหลดรูปภาพได้',
+                              style: GoogleFonts.kanit(
+                                  color: Colors.white70, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close, color: Colors.white, size: 28),
+                  ),
+                ),
+                if (filename.isNotEmpty)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                    child: Text(
+                      filename,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.kanit(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageAttachmentThumbnail(dynamic file) {
+    final path = (file['path'] ?? '').toString();
+    final filename = (file['filename'] ?? '').toString();
+
+    return InkWell(
+      onTap: () => _showImagePreview(path, filename),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Expanded(
+              child: Image.network(
+                path,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey.shade100,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.broken_image,
+                      color: Colors.grey.shade500, size: 28),
+                ),
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  Icon(Icons.image_outlined, size: 14, color: Colors.blue),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      filename,
+                      style:
+                          GoogleFonts.kanit(fontSize: 13, color: Colors.blue),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentItem(dynamic file) {
+    final path = (file['path'] ?? '').toString();
+    final filename = (file['filename'] ?? '').toString();
+    return InkWell(
+      onTap: () => _launchInBrowser(path),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(Icons.attach_file, size: 16, color: Colors.blue),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                filename,
+                style: GoogleFonts.kanit(fontSize: 16, color: Colors.blue),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   onLoadDetailLeaveManage() async {
     Map map = {
       "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
@@ -388,6 +554,35 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     blocSetState(() {});
   }
 
+  Future<void> onLoadLeaveSummary() async {
+    final map = {
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "status_leave": "",
+      "cid": "",
+      "month_start": "",
+      "year_start": "",
+      "month_end": "",
+      "year_end": "",
+    };
+    final body = json.encode(map);
+    final response = await http.Client().post(
+      Uri.parse(Server().getListLeave),
+      headers: {"Content-Type": "application/json"},
+      body: body,
+    );
+    final leaveData = json.decode(response.body);
+
+    if (leaveData is List && leaveData.isNotEmpty) {
+      sick_leave = leaveData[0]['sick']?.toString() ?? '0';
+      personal_leave = leaveData[0]['leave']?.toString() ?? '0';
+      other_leave = leaveData[0]['other']?.toString() ?? '0';
+      if (mounted) {
+        blocSetState(() {});
+      }
+    }
+  }
+
   Future<bool> onLoadMemberManage() async {
     Map map = {
       "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
@@ -399,9 +594,6 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
           _itemMember = onValue[0].RESULT;
           userclass = _itemMember[0].MEMBER_TYPE.toString();
           leave_member = _itemMember[0].LEAVE_MEMBER.toString();
-          sick_leave = onValue[0].SICK_LEAVE;
-          personal_leave = onValue[0].PERSONAL_LEAVE;
-          other_leave = onValue[0].OTHER_LEAVE;
         }
       });
     });
@@ -634,6 +826,11 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final imageFiles =
+        dataFiles.where((file) => _isImageAttachment(file)).toList();
+    final otherFiles =
+        dataFiles.where((file) => !_isImageAttachment(file)).toList();
+
     return Scaffold(
       backgroundColor: Color(0xFF21CCD4), // Cyan background for the scaffold
       appBar: AppBar(
@@ -737,32 +934,31 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                                           color: Colors.black54),
                                     ),
                                   ),
-                                  ...dataFiles.map<Widget>((file) {
-                                    return InkWell(
-                                      onTap: () =>
-                                          _launchInBrowser(file['path']),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.attach_file,
-                                                size: 16, color: Colors.blue),
-                                            SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                file['filename'].toString(),
-                                                style: GoogleFonts.kanit(
-                                                    fontSize: 16,
-                                                    color: Colors.blue),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                  SizedBox(height: 8),
+                                  if (imageFiles.isNotEmpty)
+                                    GridView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      itemCount: imageFiles.length,
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                        childAspectRatio: 0.95,
                                       ),
-                                    );
-                                  }).toList(),
+                                      itemBuilder: (context, index) =>
+                                          _buildImageAttachmentThumbnail(
+                                              imageFiles[index]),
+                                    ),
+                                  if (otherFiles.isNotEmpty) ...[
+                                    if (imageFiles.isNotEmpty)
+                                      SizedBox(height: 8),
+                                    ...otherFiles
+                                        .map<Widget>((file) =>
+                                            _buildAttachmentItem(file))
+                                        .toList(),
+                                  ],
                                 ],
                                 // Show upload button for sick leave (cid == "2") owned by user
                                 if (cid == "2" &&

@@ -2313,7 +2313,6 @@ function testSendLineLatest()
                         WHERE           uploadKey = '{$data[0]['uploadKey']}'
                         AND             status = '1'
                         ORDER BY id DESC
-                        LIMIT  2
                         ";
                 $db->setQuery($sql);
                 $dataFile = $db->loadAssocList();
@@ -2687,6 +2686,7 @@ function testSendLineLatest()
                             AND             status = '1'";
                     $db->setQuery($sql);
                     $dataFile = $db->loadAssocList();
+                    $attachment_count = count($dataFile);
                     if ($dataFile) {
                         for ($j = 0; $j < count($dataFile); $j++) {
                             $itemsFiles[$indexFiles] = array(
@@ -2708,6 +2708,8 @@ function testSendLineLatest()
                         'status_leave' => $data[$i]['status_leave'],
                         'status_leave_text' => $status_leave,
                         'cate_name' => $cate_name,
+                        'has_attachment' => $attachment_count > 0 ? '1' : '0',
+                        'attachment_count' => "{$attachment_count}",
                         // 'files' =>  $itemsFiles,
                     );
 
@@ -2895,6 +2897,7 @@ function testSendLineLatest()
                             AND             status = '1'";
                     $db->setQuery($sql);
                     $dataFile = $db->loadAssocList();
+                    $attachment_count = count($dataFile);
                     if ($dataFile) {
                         for ($j = 0; $j < count($dataFile); $j++) {
                             $itemsFiles[$indexFiles] = array(
@@ -2917,6 +2920,8 @@ function testSendLineLatest()
                         'status_leave' => $data[$i]['status_leave'],
                         'status_leave_text' => $status_leave,
                         'cate_name' => $cate_name,
+                        'has_attachment' => $attachment_count > 0 ? '1' : '0',
+                        'attachment_count' => "{$attachment_count}",
                         // 'files' =>  $itemsFiles,
                     );
 
@@ -3067,6 +3072,7 @@ function testSendLineLatest()
                             AND             status = '1'";
                     $db->setQuery($sql);
                     $dataFile = $db->loadAssocList();
+                    $attachment_count = count($dataFile);
                     if ($dataFile) {
                         for ($j = 0; $j < count($dataFile); $j++) {
                             $itemsFiles[$indexFiles] = array(
@@ -3089,6 +3095,8 @@ function testSendLineLatest()
                         'status_leave' => $data[$i]['status_leave'],
                         'status_leave_text' => $status_leave,
                         'cate_name' => $cate_name,
+                        'has_attachment' => $attachment_count > 0 ? '1' : '0',
+                        'attachment_count' => "{$attachment_count}",
                         // 'files' =>  $itemsFiles,
                     );
 

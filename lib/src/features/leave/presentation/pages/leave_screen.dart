@@ -155,8 +155,38 @@ class _LeaveScreenState extends State<LeaveScreen> {
     // _inputTotalDays.text = " ";
     onLoadGetAllTypes();
     onLoadMemberManage();
+    onLoadLeaveSummary();
     _calculateTotalDays();
     super.initState();
+  }
+
+  Future<void> onLoadLeaveSummary() async {
+    final map = {
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "status_leave": "",
+      "cid": "",
+      "month_start": "",
+      "year_start": "",
+      "month_end": "",
+      "year_end": "",
+    };
+    final body = json.encode(map);
+    final response = await http.Client().post(
+      Uri.parse(Server().getListLeave),
+      headers: {"Content-Type": "application/json"},
+      body: body,
+    );
+    final leaveData = json.decode(response.body);
+
+    if (leaveData is List && leaveData.isNotEmpty) {
+      sick_leave = leaveData[0]['sick']?.toString() ?? '0';
+      personal_leave = leaveData[0]['leave']?.toString() ?? '0';
+      other_leave = leaveData[0]['other']?.toString() ?? '0';
+      if (mounted) {
+        blocSetState(() {});
+      }
+    }
   }
 
   Future<bool> onLoadMemberManage() async {
@@ -172,9 +202,6 @@ class _LeaveScreenState extends State<LeaveScreen> {
       blocSetState(() {
         if (onValue[0].STATUS) {
           _itemMember = onValue[0].RESULT;
-          sick_leave = onValue[0].SICK_LEAVE;
-          personal_leave = onValue[0].PERSONAL_LEAVE;
-          other_leave = onValue[0].OTHER_LEAVE;
         }
       });
     });
