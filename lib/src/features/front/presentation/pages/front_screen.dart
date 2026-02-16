@@ -1216,7 +1216,12 @@ class _FrontScreenState extends State<FrontScreen>
 
   String _normalizeDisplayTime(String raw, {required String fallback}) {
     if (raw.trim().isEmpty) return fallback;
-    return raw.replaceAll('.', ':').trim();
+    final normalized = raw.replaceAll('.', ':').trim();
+    final parts = normalized.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return normalized;
   }
 
   Widget _buildMenuGrid() {
