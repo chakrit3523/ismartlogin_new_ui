@@ -11,6 +11,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/src/features/leave/presentation/pages/confirm_leave.dart';
 import 'package:ismart_login/src/features/leave/presentation/pages/leave_statistics.dart';
+import 'package:ismart_login/src/features/leave/domain/entities/leave_date_selection.dart';
+import 'package:ismart_login/src/features/leave/presentation/helpers/thai_leave_date_formatter.dart';
+import 'package:ismart_login/src/features/leave/presentation/widgets/leave_date_range_picker_field.dart';
 
 import 'package:ismart_login/src/features/managements/presentation/pages/future/member_manage_future.dart';
 import 'package:ismart_login/src/features/managements/presentation/pages/future/time_manage_future.dart';
@@ -76,6 +79,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
   TextEditingController _inputTotalTimes = TextEditingController();
   List<ItemsMemberResultManage> _itemMember = [];
   List<File> _files = [];
+  LeaveDateSelection _leaveDateSelection = LeaveDateSelection.initial();
 
   List<bool> _groupDay = [
     true,
@@ -157,6 +161,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
     onLoadMemberManage();
     onLoadLeaveSummary();
     _calculateTotalDays();
+    _applyLeaveSelection(_leaveDateSelection, notify: false);
     super.initState();
   }
 
@@ -254,6 +259,47 @@ class _LeaveScreenState extends State<LeaveScreen> {
             filesAll: _files,
           );
         });
+  }
+
+  void _applyLeaveSelection(
+    LeaveDateSelection selection, {
+    bool notify = true,
+  }) {
+    _leaveDateSelection = selection;
+    FirstDate = selection.startDate;
+    LastDate = selection.endDate;
+
+    if (selection.isTimeRange) {
+      _selectFullTime = 2;
+      _inputTotalTimes.text = _formatLeaveAmount(selection.totalDays);
+      _inputTotalDays.text = '1';
+    } else {
+      _selectFullTime = 1;
+      _inputTotalDays.text = _formatLeaveAmount(selection.totalDays);
+      _inputTotalTimes.clear();
+    }
+
+    if (_inputTimeIn.isEmpty) {
+      _inputTimeIn = [TextEditingController()];
+    }
+    if (_inputTimeOut.isEmpty) {
+      _inputTimeOut = [TextEditingController()];
+    }
+    _inputTimeIn[0].text = selection.startTime == null
+        ? ''
+        : ThaiLeaveDateFormatter.toTimeLabel(selection.startTime!);
+    _inputTimeOut[0].text = selection.endTime == null
+        ? ''
+        : ThaiLeaveDateFormatter.toTimeLabel(selection.endTime!);
+
+    if (notify && mounted) {
+      blocSetState(() {});
+    }
+  }
+
+  String _formatLeaveAmount(double value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(1);
   }
 
   @override
@@ -605,167 +651,26 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                   ),
                                 ),
                                 SizedBox(height: 8),
-                                // 5. Date Selection Row
                                 Container(
                                   padding: EdgeInsets.symmetric(horizontal: 20),
-                                  child: Row(
-                                    children: [
-                                      // Start Date
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () async {
-                                            final DateTime? picked =
-                                                await showDatePicker(
-                                              context: context,
-                                              initialDate: FirstDate,
-                                              firstDate: DateTime(2015, 8),
-                                              lastDate: DateTime(2101),
-                                            );
-                                            if (picked != null &&
-                                                picked != FirstDate) {
-                                              blocSetState(() {
-                                                FirstDate = picked;
-                                                // If start date is after end date, update end date
-                                                if (FirstDate.isAfter(
-                                                    LastDate)) {
-                                                  LastDate = FirstDate;
-                                                }
-                                                _calculateTotalDays();
-                                              });
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                                vertical: 12, horizontal: 16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                  color: Colors.grey[200]!),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  "เริ่ม",
-                                                  style: GoogleFonts.kanit(
-                                                    fontSize: 12,
-                                                    color: Colors.grey[500],
-                                                  ),
-                                                ),
-                                                SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                        Icons
-                                                            .calendar_today_outlined,
-                                                        size: 16,
-                                                        color:
-                                                            Color(0xFF21CCD4)),
-                                                    SizedBox(width: 8),
-                                                    Text(
-                                                      "${FirstDate.day}/${FirstDate.month}/${FirstDate.year}",
-                                                      style: GoogleFonts.kanit(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.black87,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      // End Date
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () async {
-                                            final DateTime? picked =
-                                                await showDatePicker(
-                                              context: context,
-                                              initialDate: LastDate,
-                                              firstDate: DateTime(2015, 8),
-                                              lastDate: DateTime(2101),
-                                            );
-                                            if (picked != null &&
-                                                picked != LastDate) {
-                                              blocSetState(() {
-                                                LastDate = picked;
-                                                // If end date is before start date, update start date
-                                                if (LastDate.isBefore(
-                                                    FirstDate)) {
-                                                  FirstDate = LastDate;
-                                                }
-                                                _calculateTotalDays();
-                                              });
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                                vertical: 12, horizontal: 16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                  color: Colors.grey[200]!),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  "ถึง",
-                                                  style: GoogleFonts.kanit(
-                                                    fontSize: 12,
-                                                    color: Colors.grey[500],
-                                                  ),
-                                                ),
-                                                SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                        Icons
-                                                            .calendar_today_outlined,
-                                                        size: 16,
-                                                        color:
-                                                            Color(0xFF0663F7)),
-                                                    SizedBox(width: 8),
-                                                    Text(
-                                                      "${LastDate.day}/${LastDate.month}/${LastDate.year}",
-                                                      style: GoogleFonts.kanit(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.black87,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  child: LeaveDateRangePickerField(
+                                    initialStart: FirstDate,
+                                    initialEnd: LastDate,
+                                    enableHalfDay: true,
+                                    enableTimeRange: select3,
+                                    onChanged: (selection) {
+                                      _applyLeaveSelection(selection);
+                                    },
                                   ),
                                 ),
                                 SizedBox(height: 12),
-
-                                // 6. Total Days Read-only Field
                                 Container(
                                   padding: EdgeInsets.symmetric(horizontal: 20),
                                   child: Container(
                                     padding: EdgeInsets.symmetric(
                                         horizontal: 16, vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: Colors.blue[50], // Light blue bg
+                                      color: Colors.blue[50],
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Row(
@@ -773,7 +678,9 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          "รวมจำนวนวัน",
+                                          _leaveDateSelection.isTimeRange
+                                              ? "รวมจำนวนชั่วโมง"
+                                              : "รวมจำนวนวัน",
                                           style: GoogleFonts.kanit(
                                             fontSize: 14,
                                             color: Color(0xFF0663F7),
@@ -782,7 +689,9 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                         Row(
                                           children: [
                                             Text(
-                                              _inputTotalDays.text,
+                                              _formatLeaveAmount(
+                                                  _leaveDateSelection
+                                                      .totalDays),
                                               style: GoogleFonts.kanit(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
@@ -790,7 +699,9 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                               ),
                                             ),
                                             Text(
-                                              " วัน",
+                                              _leaveDateSelection.isTimeRange
+                                                  ? " ชม."
+                                                  : " วัน",
                                               style: GoogleFonts.kanit(
                                                 fontSize: 14,
                                                 color: Color(0xFF0663F7),
@@ -802,8 +713,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                     ),
                                   ),
                                 ),
-                                // Warning Text
-                                if (_inputTotalDays.text == "0.5")
+                                if (_leaveDateSelection.isHalfDay)
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: Padding(
@@ -818,189 +728,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                       ),
                                     ),
                                   ),
-
                                 SizedBox(height: 20),
-
-                                // 7. Full Day / Partial Day Radio
-                                if (select3) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20.0),
-                                    child: Text(
-                                      'รูปแบบเวลา',
-                                      style: GoogleFonts.kanit(
-                                        fontSize: 14,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    margin: EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: Colors.grey[200]!),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        RadioListTile(
-                                          title: Text("ลาทั้งวัน",
-                                              style: GoogleFonts.kanit()),
-                                          value: 1,
-                                          groupValue: _selectFullTime,
-                                          onChanged: (val) {
-                                            blocSetState(() {
-                                              _selectFullTime = val as int;
-                                              // Prevent stale partial-time value
-                                              // from overriding full-day leave total.
-                                              if (_selectFullTime == 1) {
-                                                _inputTotalTimes.clear();
-                                              }
-                                            });
-                                          },
-                                          activeColor: Color(0xFF21CCD4),
-                                          contentPadding: EdgeInsets.symmetric(
-                                              horizontal: 8),
-                                          dense: true,
-                                        ),
-                                        Divider(height: 1),
-                                        RadioListTile(
-                                          title: Text("ลาย่อย (ระบุเวลา)",
-                                              style: GoogleFonts.kanit()),
-                                          value: 2,
-                                          groupValue: _selectFullTime,
-                                          onChanged: (val) {
-                                            blocSetState(() {
-                                              _selectFullTime = val as int;
-                                              if (_selectFullTime == 1) {
-                                                _inputTotalTimes.clear();
-                                              }
-                                            });
-                                          },
-                                          activeColor: Color(0xFF21CCD4),
-                                          contentPadding: EdgeInsets.symmetric(
-                                              horizontal: 8),
-                                          dense: true,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-
-                                // Time Selection List (if Partial Day)
-                                if (_selectFullTime == 2)
-                                  Container(
-                                    margin:
-                                        EdgeInsets.symmetric(horizontal: 20),
-                                    padding: EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[50],
-                                      borderRadius: BorderRadius.circular(12),
-                                      border:
-                                          Border.all(color: Colors.grey[200]!),
-                                    ),
-                                    child: ListView.builder(
-                                      physics: NeverScrollableScrollPhysics(),
-                                      shrinkWrap: true,
-                                      itemCount: _groupDay.length,
-                                      itemBuilder:
-                                          (BuildContext context, int index) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 8.0),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    if (_groupDay[index]) {
-                                                      alert_time(
-                                                          context, 1, index);
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 10),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                      border: Border.all(
-                                                          color: Colors
-                                                              .grey[300]!),
-                                                    ),
-                                                    alignment: Alignment.center,
-                                                    child: Text(
-                                                      _inputTimeIn[index]
-                                                              .text
-                                                              .isEmpty
-                                                          ? "00:00"
-                                                          : _inputTimeIn[index]
-                                                              .text,
-                                                      style: GoogleFonts.kanit(
-                                                          fontSize: 16),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 10),
-                                                child: Text("ถึง",
-                                                    style: GoogleFonts.kanit(
-                                                        color:
-                                                            Colors.grey[600])),
-                                              ),
-                                              Expanded(
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    if (_groupDay[index]) {
-                                                      alert_time(
-                                                          context, 2, index);
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            vertical: 10),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                      border: Border.all(
-                                                          color: Colors
-                                                              .grey[300]!),
-                                                    ),
-                                                    alignment: Alignment.center,
-                                                    child: Text(
-                                                      _inputTimeOut[index]
-                                                              .text
-                                                              .isEmpty
-                                                          ? "00:00"
-                                                          : _inputTimeOut[index]
-                                                              .text,
-                                                      style: GoogleFonts.kanit(
-                                                          fontSize: 16),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text("ชม.",
-                                                  style: GoogleFonts.kanit(
-                                                      color: Colors.grey[400],
-                                                      fontSize: 12)),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
 
                                 // 8. Contact Info
                                 SizedBox(height: 20),
