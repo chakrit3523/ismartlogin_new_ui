@@ -337,6 +337,20 @@ class _OutsideDialogState extends State<OutsideDialog> {
                                   Expanded(
                                     child: InkWell(
                                       onTap: () {
+                                        // Validate address first
+                                        if (_isLoadingAddress) {
+                                          _showToast(false,
+                                              "กำลังระบุตำแหน่ง กรุณารอสักครู่...");
+                                          return;
+                                        }
+                                        if (_currentAddress == null ||
+                                            _currentAddress!.isEmpty) {
+                                          _showToast(false,
+                                              "ไม่พบตำแหน่ง กรุณาลองใหม่อีกครั้ง");
+                                          _fetchAddress(); // Retry
+                                          return;
+                                        }
+
                                         if (_formKey.currentState?.validate() ??
                                             false) {
                                           if (widget.status == 1) {

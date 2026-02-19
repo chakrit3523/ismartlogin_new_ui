@@ -690,6 +690,21 @@ class _InsiteDialogState extends State<InsiteDialog> {
   }
 
   void _submitCheckIn(bool isOffsite) async {
+    // Validate address before submission
+    if (_isLoadingAddress) {
+      DialogHelper.showError(context, "กรุณารอสักครู่",
+          "กำลังระบุตำแหน่งปัจจุบันของท่าน กรุณารอสักครู่...");
+      return;
+    }
+
+    if (_currentAddress == null || _currentAddress!.isEmpty) {
+      DialogHelper.showError(context, "ไม่พบตำแหน่ง",
+          "ไม่สามารถระบุตำแหน่งปัจจุบันได้ กรุณาตรวจสอบอินเทอร์เน็ตของท่าน หรือลองใหม่อีกครั้ง");
+      // Optional: Trigger retry
+      _fetchAddress();
+      return;
+    }
+
     // Validate if offsite
     if (isOffsite && currentOffsiteIndex == -1 && _offsiteNote.text.isEmpty) {
       DialogHelper.showError(

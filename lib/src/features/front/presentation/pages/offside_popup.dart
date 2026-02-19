@@ -515,6 +515,24 @@ class _OffsideDialogState extends State<OffsideDialog> {
   }
 
   void _submitOffsideForm() async {
+    // Validate address before submission
+    if (_isLoadingAddress) {
+      // Use DialogHelper if available, or just return/show toast.
+      // Since DialogHelper is imported in this file, we can use it.
+      // However, offside_popup.dart uses DialogHelper for error showing in catch block.
+      // But let's check if we can use it here. Yes.
+      DialogHelper.showError(context, "กรุณารอสักครู่",
+          "กำลังระบุตำแหน่งปัจจุบันของท่าน กรุณารอสักครู่...");
+      return;
+    }
+
+    if (_currentAddress == null || _currentAddress!.isEmpty) {
+      DialogHelper.showError(context, "ไม่พบตำแหน่ง",
+          "ไม่สามารถระบุตำแหน่งปัจจุบันได้ กรุณาตรวจสอบอินเทอร์เน็ตของท่าน หรือลองใหม่อีกครั้ง");
+      _fetchAddress(); // Retry
+      return;
+    }
+
     final bool isEarlyCheckout = !checkTimr(widget.time);
     Map _map = {
       "uid": widget.uid,

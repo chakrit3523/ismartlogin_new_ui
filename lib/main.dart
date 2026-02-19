@@ -9,6 +9,7 @@ import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:ismart_login/src/core/presentation/bloc/global_ui_refresh_cubit.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ismart_login/src/features/splashscreen/presentation/pages/splashscreen_screen.dart';
 import 'package:ismart_login/server/server.dart';
@@ -95,6 +96,15 @@ Future<void> main() async {
           navigatorKey: navigatorKey,
           home: const MyApp(key: Key('MainApp')),
           debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('th', 'TH'),
+            Locale('en', 'US'),
+          ],
         ),
       ),
     ),
@@ -250,6 +260,15 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: SplashscreenScreen(),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('th', 'TH'),
+        Locale('en', 'US'),
+      ],
       // EasyLoading builder removed
     );
   }
