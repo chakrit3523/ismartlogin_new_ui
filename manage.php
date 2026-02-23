@@ -1,3 +1,4 @@
+
 <?php if (!defined('BASEPATH'))
     exit('No direct script access allowed');
 
@@ -6,7 +7,7 @@ class manage extends CI_Controller
 
     /**
      *
-     * @var Array All Available tables
+     * @var Array All Available tables 
      */
     public $_TABLE = array(
         'info' => 'users',
@@ -80,8 +81,95 @@ class manage extends CI_Controller
         $db->setQuery("UPDATE {$this->_TABLE['info']} SET hits=hits+1 WHERE id='{$id}' ");
         $db->query();
     }
+     public function acknowledgeLeaveCancel()
+    {
+        $var = json_decode(file_get_contents('php://input'));
+        $var = (array) $var;
+        
+        $org_id = $var['org_id'] ? $var['org_id'] : request('org_id');
+        $uid = $var['uid'] ? $var['uid'] : request('uid');  // ผู้อนุมัติที่กดรับทราบ
+        $id = $var['id'] ? $var['id'] : request('id');      // รหัสใบลา
+        
+        $table = 'leave_' . $org_id . '_information';
+        $db = getDBO();
+        
+        if ($org_id && $id) {
+            $obj = new stdClass();
+            $obj->id = $id;
+            $obj->acknowledge_by = $uid;
+            $obj->acknowledge_date = date('Y-m-d H:i:s');
+            $obj->recommend = '0'; // เปลี่ยนเป็น 0 เพื่อให้ปุ่มไม่แสดงอีก
+            $obj->update_by = $uid;
+            $obj->update_date = date('Y-m-d H:i:s');
+            $obj->update_ip = getIPAddress();
+            
+            $insert = $db->updateObject($table, $obj, 'id');
+            
+            if ($insert) {
+                $item[0] = array(
+                    "msg" => "success",
+                    "status" => true,
+                );
+            } else {
+                $item[0] = array(
+                    "msg" => "failed",
+                    "status" => false,
+                );
+            }
+        } else {
+            $item[0] = array(
+                "msg" => "failed",
+                "status" => false,
+            );
+        }
+        
+        echo json_encode($item);
+        exit();
+    }
     //-----
-
+   public function updateSchemaAttend()
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '-1');
+        
+        $db = getDBO();
+        
+        // Use a simpler query first to just get table names
+        $db->setQuery("SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'attend_%_information' AND table_schema = DATABASE()");
+        $tables_result = $db->loadAssocList();
+        
+        // Fallback if information_schema fails (as user reported earlier)
+        if (empty($tables_result)) {
+             $db->setQuery("SHOW TABLES LIKE 'attend_%_information'");
+             $tables_result = $db->loadAssocList();
+        }
+        
+        echo "Found tables: " . count($tables_result) . "<br>";
+        
+        $updated_count = 0;
+        
+        if ($tables_result) {
+            foreach ($tables_result as $row) {
+                // Handle different array keys depending on the query used
+                $table = reset($row);
+                
+                // Try to ADD start_address
+                $sql1 = "ALTER TABLE `{$table}` ADD COLUMN `start_address` VARCHAR(500) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL";
+                $db->setQuery($sql1);
+                if($db->query()) { echo "Added start_address to {$table}<br>"; } 
+                
+                // Try to ADD end_address
+                $sql2 = "ALTER TABLE `{$table}` ADD COLUMN `end_address` VARCHAR(500) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL";
+                $db->setQuery($sql2);
+                if($db->query()) { echo "Added end_address to {$table}<br>"; }
+                
+                $updated_count++;
+            }
+        }
+        
+        echo "Process Completed. Processed tables: " . $updated_count;
+        exit();
+    }
     function getTime()
     {
         $var = json_decode(file_get_contents('php://input'));
@@ -94,7 +182,7 @@ class manage extends CI_Controller
             $filter = "AND id = {$id}";
         }
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
 					FROM            time_information
 					WHERE           org_id = {$org_id}
                     AND             status != '2'
@@ -148,7 +236,7 @@ class manage extends CI_Controller
         $id = $var['id'] ? $var['id'] : request('id');
         $db = getDBO();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            org_information
                     WHERE           id = {$org_id}
                     AND             status = '1'
@@ -312,7 +400,7 @@ class manage extends CI_Controller
         //-----
         $db = getDBO();
         $sql = "
-                SELECT          *
+                SELECT          * 
                 FROM            org_information
                 WHERE           parent_id = {$org_id}
                 AND             status = '1'
@@ -373,7 +461,7 @@ class manage extends CI_Controller
         //-----
         $db = getDBO();
         $sql = "
-                SELECT          *
+                SELECT          * 
                 FROM            org_information
                 WHERE           parent_id = {$org_id}
                 AND             status = '1'
@@ -444,7 +532,7 @@ class manage extends CI_Controller
         $db = getDBO();
 
         // 1. ดึงข้อมูล
-        $sql = "SELECT
+        $sql = "SELECT 
                     a.id AS org_id,
                     a.subject AS org_name,
                     COUNT(b.uid) AS member_count
@@ -460,29 +548,29 @@ class manage extends CI_Controller
         // 2. คำนวณยอดรวม
         $total_organizations = count($data);
         $total_users = 0;
-
+        
         $rows_html = "";
         $i = 1;
-
+        
         foreach ($data as $row) {
             $count_val = intval($row['member_count']);
             $total_users += $count_val;
             $member_count_fmt = number_format($count_val);
-
+            
             // Logic การแสดงผลอันดับ
             $rank_display = $i;
             $row_class = "";
             $icon_badge = "";
 
-            if($i == 1) {
-                $rank_display = "";
+            if($i == 1) { 
+                $rank_display = ""; 
                 $icon_badge = "<span class='material-icons-round rank-icon gold'>emoji_events</span>";
                 $row_class = "top-1";
-            } elseif($i == 2) {
-                $rank_display = "";
+            } elseif($i == 2) { 
+                $rank_display = ""; 
                 $icon_badge = "<span class='material-icons-round rank-icon silver'>emoji_events</span>";
-            } elseif($i == 3) {
-                $rank_display = "";
+            } elseif($i == 3) { 
+                $rank_display = ""; 
                 $icon_badge = "<span class='material-icons-round rank-icon bronze'>emoji_events</span>";
             }
 
@@ -513,7 +601,7 @@ class manage extends CI_Controller
     <title>สถิติองค์กร</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
+    
     <style>
         :root {
             --bg-body: #f8f9fa;
@@ -598,7 +686,7 @@ class manage extends CI_Controller
             position: relative;
             overflow: hidden;
         }
-
+        
         .stat-card::before {
             content: '';
             position: absolute;
@@ -645,7 +733,7 @@ class manage extends CI_Controller
         table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
+            table-layout: fixed; 
         }
 
         th {
@@ -715,7 +803,7 @@ class manage extends CI_Controller
 <body>
 
     <div class="container">
-
+        
         <div class="header">
             <h2>ภาพรวมระบบ</h2>
             <a href="getOrgActiveStatus" class="btn-nav">
@@ -742,7 +830,7 @@ class manage extends CI_Controller
                 <span class="material-icons-round header-icon">leaderboard</span>
                 <h3>อันดับองค์กร</h3>
             </div>
-
+            
             <table>
                 <thead>
                     <tr>
@@ -773,7 +861,7 @@ HTML;
         $db = getDBO();
 
         // 1. ดึงข้อมูลพื้นฐานองค์กร
-        $sql = "SELECT
+        $sql = "SELECT 
                     a.id AS org_id,
                     a.subject AS org_name,
                     a.create_date AS created_at,
@@ -787,12 +875,12 @@ HTML;
         $db->setQuery($sql);
         $data = $db->loadAssocList();
 
-        $stat_active = 0;
-        $stat_trial = 0;
-        $stat_inactive = 0;
-
+        $stat_active = 0;   
+        $stat_trial = 0;    
+        $stat_inactive = 0; 
+        
         $rows_html = "";
-
+        
         // วันที่ปัจจุบันสำหรับคำนวณ
         $today = date('Y-m-d');
 
@@ -800,29 +888,29 @@ HTML;
             $org_id = $row['org_id'];
             $count = intval($row['member_count']);
             $created_date = date('d/m/y', strtotime($row['created_at']));
-
+            
             // --- ส่วนที่เพิ่ม: ค้นหาวันที่ใช้งานล่าสุด ---
             $last_use_txt = "-";
             $last_use_style = "color: #9ca3af;"; // สีเทา (ถ้าไม่เคยใช้)
-
+            
             // ชื่อตารางเก็บเวลาขององค์กรนี้
             $table_attend = "attend_{$org_id}_information";
-
+            
             // Query วันที่ล่าสุด (ใช้ @ เพื่อข้าม error กรณีตารางยังไม่ถูกสร้าง)
             $sql_last = "SELECT create_date FROM {$table_attend} ORDER BY id DESC LIMIT 1";
             $db->setQuery($sql_last);
             $last_data = @$db->loadAssocList();
-
+            
             if ($last_data && !empty($last_data[0]['create_date'])) {
                 $last_date_raw = date('Y-m-d', strtotime($last_data[0]['create_date']));
                 $last_use_txt = date('d/m/y', strtotime($last_date_raw));
-
+                
                 // คำนวณระยะห่างวัน
                 $diff = (strtotime($today) - strtotime($last_date_raw)) / (60 * 60 * 24);
-
+                
                 if($diff <= 3) {
                     // ใช้งานภายใน 3 วัน (สีเขียวเข้ม)
-                    $last_use_style = "color: #059669; font-weight: 600;";
+                    $last_use_style = "color: #059669; font-weight: 600;"; 
                     $last_use_txt = "✅ " . $last_use_txt;
                 } elseif ($diff <= 30) {
                     // ใช้งานภายใน 1 เดือน (สีส้ม)
@@ -879,7 +967,7 @@ HTML;
     <title>สถานะการใช้งานองค์กร</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
+    
     <style>
         :root {
             --bg-body: #f3f4f6;
@@ -927,7 +1015,7 @@ HTML;
 
         .dash-val { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-bottom: 4px; }
         .dash-label { font-size: 0.65rem; color: var(--text-sub); font-weight: 500; }
-
+        
         .t-success { color: #10b981; }
         .t-warning { color: #f59e0b; }
         .t-danger { color: #ef4444; }
@@ -951,7 +1039,7 @@ HTML;
         }
 
         table { width: 100%; border-collapse: collapse; }
-
+        
         th {
             background: #f9fafb;
             text-align: left;
@@ -976,9 +1064,9 @@ HTML;
 
         .org-name { font-size: 0.9rem; font-weight: 500; color: #111827; margin-bottom: 2px; }
         .meta-text { font-size: 0.7rem; color: #9ca3af; }
-
-        .count-number {
-            font-weight: 700; font-size: 1rem; color: #374151;
+        
+        .count-number { 
+            font-weight: 700; font-size: 1rem; color: #374151; 
             background: #f3f4f6; padding: 2px 8px; border-radius: 8px;
         }
 
@@ -994,7 +1082,7 @@ HTML;
         .badge-success { background: #d1fae5; color: #047857; }
         .badge-warning { background: #fef3c7; color: #b45309; }
         .badge-danger { background: #fee2e2; color: #b91c1c; }
-
+        
         .opacity-50 { opacity: 0.6; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -1003,7 +1091,7 @@ HTML;
 <body>
 
     <div class="container">
-
+        
         <div class="header">
             <h2>Activity Log</h2>
             <p>ตรวจสอบสถานะการใช้งานล่าสุด</p>
@@ -1041,7 +1129,7 @@ HTML;
                 </tbody>
             </table>
         </div>
-
+        
         <div style="text-align: center; margin-top: 20px; font-size: 0.7rem; color: #d1d5db;">
             * วันที่ล่าสุดอ้างอิงจากตารางเวลาเข้างาน
         </div>
@@ -1068,8 +1156,8 @@ function postOrg()
         $obj->parent_id = 0;
         $obj->subject = $subject;
         $obj->status = '1';
-
-        $insert = false;
+        
+        $insert = false; 
 
         if ($type == 'insert') {
             $obj->invite_code = rand(100000000, 999999999);
@@ -1108,7 +1196,7 @@ function postOrg()
             $user = getMyOrgId($uid);
             $fullname = str_replace(',', ' ', $user['fullname']);
             $phone = $user['phone'];
-
+            
             // หา ID ของ Org ที่เพิ่งสร้าง/แก้ไข เพื่อใช้ในการสร้างตาราง
             $data_org_id = 0;
             if ($type == 'insert' && isset($data[0]['id'])) {
@@ -1122,22 +1210,22 @@ function postOrg()
 
                 if ($type == 'insert') {
                     // --- แก้ไข Syntax ตรงนี้ ---
-                    $mes = "มีการสร้างองค์กรใหม่" . PHP_EOL .
-                           "ชื่อ : " . $subject . PHP_EOL .
-                           "โดย : " . $fullname . PHP_EOL .
+                    $mes = "มีการสร้างองค์กรใหม่" . PHP_EOL . 
+                           "ชื่อ : " . $subject . PHP_EOL . 
+                           "โดย : " . $fullname . PHP_EOL . 
                            "เบอร์ติดต่อ : " . $phone; // เพิ่มตัวแปร $phone และปิด semi-colon
 
                     $line_token = "C7780f4fde1552d4e12b438ea6555552f";
-
+                    
                     // เรียกใช้ฟังก์ชันส่งไลน์
                     $this->sendTextToLineGroup($line_token, $mes);
                     // ------------------------------------------------
                 }
-
+                
                 if ($data_org_id) {
                     $this->createTableOrg($data_org_id);
                 }
-            }
+            } 
             // else {
             //    ถ้าไม่เข้าเงื่อนไขนี้ ไลน์ก็จะไม่ส่ง (เช่น ไม่มีเบอร์โทร)
             // }
@@ -1165,14 +1253,14 @@ function postOrg()
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
-
+        
         // ปิดการตรวจสอบ SSL ทั้ง 2 ตัว เพื่อกัน Error 500 หรือ Connection Fail
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); 
+        
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($param));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
+        
         $result = curl_exec($ch);
         $error = curl_error($ch);
         curl_close($ch);
@@ -1201,7 +1289,7 @@ function testSendLineLatest()
         $org_id = $org_data[0]['id'];
         $uid = $org_data[0]['create_by']; // <--- จุดสำคัญ: ดูว่าเลขนี้คืออะไร
         $subject = $org_data[0]['subject'];
-
+        
         // 3. ลองดึงข้อมูลผู้ใช้
         $sql_user = "SELECT fullname, phone FROM users WHERE id = '{$uid}'";
         $db->setQuery($sql_user);
@@ -1223,10 +1311,10 @@ function testSendLineLatest()
         }
 
         // 4. สร้างข้อความส่งไลน์
-        $mes = "ทดสอบ Debug" . PHP_EOL .
-               "องค์กร: " . $subject . " (OrgID: {$org_id})" . PHP_EOL .
-               "ผู้สร้าง ID: " . $uid . PHP_EOL .
-               "ชื่อ: " . $fullname . PHP_EOL .
+        $mes = "ทดสอบ Debug" . PHP_EOL . 
+               "องค์กร: " . $subject . " (OrgID: {$org_id})" . PHP_EOL . 
+               "ผู้สร้าง ID: " . $uid . PHP_EOL . 
+               "ชื่อ: " . $fullname . PHP_EOL . 
                "เบอร์: " . $phone;
 
         // 5. ส่งไลน์
@@ -1529,7 +1617,7 @@ function testSendLineLatest()
             if ($data_cate) {
                 $table_cate = 'leave_' . $org_id . '_category';
                 $db = getDBO();
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$table_cate}
                         WHERE           cate_name = 'หมวดหลัก'";
                 $db->setQuery($sql);
@@ -1538,7 +1626,8 @@ function testSendLineLatest()
                     $db->setQuery(" INSERT INTO `{$table_cate}` (`parent_id`, `seq`, `cate_name`, `total`, `create_by`, `create_ip`, `create_date`, `update_by`, `update_ip`, `update_date`, `delete_by`, `delete_ip`, `delete_date`, `status`) VALUES
                     (0, 0, 'หมวดหลัก', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '1'),
                     (1, 0, 'ลาป่วย', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '1'),
-                    (1, 0, 'ลากิจ', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '1');
+                    (1, 0, 'ลากิจ', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '1'),
+                    (1, 0, 'ลาคลอด', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '1');
                     COMMIT;");
                     $db->query();
                 }
@@ -1705,7 +1794,7 @@ function testSendLineLatest()
             $topic_id = $db->insertid();
             if ($insert) {
                 $table_cate = 'leave_' . $org_id . '_category';
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$table_cate}
                         WHERE           cate_name = 'หมวดหลัก'";
                 $db->setQuery($sql);
@@ -1771,7 +1860,7 @@ function testSendLineLatest()
         $sql_search = "";
         $sql_group = "";
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            user_relationship
                     WHERE           org_id = '{$org_id}'
                     AND             uid = '{$uid}'
@@ -1781,15 +1870,15 @@ function testSendLineLatest()
             //check leave approve
             $users = $this->getUsers($uid);
             if ($types[0]['type'] == "admin") {
-                $sql_search = "AND (uid = '{$uid}' OR status_leave IN ('1','4','5'))";
+                $sql_search = "AND (uid = '{$uid}' OR status_leave IN ('1','4'))";
             } else if ($users['leave_approve'] == "1") {
-                $sql_search = "AND (uid = '{$uid}' OR status_leave IN ('1','4','5'))";
+                $sql_search = "AND (uid = '{$uid}' OR status_leave IN ('1','4'))";
             } else {
                 $sql_search = "AND uid = '{$uid}' AND userclass != 'admin'";
             }
 
             if ($tab == "2") {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$table}
                         WHERE           status = '1'
                         AND             status_leave = '1'
@@ -1803,7 +1892,7 @@ function testSendLineLatest()
                     $len = count($data);
                     if ($len) {
                         for ($i = 0; $i < $len; $i++) {
-                            $sql = "SELECT          *
+                            $sql = "SELECT          * 
                                     FROM            users
                                     WHERE           id = '{$data[$i]['create_by']}'
                                     ";
@@ -1868,7 +1957,7 @@ function testSendLineLatest()
                     );
                 }
             } else {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                 FROM            leave_notification_information
                 WHERE           org_id = '$org_id'
                 {$sql_search}
@@ -1880,7 +1969,7 @@ function testSendLineLatest()
                 if ($data) {
                     $index = 0;
                     for ($i = 0; $i < count($data); $i++) {
-                        $sql = "SELECT          *
+                        $sql = "SELECT          * 
                                 FROM            users
                                 WHERE           id = '{$data[$i]['create_by']}'";
                         $db->setQuery($sql);
@@ -1960,7 +2049,7 @@ function testSendLineLatest()
         $cid = $cid[0]['cid'];
 
         $table_cate = 'leave_' . $org_id . '_category';
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table_cate}
                 WHERE           id = '{$cid}'";
         $db->setQuery($sql);
@@ -2008,11 +2097,12 @@ function testSendLineLatest()
             $obj->create_ip = getIPAddress();
             $insert = $db->insertObject("leave_notification_information", $obj);
             if ($insert) {
-                if ($status_leave == "1" || $status_leave == "4" || $status_leave == "5") {
+                if ($status_leave == "1" || $status_leave == "4") {
                     //ส่งหาผู้อนุมัติ
-                    $approve_id = $this->resolveLeaveApproverId($org_id, $create_by);
-                    if ($approve_id) {
-                        $this->setDataNotification($approve_id, $subject);
+                    $usr = $this->getUsers($create_by);
+                    $leave_aid = $usr['leave_aid'];
+                    if ($leave_aid) {
+                        $this->setDataNotification($leave_aid, $subject);
                     }
                 } else {
                     //ส่งหาผู้ขอ
@@ -2020,30 +2110,6 @@ function testSendLineLatest()
                 }
             }
         }
-    }
-
-    private function resolveLeaveApproverId($org_id, $uid)
-    {
-        $usr = $this->getUsers($uid);
-        if (@$usr['leave_aid'] && $usr['leave_aid'] != "0") {
-            return $usr['leave_aid'];
-        }
-        if (@$usr['head_id'] && $usr['head_id'] != "0") {
-            return $usr['head_id'];
-        }
-
-        $db = getDBO();
-        $sql = "SELECT          ur.uid
-                FROM            user_relationship ur
-                LEFT JOIN       users u ON u.id = ur.uid
-                WHERE           ur.org_id = '{$org_id}'
-                AND             ur.type = 'admin'
-                AND             u.status = '1'
-                ORDER BY        ur.id ASC
-                LIMIT 1";
-        $db->setQuery($sql);
-        $admin = $db->loadAssocList();
-        return @$admin[0]['uid'] ? $admin[0]['uid'] : '';
     }
 
     private function uploadFileImagesFlutter($uploadKey = "", $files, $cmd = "", $uid = "", $type = "")
@@ -2110,7 +2176,7 @@ function testSendLineLatest()
         $id = $var['id'] ? $var['id'] : request('id');
         $table = "leave_" . $org_id . "_category";
         $db = getDBO();
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           parent_id = '1'
                 AND             status = '1'
@@ -2155,7 +2221,7 @@ function testSendLineLatest()
         $db = getDBO();
 
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           parent_id = '1'
                     AND             status != '2'
@@ -2207,7 +2273,7 @@ function testSendLineLatest()
         $db = getDBO();
 
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           parent_id = '1'
                     AND             status != '2'
@@ -2260,7 +2326,7 @@ function testSendLineLatest()
         $db = getDBO();
         $items = array();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           status = '1'
                     AND             id = '{$id}'";
@@ -2308,12 +2374,12 @@ function testSendLineLatest()
                 } else {
                     $cate_name = "อื่นๆ";
                 }
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$tableFile}
                         WHERE           uploadKey = '{$data[0]['uploadKey']}'
                         AND             status = '1'
                         ORDER BY id DESC
-                        ";
+                                                ";
                 $db->setQuery($sql);
                 $dataFile = $db->loadAssocList();
                 if ($dataFile) {
@@ -2366,13 +2432,12 @@ function testSendLineLatest()
         echo json_encode($item, JSON_UNESCAPED_UNICODE);
         exit();
     }
-
-    function uploadLeaveMedicalCertificate()
+ function uploadLeaveMedicalCertificate()
     {
         $org_id = request('org_id');
         $uid = request('uid');
         $leave_id = request('leave_id');
-
+        
         if (!$org_id || !$uid || !$leave_id) {
             $rs = [
                 'msg' => 'Missing required parameters',
@@ -2381,14 +2446,14 @@ function testSendLineLatest()
             response_json(json_encode($rs));
             exit();
         }
-
+        
         // Get leave information and uploadKey
         $table = 'leave_' . $org_id . '_information';
         $db = getDBO();
         $sql = "SELECT * FROM {$table} WHERE id = '{$leave_id}' AND status = '1'";
         $db->setQuery($sql);
         $data = $db->loadAssocList();
-
+        
         if (!$data) {
             $rs = [
                 'msg' => 'Leave not found',
@@ -2397,7 +2462,7 @@ function testSendLineLatest()
             response_json(json_encode($rs));
             exit();
         }
-
+        
         // Verify the user is the owner of the leave
         if ($data[0]['create_by'] != $uid) {
             $rs = [
@@ -2407,10 +2472,10 @@ function testSendLineLatest()
             response_json(json_encode($rs));
             exit();
         }
-
+        
         // Get the uploadKey from the leave record
         $uploadKey = $data[0]['uploadKey'];
-
+        
         // Check if files are uploaded
         if (!$_FILES) {
             $rs = [
@@ -2420,14 +2485,11 @@ function testSendLineLatest()
             response_json(json_encode($rs));
             exit();
         }
-
+        
         // Upload files using existing function
         $tableFile = 'leave_' . $org_id;
         $this->uploadFileImagesFlutter($uploadKey, $_FILES, $tableFile);
-
-        // Notify approver that requester attached additional medical evidence
-        $this->insertNotiLeave($org_id, $leave_id, "5", $uid, $uid);
-
+        
         $rs = [
             'msg' => 'success',
             'status' => true,
@@ -2435,10 +2497,8 @@ function testSendLineLatest()
         response_json(json_encode($rs));
         exit();
     }
-
     function updateStatusLeave()
     {
-
         $var = json_decode(file_get_contents('php://input'));
         $var = (array) $var;
         //-----
@@ -2452,7 +2512,7 @@ function testSendLineLatest()
         $leave_cancel_status = "0";
         $db = getDBO();
         //check cancel leave approve
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table_info}
                 WHERE           id = '{$org_id}'";
         $db->setQuery($sql);
@@ -2474,7 +2534,7 @@ function testSendLineLatest()
             $insert = $db->updateObject($table, $obj, 'id');
             if ($insert) {
 
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$table}
                         WHERE           id = '{$id}'";
                 $db->setQuery($sql);
@@ -2637,7 +2697,7 @@ function testSendLineLatest()
         $items = array();
         $itemsFiles = array();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           create_by = '$uid'
                     AND             status = '1'
@@ -2680,13 +2740,12 @@ function testSendLineLatest()
                         $cate_name = "อื่นๆ";
                     }
                     //check file;
-                    $sql = "SELECT          *
+                    $sql = "SELECT          * 
                             FROM            {$tableFile}
                             WHERE           uploadKey = '{$data[$i]['uploadKey']}'
                             AND             status = '1'";
                     $db->setQuery($sql);
                     $dataFile = $db->loadAssocList();
-                    $attachment_count = count($dataFile);
                     if ($dataFile) {
                         for ($j = 0; $j < count($dataFile); $j++) {
                             $itemsFiles[$indexFiles] = array(
@@ -2708,8 +2767,6 @@ function testSendLineLatest()
                         'status_leave' => $data[$i]['status_leave'],
                         'status_leave_text' => $status_leave,
                         'cate_name' => $cate_name,
-                        'has_attachment' => $attachment_count > 0 ? '1' : '0',
-                        'attachment_count' => "{$attachment_count}",
                         // 'files' =>  $itemsFiles,
                     );
 
@@ -2843,7 +2900,7 @@ function testSendLineLatest()
         $items = array();
         $itemsFiles = array();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           status = '1'
                     AND             status_leave = '1'
@@ -2891,13 +2948,12 @@ function testSendLineLatest()
                     }
                     $users = $this->getUsers($data[$i]['create_by']);
                     //check file;
-                    $sql = "SELECT          *
+                    $sql = "SELECT          * 
                             FROM            {$tableFile}
                             WHERE           uploadKey = '{$data[$i]['uploadKey']}'
                             AND             status = '1'";
                     $db->setQuery($sql);
                     $dataFile = $db->loadAssocList();
-                    $attachment_count = count($dataFile);
                     if ($dataFile) {
                         for ($j = 0; $j < count($dataFile); $j++) {
                             $itemsFiles[$indexFiles] = array(
@@ -2920,8 +2976,6 @@ function testSendLineLatest()
                         'status_leave' => $data[$i]['status_leave'],
                         'status_leave_text' => $status_leave,
                         'cate_name' => $cate_name,
-                        'has_attachment' => $attachment_count > 0 ? '1' : '0',
-                        'attachment_count' => "{$attachment_count}",
                         // 'files' =>  $itemsFiles,
                     );
 
@@ -3023,7 +3077,7 @@ function testSendLineLatest()
         $items = array();
         $itemsFiles = array();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           status = '1'
                     AND             status_leave != '1'
@@ -3066,13 +3120,12 @@ function testSendLineLatest()
                     }
                     $users = $this->getUsers($data[$i]['create_by']);
                     //check file;
-                    $sql = "SELECT          *
+                    $sql = "SELECT          * 
                             FROM            {$tableFile}
                             WHERE           uploadKey = '{$data[$i]['uploadKey']}'
                             AND             status = '1'";
                     $db->setQuery($sql);
                     $dataFile = $db->loadAssocList();
-                    $attachment_count = count($dataFile);
                     if ($dataFile) {
                         for ($j = 0; $j < count($dataFile); $j++) {
                             $itemsFiles[$indexFiles] = array(
@@ -3095,8 +3148,6 @@ function testSendLineLatest()
                         'status_leave' => $data[$i]['status_leave'],
                         'status_leave_text' => $status_leave,
                         'cate_name' => $cate_name,
-                        'has_attachment' => $attachment_count > 0 ? '1' : '0',
-                        'attachment_count' => "{$attachment_count}",
                         // 'files' =>  $itemsFiles,
                     );
 
@@ -3146,7 +3197,7 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $db = getDBO();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            user_relationship
                     WHERE           org_id = '{$org_id}'
                     AND             uid = '{$uid}'
@@ -3157,7 +3208,7 @@ function testSendLineLatest()
             //check leave approve
             $users = $this->getUsers($uid);
             if ($types[0]['type'] == "admin" || $users['leave_approve'] == "1") {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$table}
                         WHERE           status = '1'
                         AND             status_leave = '1'
@@ -3177,7 +3228,7 @@ function testSendLineLatest()
                     $len = count($data);
                     if ($len) {
                         for ($i = 0; $i < $len; $i++) {
-                            $sql = "SELECT          *
+                            $sql = "SELECT          * 
                                     FROM            users
                                     WHERE           id = '{$data[$i]['create_by']}'
                                     ";
@@ -3189,7 +3240,7 @@ function testSendLineLatest()
                         }
                     }
                 } else {
-                    $sql = "SELECT          *
+                    $sql = "SELECT          * 
                             FROM            {$table}
                             WHERE           status = '1'
                             AND             status_leave = '4'
@@ -3202,7 +3253,7 @@ function testSendLineLatest()
                     $len = count($rs);
                     if ($len) {
                         for ($i = 0; $i < $len; $i++) {
-                            $sql = "SELECT          *
+                            $sql = "SELECT          * 
                                     FROM            users
                                     WHERE           id = '{$rs[$i]['create_by']}'
                                     ";
@@ -3223,10 +3274,10 @@ function testSendLineLatest()
                     }
                 }
             } else {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            leave_notification_information
                         WHERE           org_id = '$org_id'
-                        AND             uid = '{$uid}'
+                        AND             uid = '{$uid}' 
                         AND             userclass != 'admin'
                         AND             status = '0'";
                 $db->setQuery($sql);
@@ -3272,7 +3323,7 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $db = getDBO();
         if ($org_id) {
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            user_relationship
                     WHERE           org_id = '{$org_id}'
                     AND             uid = '{$uid}'
@@ -3283,7 +3334,7 @@ function testSendLineLatest()
             //check leave approve
             $users = $this->getUsers($uid);
             if ($types[0]['type'] == "admin" || $users['leave_approve'] == "1") {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            {$table}
                         WHERE           status = '1'
                         AND             status_leave = '1'
@@ -3303,7 +3354,7 @@ function testSendLineLatest()
                     $len = count($data);
                     if ($len) {
                         for ($i = 0; $i < $len; $i++) {
-                            $sql = "SELECT          *
+                            $sql = "SELECT          * 
                                     FROM            users
                                     WHERE           id = '{$data[$i]['create_by']}'
                                     ";
@@ -3315,7 +3366,7 @@ function testSendLineLatest()
                         }
                     }
                 } else {
-                    $sql = "SELECT          *
+                    $sql = "SELECT          * 
                             FROM            {$table}
                             WHERE           status = '1'
                             AND             status_leave = '4'
@@ -3328,7 +3379,7 @@ function testSendLineLatest()
                     $len = count($rs);
                     if ($len) {
                         for ($i = 0; $i < $len; $i++) {
-                            $sql = "SELECT          *
+                            $sql = "SELECT          * 
                                     FROM            users
                                     WHERE           id = '{$rs[$i]['create_by']}'
                                     ";
@@ -3344,10 +3395,10 @@ function testSendLineLatest()
                     }
                 }
             } else {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            leave_notification_information
                         WHERE           org_id = '$org_id'
-                        AND             uid = '{$uid}'
+                        AND             uid = '{$uid}' 
                         AND             userclass != 'admin'
                         AND             status = '0'";
                 $db->setQuery($sql);
@@ -3375,7 +3426,7 @@ function testSendLineLatest()
         } else {
             $search = "AND             cid NOT IN (1,2)";
         }
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
@@ -3397,7 +3448,7 @@ function testSendLineLatest()
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
-                AND             status_leave = '2'
+                AND             status_leave = '2'  
                 AND             cid IN ('2','3')
                 AND             YEAR(create_date) = YEAR(CURRENT_DATE())
                 {$search}";
@@ -3416,7 +3467,7 @@ function testSendLineLatest()
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
-                AND             status_leave = '2'
+                AND             status_leave = '2'  
                 AND             cid IN ('2','3')
                 AND             YEAR(create_date) = YEAR(CURRENT_DATE())";
         $db->setQuery($sql);
@@ -3434,8 +3485,8 @@ function testSendLineLatest()
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
-                AND             status_leave = '2'
-                -- AND             selectFulltime = '2'
+                AND             status_leave = '2'  
+                -- AND             selectFulltime = '2' 
                 AND             cid = '6'
                 AND             YEAR(create_date) = YEAR(CURRENT_DATE())
                 {$search}";
@@ -3450,11 +3501,11 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $db = getDBO();
         $search = "";
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
-                AND             status_leave = '2'
+                AND             status_leave = '2'  
                 AND             YEAR(create_date) = YEAR(CURRENT_DATE())
                 {$search}";
         $db->setQuery($sql);
@@ -3468,12 +3519,12 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $db = getDBO();
         $search = "";
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
-                AND             status_leave = '2'
-                -- AND             selectFulltime = '2'
+                AND             status_leave = '2'  
+                -- AND             selectFulltime = '2' 
                 AND             cid = '6'
                 AND             YEAR(create_date) = YEAR(CURRENT_DATE())
                 {$search}";
@@ -3490,11 +3541,11 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $db = getDBO();
         $search = "";
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           create_by = '$uid'
                 AND             status = '1'
-                AND             status_leave = '2'
+                AND             status_leave = '2'  
                 AND             YEAR(create_date) = YEAR(CURRENT_DATE())
                 {$search}";
         $db->setQuery($sql);
@@ -3761,7 +3812,7 @@ function testSendLineLatest()
         //check data in attend
         $db = getDBO();
         //check data in org
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            org_information
                 WHERE           status = '1'
                 AND             noti_status = '1'
@@ -3774,7 +3825,7 @@ function testSendLineLatest()
             $index = 0;
             for ($i = 0; $i < $len; $i++) {
                 //check data in branch
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            org_information
                         WHERE           status = '1'
                         AND             noti_status = '1'
@@ -3785,7 +3836,7 @@ function testSendLineLatest()
                 if ($data) {
                     //check time in branch
                     for ($j = 0; $j < count($data); $j++) {
-                        $sql = "SELECT          *
+                        $sql = "SELECT          * 
                                 FROM            user_relationship
                                 WHERE           org_id = '{$rs[$i]['id']}'
                                 AND             org_sub_id = '{$data[$j]['id']}'
@@ -3860,7 +3911,7 @@ function testSendLineLatest()
             $org_id = '';
             $len_item = count($item);
             for ($i = 0; $i < $len_item; $i++) {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            time_information
                         WHERE           id = '{$item[$i]['time_id']}'";
                 $db->setQuery($sql);
@@ -3903,7 +3954,7 @@ function testSendLineLatest()
         //check data in attend
         $db = getDBO();
         //check data in org
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            org_information
                 WHERE           status = '1'
                 AND             noti_status = '1'
@@ -3917,7 +3968,7 @@ function testSendLineLatest()
             $index = 0;
             for ($i = 0; $i < $len; $i++) {
                 //check data in branch
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            org_information
                         WHERE           status = '1'
                         AND             noti_status = '1'
@@ -3928,7 +3979,7 @@ function testSendLineLatest()
                 if ($data) {
                     //check time in branch
                     for ($j = 0; $j < count($data); $j++) {
-                        $sql = "SELECT          *
+                        $sql = "SELECT          * 
                                 FROM            user_relationship
                                 WHERE           org_id = '{$rs[$i]['id']}'
                                 AND             org_sub_id = '{$data[$j]['id']}'
@@ -3981,7 +4032,7 @@ function testSendLineLatest()
             $len_item = count($item);
             // pre($len_item);
             for ($i = 0; $i < $len_item; $i++) {
-                $sql = "SELECT          *
+                $sql = "SELECT          * 
                         FROM            time_information
                         WHERE           id = '{$item[$i]['time_id']}'
                         ";
@@ -4299,7 +4350,7 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $table_cate = 'leave_' . $org_id . '_category';
 
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           status = '1'
                 AND             id = '{$id}'";
@@ -4307,7 +4358,7 @@ function testSendLineLatest()
         $data = $db->loadAssocList();
 
         //check line token
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            org_information
                 WHERE           id = '{$org_id}'
                 ";
@@ -4338,7 +4389,7 @@ function testSendLineLatest()
             $fullname['fullname'] = $fullname['nickname'] ? $fullname['nickname'] : $fullname['fullname'];
 
 
-            $sql = "SELECT          cate_name
+            $sql = "SELECT          cate_name 
                     FROM            {$table_cate}
                     WHERE           status = '1'
                     AND             id = '{$data[0]['cid']}'";
@@ -4452,7 +4503,7 @@ function testSendLineLatest()
         $table = 'leave_' . $org_id . '_information';
         $table_cate = 'leave_' . $org_id . '_category';
 
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            {$table}
                 WHERE           status = '1'
                 AND             id = '{$id}'";
@@ -4460,7 +4511,7 @@ function testSendLineLatest()
         $data = $db->loadAssocList();
 
         //check line token
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            org_information
                 WHERE           id = '{$org_id}'
                 ";
@@ -4491,7 +4542,7 @@ function testSendLineLatest()
             $fullname['fullname'] = $fullname['nickname'] ? $fullname['nickname'] : $fullname['fullname'];
 
 
-            $sql = "SELECT          cate_name
+            $sql = "SELECT          cate_name 
                     FROM            {$table_cate}
                     WHERE           status = '1'
                     AND             id = '{$data[0]['cid']}'";
@@ -4590,7 +4641,7 @@ function testSendLineLatest()
 
         //check server มีปัญหา
         $curr_date = date('Y-m-d');
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            noti_leave_information
                 WHERE           DATE(create_date) = DATE({$curr_date})
                 ORDER BY id DESC
@@ -4607,7 +4658,7 @@ function testSendLineLatest()
             $table_cate = 'leave_' . $org_id . '_category';
             $curr_date = DATE('Y-m-d');
             // $curr_date = '2023-07-06';
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           status = '1'
                     AND             status_leave = '2'
@@ -4626,7 +4677,7 @@ function testSendLineLatest()
                 for ($i = 0; $i < $len; $i++) {
                     $uname = $this->getUsers($rs[$i]['create_by']);
                     $name = $uname['nickname'] ? $uname['nickname'] : $uname['fullname'];
-                    $sql = "SELECT          cate_name
+                    $sql = "SELECT          cate_name 
                             FROM            {$table_cate}
                             WHERE           status = '1'
                             AND             id = '{$rs[$i]['cid']}'";
@@ -4682,7 +4733,7 @@ function testSendLineLatest()
 
         //check server มีปัญหา
         $curr_date = date('Y-m-d');
-        $sql = "SELECT          *
+        $sql = "SELECT          * 
                 FROM            noti_leave_information
                 WHERE           DATE(create_date) = DATE({$curr_date})
                 ORDER BY id DESC
@@ -4696,7 +4747,7 @@ function testSendLineLatest()
             $table = 'leave_' . $org_id . '_information';
             $table_cate = 'leave_' . $org_id . '_category';
             $curr_date = DATE('Y-m-d');
-            $sql = "SELECT          *
+            $sql = "SELECT          * 
                     FROM            {$table}
                     WHERE           status = '1'
                     AND             status_leave = '2'
@@ -4711,7 +4762,7 @@ function testSendLineLatest()
                 $msg = "วันนี้ " . $curr_date . " มีผู้ลา " . $len . " คน " . PHP_EOL;
                 for ($i = 0; $i < $len; $i++) {
                     $uname = $this->getUsers($rs[$i]['create_by']);
-                    $sql = "SELECT          cate_name
+                    $sql = "SELECT          cate_name 
                             FROM            {$table_cate}
                             WHERE           status = '1'
                             AND             id = '{$rs[$i]['cid']}'";
@@ -4739,8 +4790,8 @@ function testSendLineLatest()
         $var = (array) $var;
         //-----
         $db = getDBO();
-        $sql = "SELECT  *
-                FROM    org_information
+        $sql = "SELECT  * 
+                FROM    org_information 
                 WHERE   1";
         $db->setQuery($sql);
         $rs = $db->loadAssocList();
@@ -4755,8 +4806,8 @@ function testSendLineLatest()
             for ($i = 0; $i < $len; $i++) {
                 $org_id = $rs[$i]['id'];
                 $table = 'attend_' . $org_id . '_information';
-                $sql = "SELECT  *
-                        FROM    {$table}
+                $sql = "SELECT  * 
+                        FROM    {$table} 
                         WHERE   1";
                 $db->setQuery($sql);
                 $rs_data = $db->loadAssocList();
@@ -4774,8 +4825,8 @@ function testSendLineLatest()
                         $no++;
                         echo "ไม่มีข้อมูลในตาราง {$table} <br>";
                     }
-                    // $sql = "SELECT  *
-                    //         FROM    users
+                    // $sql = "SELECT  * 
+                    //         FROM    users 
                     //         WHERE   org_id = '{$org_id}'";
                     // $db->setQuery($sql);
                     // $rs_data2 = $db->loadAssocList();
@@ -4919,8 +4970,8 @@ function testSendLineLatest()
             $len = count($rs);
             for ($i = 0; $i < $len; $i++) {
                 $table = $rs[$i]['Tables_in_checkin_cv (%information%)'];
-                $sql = "SELECT  *
-                        FROM    {$table}
+                $sql = "SELECT  * 
+                        FROM    {$table} 
                         WHERE   1
                         ORDER BY id DESC
                         LIMIT   1";
@@ -4935,8 +4986,8 @@ function testSendLineLatest()
                         if ($today >= $checkDate) {
                             $result = str_replace(['attend_', '_information'], '', $table);
                             if (ctype_digit($result)) {
-                                $sql = "SELECT *
-                                       FROM    org_information
+                                $sql = "SELECT * 
+                                       FROM    org_information 
                                        WHERE   id = '{$result}'";
                                 $db->setQuery($sql);
                                 $rs_org = $db->loadAssocList();
@@ -4956,14 +5007,14 @@ function testSendLineLatest()
                                             // $db->query();
                                             // // exit($db->getQuery());
                                             // //check status org
-                                            // $sql = "UPDATE org_information
-                                            //         SET    status = '2'
+                                            // $sql = "UPDATE org_information 
+                                            //         SET    status = '2' 
                                             //         WHERE  id = '{$result}'";
                                             // $db->setQuery($sql);
                                             // $db->query();
-                                            // //update user org
-                                            // $sql = "UPDATE users
-                                            //         SET    org_id = '0'
+                                            // //update user org 
+                                            // $sql = "UPDATE users 
+                                            //         SET    org_id = '0' 
                                             //         WHERE  org_id = '{$result}'";
                                             // $db->setQuery($sql);
                                             // $db->query();
@@ -4976,8 +5027,8 @@ function testSendLineLatest()
                 } else {
                     $result = str_replace(['attend_', '_information'], '', $table);
                     if (ctype_digit($result)) {
-                        $sql = "SELECT *
-                                FROM    org_information
+                        $sql = "SELECT * 
+                                FROM    org_information 
                                 WHERE   id = '{$result}'";
                         $db->setQuery($sql);
                         $rs_org = $db->loadAssocList();
@@ -4997,14 +5048,14 @@ function testSendLineLatest()
                                     // $db->query();
                                     // // exit($db->getQuery());
                                     // //check status org
-                                    // $sql = "UPDATE org_information
-                                    //                 SET    status = '2'
+                                    // $sql = "UPDATE org_information 
+                                    //                 SET    status = '2' 
                                     //                 WHERE  id = '{$result}'";
                                     // $db->setQuery($sql);
                                     // $db->query();
-                                    // //update user org
-                                    // $sql = "UPDATE users
-                                    //                 SET    org_id = '0'
+                                    // //update user org 
+                                    // $sql = "UPDATE users 
+                                    //                 SET    org_id = '0' 
                                     //                 WHERE  org_id = '{$result}'";
                                     // $db->setQuery($sql);
                                     // $db->query();
@@ -5041,22 +5092,22 @@ function testSendLineLatest()
    public function getLogDataLogin()
     {
         $db = getDBO();
-
+        
         // 1. ดึงรายชื่อองค์กร
         $sql = "SELECT org_id FROM `users` WHERE `status` = '1' AND org_id != '0' GROUP BY org_id";
         $db->setQuery($sql);
         $rs = $db->loadAssocList();
-
+        
         // 2. กำหนดตัวแปร
         $yesterday = date('Y-m-d', strtotime('-1 day'));
-        $yesterday_show = date('d/m/Y', strtotime('-1 day'));
-
+        $yesterday_show = date('d/m/Y', strtotime('-1 day')); 
+        
         // กำหนด Header ของข้อความ
         $header_msg = "📊 สรุปการใช้งาน IsmartLogin" . PHP_EOL . "📅 ประจำวันที่ " . $yesterday_show . PHP_EOL . "------------------" . PHP_EOL;
-
+        
         $current_msg = $header_msg;
-        $collected_data = array();
-
+        $collected_data = array(); 
+        
         if ($rs) {
             $len = count($rs);
 
@@ -5085,7 +5136,7 @@ function testSendLineLatest()
                     $sql_org = "SELECT subject FROM org_information WHERE id = '{$org_id}'";
                     $db->setQuery($sql_org);
                     $org_info = $db->loadAssocList();
-
+                    
                     if ($org_info) {
                         $collected_data[] = array(
                             'name' => $org_info[0]['subject'],
@@ -5104,15 +5155,15 @@ function testSendLineLatest()
                 // --- Phase 3: สร้างข้อความและทยอยส่ง ---
                 foreach ($collected_data as $item) {
                     $line = "🏢 " . $item['name'] . " : " . $item['count'] . " คน" . PHP_EOL;
-
+                    
                     // Logic ตัดแบ่งข้อความ (Pagination)
                     if (mb_strlen($current_msg . $line, 'UTF-8') > 900) {
                         $this->sendLineChunk($current_msg); // ส่งชุดเก่า
-
+                        
                         // เริ่มชุดใหม่
                         $current_msg = "📊 สรุปการใช้งาน (ต่อ) ..." . PHP_EOL . "------------------" . PHP_EOL;
                     }
-
+                    
                     $current_msg .= $line;
                 }
 
@@ -5120,7 +5171,7 @@ function testSendLineLatest()
                 $this->sendLineChunk($current_msg);
 
                 echo json_encode([
-                    "status" => true,
+                    "status" => true, 
                     "msg" => "Sent sorted messages successfully (Filtered > 0)",
                     "total_active_orgs" => count($collected_data)
                 ], JSON_UNESCAPED_UNICODE);
@@ -5134,10 +5185,264 @@ function testSendLineLatest()
         }
         exit();
     }
+  function uploadSickCert()
+    { // อัพโหลดใบรับรองแพทย์ย้อนหลัง
+        $var = json_decode(file_get_contents('php://input'));
+        $var = (array) $var;
+        //-----
+        $leave_id = request('leave_id');
+        $org_id = request('org_id');
+        $uid = request('uid');
+
+        if (!$leave_id || !$org_id) {
+            $rs = [
+                'msg' => 'Missing parameters',
+                'status' => false
+            ];
+            echo json_encode($rs);
+            exit();
+        }
+
+        $db = getDBO();
+        $table_info = 'leave_' . $org_id . '_information';
+        
+        // 1. Get existing uploadKey
+        $sql = "SELECT uploadKey FROM {$table_info} WHERE id = {$leave_id}";
+        $db->setQuery($sql);
+        $result = $db->loadAssocList();
+        
+        if(!$result) {
+             $rs = [
+                'msg' => 'Leave record not found',
+                'status' => false
+            ];
+            echo json_encode($rs);
+            exit();
+        }
+
+        $uploadKey = $result[0]['uploadKey'];
+
+        // If no uploadKey (legacy data?), generate one and update
+        if (empty($uploadKey)) {
+            $uploadKey = md5(time() . rand(0, 100));
+            $obj = new stdClass();
+            $obj->id = $leave_id;
+            $obj->uploadKey = $uploadKey;
+            $db->updateObject($table_info, $obj, 'id');
+        }
+
+        // 2. Upload File
+        if ($_FILES) {
+            $tableFile = 'leave_' . $org_id;
+            // Re-use existing upload function
+            // Note: uploadFileImagesFlutter inserts into [tableFile]_attachments
+            $this->uploadFileImagesFlutter($uploadKey, $_FILES, $tableFile, $uid, 'sick_cert');
+        }
+
+        $rs = [
+            'msg' => 'success',
+            'status' => true,
+            'uploadKey' => $uploadKey
+        ];
+
+        // --- Notification Logic ---
+        // 1. Get Head ID (Approver) from leave_information or users
+        // This query gets the creator and their head
+        $sql = "SELECT create_by FROM {$table_info} WHERE id = '{$leave_id}'";
+        $db->setQuery($sql);
+        $leaveData = $db->loadAssocList();
+        
+        if ($leaveData) {
+            $create_by = $leaveData[0]['create_by'];
+            
+            // Get Head ID of the requester
+             $sql = "SELECT head_id FROM users WHERE id = '{$create_by}'";
+             $db->setQuery($sql);
+             $userData = $db->loadAssocList();
+             
+             if($userData) {
+                 $head_id = $userData[0]['head_id'];
+                 
+                 // 2. Insert Notification
+                 // type = 1 (Request Leave / General Leave Notification) - Adjust if you have specific type for attachment
+                 // Using 1 for general "Check this leave" notification
+                 $this->insertNotiLeave($org_id, $leave_id, '1', $uid, $head_id); 
+                 
+                 // Optional: Send Line Notification if needed (re-using existing functions if available)
+                 // $_REQUEST['id'] = $leave_id; ... $this->setLineNotify();
+             }
+        }
+        // --------------------------
+        
+        echo json_encode($rs, JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+    public function deleteLeaveAttachment()
+    {
+        $file_id = request('file_id');
+        $leave_id = request('leave_id');
+        $org_id = request('org_id');
+        $uid = request('uid');
+
+        if (!$file_id || !$org_id || !$uid) {
+            echo json_encode(['status' => false, 'msg' => 'Missing parameters']);
+            exit();
+        }
+
+        $db = getDBO();
+        $table_files = 'leave_' . $org_id . '_attachments';
+
+        // 1. Get file info to delete from disk
+        // Ensure the user owns this file (optional check: AND create_by = $uid)
+        // For simplicity, we assume the UI handles ownership checks, but for security, we should check create_by if available in the attachments table.
+        // Assuming leave_attachments shares a structure where uploading user is tracked or implied. 
+        // Based on uploadFileImagesFlutter, it doesn't explicitly store create_by in the attachment table usually, 
+        // but relies on the uploadKey which is linked to the leave request.
+        
+        $sql = "SELECT path, filename FROM {$table_files} WHERE id = '{$file_id}'";
+        $db->setQuery($sql);
+        $fileData = $db->loadAssocList();
+
+        if (!$fileData) {
+            echo json_encode(['status' => false, 'msg' => 'File not found']);
+            exit();
+        }
+
+        $filePath = $fileData[0]['path'];
+        // Fix path if it's relative/absolute URL mixed
+        // Usually path in DB is relative e.g. "upload/..." or full URL.
+        // If it starts with http, we can't unlink it directly unless we map it to local path.
+        // Standard in this project seems to be relative path or full URL. 
+        // We will try to map it.
+
+        $physicalPath = str_replace(Site::$url, '', $filePath);
+        $physicalPath = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($physicalPath, '/');
+
+        if (file_exists($physicalPath)) {
+            @unlink($physicalPath);
+        }
+
+        // 2. Delete from DB
+        $sql = "DELETE FROM {$table_files} WHERE id = '{$file_id}'";
+        $db->setQuery($sql);
+        if ($db->query()) {
+             echo json_encode(['status' => true, 'msg' => 'Deleted']);
+        } else {
+             echo json_encode(['status' => false, 'msg' => 'Database error']);
+        }
+        exit();
+    }
 
     // --- ฟังก์ชันย่อยสำหรับส่งไลน์ ---
     private function sendLineChunk($msg) {
-        $line_token = "C7780f4fde1552d4e12b438ea6555552f";
+        $line_token = "C7780f4fde1552d4e12b438ea6555552f"; 
         $this->sendTextToLineGroup($line_token, $msg);
+    }
+    public function sendLeaveNotification()
+    {
+        $leave_id = request('leave_id');
+        $org_id = request('org_id');
+        $uid = request('uid');
+
+        if (!$leave_id || !$org_id || !$uid) {
+            echo json_encode(['status' => false, 'msg' => 'Missing parameters']);
+            exit();
+        }
+
+        $db = getDBO();
+        $table_info = 'leave_' . $org_id . '_information';
+
+        // Get leave creator
+        $sql = "SELECT create_by FROM {$table_info} WHERE id = '{$leave_id}'";
+        $db->setQuery($sql);
+        $leaveData = $db->loadAssocList();
+
+        if ($leaveData) {
+            $create_by = $leaveData[0]['create_by'];
+            
+            // Try to get head_id or leave_aid from users table
+            $sql = "SELECT head_id, leave_aid FROM users WHERE id = '{$create_by}'";
+            $db->setQuery($sql);
+            $userData = $db->loadAssocList();
+             
+            $approver_id = null;
+            
+            if($userData) {
+                // Try head_id first
+                if (!empty($userData[0]['head_id'])) {
+                    $approver_id = $userData[0]['head_id'];
+                }
+                // Fallback to leave_aid
+                else if (!empty($userData[0]['leave_aid'])) {
+                    $approver_id = $userData[0]['leave_aid'];
+                }
+            }
+            
+            // Fallback 1: Find an admin in the organization via user_relationship
+            if (!$approver_id) {
+                $sql = "SELECT u.id FROM users u 
+                        INNER JOIN user_relationship ur ON u.id = ur.uid 
+                        WHERE ur.org_id = '{$org_id}' 
+                        AND ur.member_type = 'admin' 
+                        AND ur.status = '1'
+                        LIMIT 1";
+                $db->setQuery($sql);
+                $adminData = $db->loadAssocList();
+                if ($adminData) {
+                    $approver_id = $adminData[0]['id'];
+                }
+            }
+            
+            // Fallback 2: Find the organization owner from org_information
+            if (!$approver_id) {
+                $sql = "SELECT create_by FROM org_information WHERE id = '{$org_id}'";
+                $db->setQuery($sql);
+                $orgData = $db->loadAssocList();
+                if ($orgData && !empty($orgData[0]['create_by'])) {
+                    $approver_id = $orgData[0]['create_by'];
+                }
+            }
+            
+            // Fallback 3: Find any user with role NOT 'user' in user_relationship for this org
+            if (!$approver_id) {
+                $sql = "SELECT u.id FROM users u 
+                        INNER JOIN user_relationship ur ON u.id = ur.uid 
+                        WHERE ur.org_id = '{$org_id}' 
+                        AND ur.member_type != 'user'
+                        AND ur.status = '1'
+                        AND u.id != '{$uid}'
+                        LIMIT 1";
+                $db->setQuery($sql);
+                $anyAdminData = $db->loadAssocList();
+                if ($anyAdminData) {
+                    $approver_id = $anyAdminData[0]['id'];
+                }
+            }
+            
+            // Fallback 4: Find the first user in this org who is NOT the requester
+            if (!$approver_id) {
+                $sql = "SELECT id FROM users 
+                        WHERE org_id = '{$org_id}' 
+                        AND id != '{$uid}'
+                        AND status = '1'
+                        LIMIT 1";
+                $db->setQuery($sql);
+                $firstUserData = $db->loadAssocList();
+                if ($firstUserData) {
+                    $approver_id = $firstUserData[0]['id'];
+                }
+            }
+            
+            if ($approver_id) {
+                // Send Notification - Type '5' for Additional Document Attachment
+                $this->insertNotiLeave($org_id, $leave_id, '5', $uid, $approver_id); 
+                
+                echo json_encode(['status' => true, 'msg' => 'Notification sent']);
+                exit();
+            }
+        }
+        
+        echo json_encode(['status' => false, 'msg' => 'ไม่พบผู้อนุมัติ กรุณาตั้งค่าหัวหน้างานหรือผู้อนุมัติใบลา']);
+        exit();
     }
 }

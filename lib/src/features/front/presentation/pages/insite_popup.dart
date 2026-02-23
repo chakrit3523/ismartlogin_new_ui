@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/src/features/front/presentation/pages/future/attend_future.dart';
+import 'package:ismart_login/src/features/front/presentation/pages/checkin_success_popup.dart';
 import 'package:ismart_login/services/longdo_map_service.dart';
 
 import 'package:ismart_login/src/app/pages/main_page.dart';
@@ -763,11 +764,23 @@ class _InsiteDialogState extends State<InsiteDialog> {
       }
     }
 
-    // Success Navigation
+    // Show success summary popup then navigate
     Navigator.pop(context);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => MainPage()),
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => CheckinSuccessPopup(
+        uid: widget.uid,
+        scheduledTime: widget.time,
+        actualTime: widget.time_server,
+        isLate: !checkTimr(widget.time) && !checkHoliday(widget.holiday),
+      ),
     );
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()),
+      );
+    }
   }
 }

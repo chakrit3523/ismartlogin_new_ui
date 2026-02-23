@@ -3,6 +3,7 @@ import 'package:ismart_login/src/features/leave/domain/entities/leave_date_selec
 import 'package:ismart_login/src/features/leave/domain/usecases/leave_date_calculator.dart';
 import 'package:ismart_login/src/features/leave/presentation/helpers/thai_leave_date_formatter.dart';
 import 'package:ismart_login/src/features/leave/presentation/widgets/leave_date_range_picker_controller.dart';
+import 'package:ismart_login/src/features/leave/presentation/widgets/thai_date_range_picker.dart';
 
 class LeaveDateRangePickerField extends StatefulWidget {
   const LeaveDateRangePickerField({
@@ -56,32 +57,12 @@ class _LeaveDateRangePickerFieldState extends State<LeaveDateRangePickerField> {
   }
 
   Future<void> _pickDateRangeAndOptions() async {
-    final pickedRange = await showDateRangePicker(
+    final pickedRange = await showThaiDateRangePicker(
       context: context,
-      locale: const Locale('th', 'TH'),
-      initialDateRange: DateTimeRange(
-        start: _controller.startDate,
-        end: _controller.endDate,
-      ),
+      initialStart: _controller.startDate,
+      initialEnd: _controller.endDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      helpText: 'เลือกช่วงวันที่ลา',
-      cancelText: 'ยกเลิก',
-      confirmText: 'ถัดไป',
-      saveText: 'ยืนยัน',
-      builder: (context, child) {
-        final theme = Theme.of(context);
-        return Theme(
-          data: theme.copyWith(
-            useMaterial3: true,
-            colorScheme: theme.colorScheme.copyWith(
-              primary: theme.colorScheme.primary,
-              onPrimary: theme.colorScheme.onPrimary,
-            ),
-          ),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
     );
 
     if (pickedRange == null) {
