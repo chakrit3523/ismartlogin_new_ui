@@ -241,7 +241,7 @@ class _MainPageState extends State<MainPage> {
 
         // Profile button
         if (index == 3) {
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             _createSlideUpRoute(ProfileScreen()),
           );
@@ -250,7 +250,7 @@ class _MainPageState extends State<MainPage> {
 
         // Menu button - Show full-screen menu sliding from bottom
         if (index == 4) {
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             _createSlideUpRoute(
               MenuScreen(

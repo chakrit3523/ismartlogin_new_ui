@@ -1257,7 +1257,19 @@ class _FrontScreenState extends State<FrontScreen>
         blocSetState(() {
           _imageFile = XFile(imagePath);
         });
-        _getMyLocation();
+
+        EasyLoading.show(status: 'กำลังระบุตำแหน่งล่าสุด...');
+        try {
+          LocationData locData = await location.getLocation();
+          blocSetState(() {
+            _myLat = locData.latitude ?? 0.0;
+            _myLng = locData.longitude ?? 0.0;
+          });
+        } catch (e) {
+          print("Error getting location: $e");
+        }
+        EasyLoading.dismiss();
+
         Map _map = {
           "uid": _items[0].ID,
           "pathImage": imagePath, // Use imagePath
@@ -1331,6 +1343,18 @@ class _FrontScreenState extends State<FrontScreen>
         blocSetState(() {
           _imageFile = XFile(imagePath);
         });
+
+        EasyLoading.show(status: 'กำลังระบุตำแหน่งล่าสุด...');
+        try {
+          LocationData locData = await location.getLocation();
+          blocSetState(() {
+            _myLat = locData.latitude ?? 0.0;
+            _myLng = locData.longitude ?? 0.0;
+          });
+        } catch (e) {
+          print("Error getting location: $e");
+        }
+        EasyLoading.dismiss();
 
         showDialog(
             context: context,

@@ -269,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       floatingActionButton: FloatingClockFAB(
         onPressed: () {
-          Navigator.pushAndRemoveUntil(
+          Navigator.pushReplacement(
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
@@ -285,7 +285,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     position: animation.drive(tween), child: child);
               },
             ),
-            (route) => false,
           );
         },
       ),
@@ -295,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: (index) {
           if (index == 3) return; // Already here
 
-          Navigator.pushAndRemoveUntil(
+          Navigator.pushReplacement(
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
@@ -311,7 +310,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     position: animation.drive(tween), child: child);
               },
             ),
-            (route) => false,
           );
         },
       ),

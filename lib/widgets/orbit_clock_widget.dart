@@ -126,14 +126,21 @@ class _OrbitClockWidgetState extends State<OrbitClockWidget> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}',
-                    style: GoogleFonts.kanit(
-                      fontSize: size * 0.22,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF2D3142),
-                      height: 0.9,
-                      letterSpacing: -1,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}',
+                        maxLines: 1,
+                        style: GoogleFonts.kanit(
+                          fontSize: size * 0.20,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF2D3142),
+                          height: 0.9,
+                          letterSpacing: -1,
+                        ),
+                      ),
                     ),
                   ),
                 ],

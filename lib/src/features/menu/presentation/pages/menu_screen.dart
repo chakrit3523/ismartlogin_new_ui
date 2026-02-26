@@ -49,7 +49,7 @@ class MenuScreen extends StatelessWidget {
     return Scaffold(
       floatingActionButton: FloatingClockFAB(
         onPressed: () {
-          Navigator.pushAndRemoveUntil(
+          Navigator.pushReplacement(
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
@@ -65,7 +65,6 @@ class MenuScreen extends StatelessWidget {
                     position: animation.drive(tween), child: child);
               },
             ),
-            (route) => false,
           );
         },
       ),
@@ -75,7 +74,7 @@ class MenuScreen extends StatelessWidget {
         onTap: (index) {
           if (index == 4) return; // Already here
 
-          Navigator.pushAndRemoveUntil(
+          Navigator.pushReplacement(
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
@@ -91,7 +90,6 @@ class MenuScreen extends StatelessWidget {
                     position: animation.drive(tween), child: child);
               },
             ),
-            (route) => false,
           );
         },
       ),
