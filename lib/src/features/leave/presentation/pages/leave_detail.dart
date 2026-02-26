@@ -529,6 +529,13 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     // print(data);
     if (data[0]['status'] == true) {
       cateName = data[0]['cateName'].toString();
+      final halfDayPeriod = data[0]['half_day_period']?.toString();
+      if (halfDayPeriod == 'morning') {
+        cateName += ' (ครึ่งวันเช้า)';
+      } else if (halfDayPeriod == 'afternoon') {
+        cateName += ' (ครึ่งวันบ่าย)';
+      }
+      
       totalLeave = data[0]['totalLeave'].toString();
       cate_name = data[0]['cate_name'].toString();
       cid = data[0]['cid'].toString();

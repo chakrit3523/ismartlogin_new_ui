@@ -460,11 +460,31 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
                             ),
                           ),
                         if (item.START_LOCATION_STATUS == '1')
-                          Text(
-                            'อยู่นอกพื้นที่ : ใช่',
-                            style: GoogleFonts.kanit(
-                              fontSize: 10,
-                              color: Colors.cyan,
+                          Container(
+                            margin: EdgeInsets.only(top: 2),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Color(0xFFFF9800), width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.location_off,
+                                    size: 10, color: Color(0xFFE65100)),
+                                SizedBox(width: 3),
+                                Text(
+                                  'นอกพื้นที่',
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 9,
+                                    color: Color(0xFFE65100),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         if (item.START_ADDRESS.isNotEmpty)
@@ -574,11 +594,31 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
                           ),
                         ),
                         if (item.END_LOCATION_STATUS == '1' || item.CID == '3')
-                          Text(
-                            'อยู่นอกพื้นที่ : ใช่',
-                            style: GoogleFonts.kanit(
-                              fontSize: 10,
-                              color: Colors.cyan,
+                          Container(
+                            margin: EdgeInsets.only(top: 2),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Color(0xFFFF9800), width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.location_off,
+                                    size: 10, color: Color(0xFFE65100)),
+                                SizedBox(width: 3),
+                                Text(
+                                  'นอกพื้นที่',
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 9,
+                                    color: Color(0xFFE65100),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         if (item.END_ADDRESS.isNotEmpty)
@@ -661,8 +701,8 @@ class _HistoryMeScreenState extends State<HistoryMeScreen> {
     String imageUrl = status == 1 ? item.START_IMAGE : item.END_IMAGE;
     String dateTh = item.CREATE_DATE_TH;
     String time = status == 1 ? item.START_TIME : item.END_TIME;
-    String lat = status == 1 ? item.START_LATITUDE : '';
-    String long = status == 1 ? item.START_LONGITUDE : '';
+    String lat = status == 1 ? item.START_LATITUDE : item.END_LATITUDE;
+    String long = status == 1 ? item.START_LONGITUDE : item.END_LONGITUDE;
 
     showDialog(
       context: context,

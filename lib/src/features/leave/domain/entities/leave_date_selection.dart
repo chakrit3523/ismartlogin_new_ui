@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum HalfDayPeriod { morning, afternoon }
+
 @immutable
 class LeaveDateSelection {
   final DateTime startDate;
@@ -9,6 +11,7 @@ class LeaveDateSelection {
   final TimeOfDay? endTime;
   final bool isHalfDay;
   final bool isTimeRange;
+  final HalfDayPeriod? halfDayPeriod;
 
   const LeaveDateSelection({
     required this.startDate,
@@ -18,6 +21,7 @@ class LeaveDateSelection {
     this.endTime,
     this.isHalfDay = false,
     this.isTimeRange = false,
+    this.halfDayPeriod,
   });
 
   LeaveDateSelection copyWith({
@@ -28,8 +32,10 @@ class LeaveDateSelection {
     TimeOfDay? endTime,
     bool? isHalfDay,
     bool? isTimeRange,
+    HalfDayPeriod? halfDayPeriod,
     bool clearStartTime = false,
     bool clearEndTime = false,
+    bool clearHalfDayPeriod = false,
   }) {
     return LeaveDateSelection(
       startDate: startDate ?? this.startDate,
@@ -39,6 +45,8 @@ class LeaveDateSelection {
       endTime: clearEndTime ? null : (endTime ?? this.endTime),
       isHalfDay: isHalfDay ?? this.isHalfDay,
       isTimeRange: isTimeRange ?? this.isTimeRange,
+      halfDayPeriod:
+          clearHalfDayPeriod ? null : (halfDayPeriod ?? this.halfDayPeriod),
     );
   }
 

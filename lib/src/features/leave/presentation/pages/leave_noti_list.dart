@@ -278,6 +278,27 @@ class _LeaveNotiListScreenState extends State<LeaveNotiListScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (item['cate_name'] != null &&
+                      item['cate_name'].toString().isNotEmpty)
+                    Container(
+                      margin: EdgeInsets.only(top: 4),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Color(0xFF90CAF9), width: 0.5),
+                      ),
+                      child: Text(
+                        item['cate_name'].toString(),
+                        style: GoogleFonts.kanit(
+                          fontSize: 12,
+                          color: Color(0xFF1565C0),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   SizedBox(height: 8),
                   Text(
                     item['create_date'].toString(),

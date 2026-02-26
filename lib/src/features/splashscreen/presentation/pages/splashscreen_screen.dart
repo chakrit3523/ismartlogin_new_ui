@@ -393,12 +393,16 @@ class _SplashscreenScreenState extends State<SplashscreenScreen>
           SizedBox(
             width: 12.0,
           ),
-          Text(
-            'สวัสดี คุณ' + _subFullname(name),
-            style: TextStyle(
-                fontFamily: FontStyles().FontFamily,
-                fontSize: 25,
-                color: Colors.black87),
+          Flexible(
+            child: Text(
+              'สวัสดี คุณ' + _subFullname(name),
+              style: TextStyle(
+                  fontFamily: FontStyles().FontFamily,
+                  fontSize: 18,
+                  color: Colors.black87),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

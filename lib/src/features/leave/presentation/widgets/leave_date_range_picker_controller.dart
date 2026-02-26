@@ -15,6 +15,7 @@ class LeaveDateRangePickerController extends ChangeNotifier {
   bool _isTimeRange = false;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  HalfDayPeriod? _halfDayPeriod;
 
   DateTime get startDate => _startDate;
   DateTime get endDate => _endDate;
@@ -22,6 +23,7 @@ class LeaveDateRangePickerController extends ChangeNotifier {
   bool get isTimeRange => _isTimeRange;
   TimeOfDay? get startTime => _startTime;
   TimeOfDay? get endTime => _endTime;
+  HalfDayPeriod? get halfDayPeriod => _halfDayPeriod;
 
   void setDateRange(DateTime start, DateTime end) {
     final startOnly = _dateOnly(start);
@@ -46,7 +48,15 @@ class LeaveDateRangePickerController extends ChangeNotifier {
       _startTime = null;
       _endTime = null;
       _endDate = _startDate;
+      _halfDayPeriod ??= HalfDayPeriod.morning;
+    } else {
+      _halfDayPeriod = null;
     }
+    notifyListeners();
+  }
+
+  void setHalfDayPeriod(HalfDayPeriod value) {
+    _halfDayPeriod = value;
     notifyListeners();
   }
 
@@ -101,6 +111,7 @@ class LeaveDateRangePickerController extends ChangeNotifier {
       endTime: _endTime,
       isHalfDay: _isHalfDay,
       isTimeRange: _isTimeRange,
+      halfDayPeriod: _isHalfDay ? _halfDayPeriod : null,
     );
   }
 
@@ -111,6 +122,7 @@ class LeaveDateRangePickerController extends ChangeNotifier {
     _isTimeRange = value.isTimeRange;
     _startTime = value.startTime;
     _endTime = value.endTime;
+    _halfDayPeriod = value.halfDayPeriod;
     notifyListeners();
   }
 

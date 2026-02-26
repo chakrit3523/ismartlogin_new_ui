@@ -208,6 +208,30 @@ class _LeaveDateRangePickerFieldState extends State<LeaveDateRangePickerField> {
                       ],
                     ),
                   ],
+                  if (controller.isHalfDay) ...[
+                    const SizedBox(height: 16),
+                    SegmentedButton<HalfDayPeriod>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment<HalfDayPeriod>(
+                          value: HalfDayPeriod.morning,
+                          label: Text('ครึ่งวันเช้า'),
+                          icon: Icon(Icons.wb_sunny_outlined, size: 18),
+                        ),
+                        ButtonSegment<HalfDayPeriod>(
+                          value: HalfDayPeriod.afternoon,
+                          label: Text('ครึ่งวันบ่าย'),
+                          icon: Icon(Icons.wb_twilight_outlined, size: 18),
+                        ),
+                      ],
+                      selected: {
+                        controller.halfDayPeriod ?? HalfDayPeriod.morning
+                      },
+                      onSelectionChanged: (selected) {
+                        controller.setHalfDayPeriod(selected.first);
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -314,7 +338,9 @@ class _LeaveDateRangePickerFieldState extends State<LeaveDateRangePickerField> {
         final modeLabel = _controller.isTimeRange
             ? 'รายชั่วโมง'
             : _controller.isHalfDay
-                ? 'ครึ่งวัน'
+                ? (_controller.halfDayPeriod == HalfDayPeriod.afternoon
+                    ? 'ครึ่งวันบ่าย'
+                    : 'ครึ่งวันเช้า')
                 : 'ทั้งวัน';
 
         return InkWell(

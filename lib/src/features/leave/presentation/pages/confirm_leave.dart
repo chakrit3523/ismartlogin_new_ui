@@ -3,16 +3,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:ismart_login/utils/dialog_helper.dart';
+import 'package:ismart_login/src/app/pages/main_page.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:ismart_login/server/server.dart';
-import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
-import 'package:ismart_login/system/widht_device.dart';
 import 'package:http/http.dart' as http;
-import 'package:ismart_login/src/app/pages/main_page.dart';
 
 class ConfirmDialog extends StatefulWidget {
   final String cause;
@@ -29,6 +27,8 @@ class ConfirmDialog extends StatefulWidget {
   final bool select2;
   final bool select3;
   final List<File> filesAll;
+  final String halfDayPeriod;
+  final Function(String) onConfirmTap;
 
   const ConfirmDialog({
     required Key key,
@@ -47,61 +47,55 @@ class ConfirmDialog extends StatefulWidget {
     required this.lastTime,
     required this.cidSub,
     required this.filesAll,
+    this.halfDayPeriod = '',
   }) : super(key: key);
 
   @override
   State<ConfirmDialog> createState() => _ConfirmDialogState();
-  final Function(String) onConfirmTap;
 }
 
 class _ConfirmDialogState extends State<ConfirmDialog> {
-  TextEditingController _inputNote = TextEditingController();
   late String typeLeave;
   late String cidLeave;
-  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
   void initState() {
+    super.initState();
     if (widget.select1) {
-      blocSetState(() {
-        typeLeave = "ลาป่วย";
-        cidLeave = "2";
-      });
-    }
-    if (widget.select2) {
-      blocSetState(() {
-        typeLeave = "ลากิจ";
-        cidLeave = "3";
-      });
-    }
-    if (widget.select3) {
-      blocSetState(() {
-        typeLeave = "ลาอื่น ๆ";
-        cidLeave = "4";
-      });
+      typeLeave = 'ลาป่วย';
+      cidLeave = '2';
+    } else if (widget.select2) {
+      typeLeave = 'ลากิจ';
+      cidLeave = '3';
+    } else {
+      typeLeave = 'ลาอื่น ๆ';
+      cidLeave = '4';
     }
   }
 
-  String get _effectiveNumDate {
-    final fallback =
-        widget.numDate.trim().isEmpty ? '1' : widget.numDate.trim();
-    if (widget.selectFulltime != "1") {
-      return fallback;
-    }
-
+  String get _displayNumDate {
+    // If half-day, always use the passed numDate (0.5)
+    if (widget.halfDayPeriod.isNotEmpty) return widget.numDate;
+    // For time-range mode just return numDate
+    if (widget.selectFulltime != '1') return widget.numDate;
+    // For full-day, recalculate from dates to be accurate
     final from = _parseFlexibleDate(widget.FirstDate);
     final to = _parseFlexibleDate(widget.LastDate);
     if (from == null || to == null) {
-      return fallback;
+      return widget.numDate.isEmpty ? '1' : widget.numDate;
     }
-
-    final start = DateTime(from.year, from.month, from.day);
-    final end = DateTime(to.year, to.month, to.day);
-    final days = end.difference(start).inDays.abs() + 1;
+    final days =
+        DateTime(to.year, to.month, to.day)
+            .difference(DateTime(from.year, from.month, from.day))
+            .inDays
+            .abs() +
+        1;
     return days.toString();
   }
 
   DateTime? _parseFlexibleDate(String raw) {
     final value = raw.trim();
-
     final ymd = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})$').firstMatch(value);
     if (ymd != null) {
       return DateTime(
@@ -110,423 +104,470 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
         int.parse(ymd.group(3)!),
       );
     }
-
     final dmy = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{2,4})$').firstMatch(value);
     if (dmy != null) {
       int year = int.parse(dmy.group(3)!);
-      if (year < 100) {
-        // Treat 2-digit input as BE short year (e.g. 69 -> 2569 -> 2026 AD).
-        year = (2500 + year) - 543;
-      } else if (year > 2400) {
-        year -= 543;
-      }
-      return DateTime(
-        year,
-        int.parse(dmy.group(2)!),
-        int.parse(dmy.group(1)!),
-      );
+      if (year > 2400) year -= 543;
+      return DateTime(year, int.parse(dmy.group(2)!), int.parse(dmy.group(1)!));
     }
-
     return null;
   }
 
-  // ignore: missing_return
-  Future<bool> insertInfoLeave() async {
-    Map map = {
-      "uid": await SharedCashe.getItemsWay(name: 'id'),
-      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
-      'cause': widget.cause,
-      'firstdate': widget.FirstDate,
-      'lastdate': widget.LastDate,
-      'phoneNum': widget.phoneNum,
-      'numDate': _effectiveNumDate,
-      'selectFultime': widget.selectFulltime,
-      'firstTime': widget.firstTime,
-      'lastTime': widget.lastTime,
-      'selectFulltime': widget.selectFulltime,
-      'cid': widget.cidSub != '' ? widget.cidSub : cidLeave,
-    };
-    var body = json.encode(map);
-    print(body);
-    // return false;
-    final http.Response response = await http.post(
-      Uri.parse(Server().insertInfoLeave),
-      headers: <String, String>{
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Headers":
-            "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
-        "Access-Control-Allow-Methods": "*"
-      },
-      body: body,
-    );
-    if (response.statusCode != 200) {
-      return false;
-    }
-    print(response);
-    final data = json.decode(response.body);
-    print(data);
-    if (data['msg'] == 'success') {
-      Navigator.pop(context);
-      alert_end(context, "บันทึกข้อมูลใบลาเรียบร้อยแล้ว");
-      return true;
-    } else {
-      Navigator.pop(context);
-      alert_end(context, "ไม่สามารถบันทึกข้อมูลใบลา กรุณาติดต่อเจ้าหน้าที่");
-      return false;
-    }
+  String get _halfDayLabel {
+    if (widget.halfDayPeriod == 'morning') return 'ครึ่งวันเช้า';
+    if (widget.halfDayPeriod == 'afternoon') return 'ครึ่งวันบ่าย';
+    return '';
   }
 
-  insertLeave() async {
-    AwesomeDialog loadingDialog =
-        DialogHelper.showLoading(context, 'กำลังโหลด...');
-    var uri = Uri.parse(Server().insertInfoLeave);
-    print("inform uri: ${uri.toString()}");
-    var request = http.MultipartRequest('POST', uri);
-    request.fields['uid'] = await SharedCashe.getItemsWay(name: 'id');
-    request.fields['org_id'] = await SharedCashe.getItemsWay(name: 'org_id');
-    request.fields['cause'] = widget.cause;
-    request.fields['firstdate'] = widget.FirstDate;
-    request.fields['lastdate'] = widget.LastDate;
-    request.fields['phoneNum'] = widget.phoneNum;
-    request.fields['numDate'] = _effectiveNumDate;
-    request.fields['selectFultime'] = widget.selectFulltime;
-    request.fields['firstTime'] = widget.firstTime;
-    request.fields['lastTime'] = widget.lastTime;
-    request.fields['selectFulltime'] = widget.selectFulltime;
-    if (widget.cidSub != '') {
-      request.fields['cid'] = widget.cidSub;
-    } else {
-      request.fields['cid'] = cidLeave;
-    }
-    var lenFile = widget.filesAll.length;
-    if (lenFile > 0) {
-      for (int i = 0; i < lenFile; i++) {
-        var ext = widget.filesAll[i].path.split('.').last;
-        var file = await http.MultipartFile.fromPath(
-            'file[$i]', widget.filesAll[i].path,
-            contentType: MediaType('image', ext));
+  String get _periodIcon {
+    if (widget.halfDayPeriod == 'morning') return '🌅';
+    if (widget.halfDayPeriod == 'afternoon') return '🌇';
+    return '';
+  }
+
+  Future<void> _insertLeave() async {
+    if (_isLoading) return;
+    if (!mounted) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final uid = await SharedCashe.getItemsWay(name: 'id');
+      final orgId = await SharedCashe.getItemsWay(name: 'org_id');
+      final cid = widget.cidSub.isNotEmpty ? widget.cidSub : cidLeave;
+
+      var uri = Uri.parse(Server().insertInfoLeave);
+      var request = http.MultipartRequest('POST', uri);
+      request.fields['uid'] = uid;
+      request.fields['org_id'] = orgId;
+      request.fields['cause'] = widget.cause;
+      request.fields['firstdate'] = widget.FirstDate;
+      request.fields['lastdate'] = widget.LastDate;
+      request.fields['phoneNum'] = widget.phoneNum;
+      request.fields['numDate'] = _displayNumDate;
+      request.fields['selectFultime'] = widget.selectFulltime;
+      request.fields['firstTime'] = widget.firstTime;
+      request.fields['lastTime'] = widget.lastTime;
+      request.fields['selectFulltime'] = widget.selectFulltime;
+      request.fields['cid'] = cid;
+      if (widget.halfDayPeriod.isNotEmpty) {
+        request.fields['half_day_period'] = widget.halfDayPeriod;
+      }
+
+      for (int i = 0; i < widget.filesAll.length; i++) {
+        final ext = widget.filesAll[i].path.split('.').last;
+        final file = await http.MultipartFile.fromPath(
+          'file[$i]',
+          widget.filesAll[i].path,
+          contentType: MediaType('image', ext),
+        );
         request.files.add(file);
       }
-    }
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    if (response.statusCode == 200) {
-      loadingDialog.dismiss();
-      final data = jsonDecode(response.body);
-      if (data['msg'] == 'success') {
-        Navigator.pop(context);
-        alert_end(context, "บันทึกข้อมูลใบลาเรียบร้อยแล้ว");
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['msg'] == 'success') {
+          Navigator.pop(context);
+          _showResultDialog(
+            success: true,
+            message: 'ส่งใบลาเรียบร้อยแล้ว',
+          );
+        } else {
+          Navigator.pop(context);
+          _showResultDialog(
+            success: false,
+            message: 'ไม่สามารถบันทึกข้อมูลใบลา\nกรุณาติดต่อเจ้าหน้าที่',
+          );
+        }
       } else {
         Navigator.pop(context);
-        alert_end(context, "ไม่สามารถบันทึกข้อมูลใบลา กรุณาติดต่อเจ้าหน้าที่");
+        _showResultDialog(
+          success: false,
+          message: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์',
+        );
       }
-    } else {
-      loadingDialog.dismiss();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
       Navigator.pop(context);
-      alert_end(context, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์");
+      _showResultDialog(
+        success: false,
+        message: 'เกิดข้อผิดพลาด: $e',
+      );
     }
   }
 
-  alert_end(BuildContext context, String text) async {
-    return showDialog(
-      barrierDismissible: true,
+  void _showResultDialog({required bool success, required String message}) {
+    showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(20.0))),
-          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-          content: Container(
-            width: WidhtDevice().widht(context),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding:
-                      EdgeInsets.only(top: 10, bottom: 10, left: 3, right: 3),
-                  alignment: Alignment.center,
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                        fontFamily: FontStyles().FontFamily, fontSize: 24),
-                    textAlign: TextAlign.center,
-                  ),
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: success ? const Color(0xFF21CCD4) : Colors.red[100],
+              ),
+              child: Icon(
+                success ? Icons.check_rounded : Icons.close_rounded,
+                color: success ? Colors.white : Colors.red,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.kanit(fontSize: 16, color: Colors.black87),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFF21CCD4),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                if (success) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => MainPage()),
+                    (_) => false,
+                  );
+                }
+              },
+              child: Text(
+                'รับทราบ',
+                style: GoogleFonts.kanit(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                Container(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(context);
-                            AwesomeDialog loadingDialog =
-                                DialogHelper.showLoading(context, 'Loading...');
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MainPage()),
-                            ).then((_) => loadingDialog.dismiss());
-                            // delay slightly to allow push to start?
-                            // Just dismissing immediately might be fine if MainPage manages itself.
-                            // But since we navigate away, the dialog context might be tricky.
-                            // Actually, if we push MainPage, this screen is still in stack until we pop or replace.
-                            // But MainPage likely replaces everything or sits on top.
-                            // Let's just remove the loading here as it's not very useful for a local push unless there's heavy work in MainPage init.
-                            loadingDialog.dismiss();
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.0),
-                                bottomRight: Radius.circular(20.0),
-                              ),
-                            ),
-                            height: 50,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'รับทราบ',
-                              style: TextStyle(
-                                  fontFamily: FontStyles().FontFamily,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20.0))),
-      contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-      content: SingleChildScrollView(
-        child: Container(
-          width: WidhtDevice().widht(context),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Container(
-                  // width: 30,
-                  height: 120,
-                  child: Image.asset(
-                    'assets/images/other/ic-send.png',
-                    fit: BoxFit.cover,
-                  ),
+    final isTimeRange = widget.selectFulltime == '2';
+    final numDisplay = _displayNumDate;
+    final unit = isTimeRange ? 'ชม.' : 'วัน';
+
+    String dateString;
+    if (isTimeRange) {
+      dateString =
+          'วันที่ ${widget.FirstDate}\nเวลา ${widget.firstTime} - ${widget.lastTime}';
+    } else {
+      dateString = widget.FirstDate == widget.LastDate
+          ? 'วันที่ ${widget.FirstDate}'
+          : 'ตั้งแต่ ${widget.FirstDate}\nถึง ${widget.LastDate}';
+    }
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Header ──────────────────────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
-              Container(
-                child: Center(
-                  child: Text(
-                    'ส่งใบลา',
-                    style: TextStyle(
-                      fontFamily: FontStyles().FontFamily,
-                      // height: 1,
-                      fontSize: 26,
-                      color: Colors.blue.shade300,
-                    ),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.only(left: 10, right: 10),
-                      child: Text(
-                        widget.fullName.toString() +
-                            " เนื่องจาก " +
-                            widget.cause.toString() +
-                            ' ขอ' +
-                            typeLeave,
-                        style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  if (widget.selectFulltime == "1")
-                    Container(
-                      padding: EdgeInsets.only(left: 10, right: 5),
-                      child: Text(
-                        "ตั้งแต่วันที่" +
-                            " " +
-                            widget.FirstDate +
-                            " ถึง " +
-                            widget.LastDate,
-                        style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          // height: 1,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  if (widget.selectFulltime == "2")
-                    Container(
-                      padding: EdgeInsets.only(left: 10, right: 5),
-                      child: Text(
-                        "วันที่" +
-                            " " +
-                            widget.FirstDate +
-                            " เวลา " +
-                            widget.firstTime +
-                            " - " +
-                            widget.lastTime,
-                        style: TextStyle(
-                          fontFamily: FontStyles().FontFamily,
-                          // height: 1,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  Container(
-                    // padding: EdgeInsets.only(left: 5),
-                    child: Text(
-                      widget.selectFulltime == "1"
-                          ? _effectiveNumDate + " วัน"
-                          : _effectiveNumDate + " ชม.",
-                      style: TextStyle(
-                        fontFamily: FontStyles().FontFamily,
-                        // height: 1,
-                        fontSize: 20,
-                      ),
-                    ),
-                  )
-                ],
-              ),
-              Row(
+              child: Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'ยืนยันการส่งใบลา',
+                    style: GoogleFonts.kanit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     child: Text(
-                      "เบอร์ติดต่อได้ขณะลา" + " " + widget.phoneNum,
-                      style: TextStyle(
-                        fontFamily: FontStyles().FontFamily,
-                        // height: 1,
-                        fontSize: 20,
+                      typeLeave,
+                      style: GoogleFonts.kanit(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ],
               ),
-              Container(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.red[100],
-                            borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(20.0),
-                            ),
+            ),
+            // ── Body ────────────────────────────────────────────────────────────
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _InfoRow(
+                    icon: Icons.person_outline_rounded,
+                    label: 'ผู้ขอลา',
+                    value: widget.fullName,
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.notes_rounded,
+                    label: 'เหตุผล',
+                    value: widget.cause,
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.calendar_today_rounded,
+                    label: 'วันที่ลา',
+                    value: dateString,
+                  ),
+                  const SizedBox(height: 12),
+                  // Day / hour count row
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF21CCD4).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.today_rounded,
+                          size: 18,
+                          color: Color(0xFF21CCD4),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'จำนวน',
+                          style: GoogleFonts.kanit(
+                              fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
                           ),
-                          height: 50,
-                          alignment: Alignment.center,
-                          child: Text(
-                            'ยกเลิก',
-                            style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$numDisplay $unit',
+                          style: GoogleFonts.kanit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          // insertInfoLeave();
-                          insertLeave();
-                        },
-                        child: Container(
+                    ],
+                  ),
+                  // Half-day period badge
+                  if (widget.halfDayPeriod.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green[100],
-                            borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(20.0),
-                            ),
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: const Color(0xFFFFCC02), width: 0.8),
                           ),
-                          height: 50,
-                          alignment: Alignment.center,
-                          child: Text(
-                            'ยืนยัน',
-                            style: TextStyle(
-                                fontFamily: FontStyles().FontFamily,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _periodIcon,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _halfDayLabel,
+                                style: GoogleFonts.kanit(
+                                  fontSize: 12,
+                                  color: const Color(0xFFE65100),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
-                ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.phone_outlined,
+                    label: 'เบอร์ติดต่อ',
+                    value: widget.phoneNum,
+                  ),
+                  const SizedBox(height: 20),
+                  // ── Action Buttons ───────────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed:
+                              _isLoading ? null : () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Color(0xFFCCCCCC)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(
+                            'ยกเลิก',
+                            style: GoogleFonts.kanit(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _isLoading ? null : _insertLeave,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: const Color(0xFF21CCD4),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text(
+                                  'ยืนยัน',
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  _causeNote() {
-    return Container(
-      padding: EdgeInsets.all(10),
-      child: Row(
-        children: [
-          Text(
-            'สาเหตุ',
-            style: TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
+// ─── Helper widget ────────────────────────────────────────────────────────────
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: const Color(0xFF21CCD4).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
           ),
-          Expanded(
-            child: TextFormField(
-              controller: _inputNote,
-              keyboardType: TextInputType.text,
-              style:
-                  TextStyle(fontFamily: FontStyles().FontFamily, fontSize: 22),
-              decoration: InputDecoration(
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(0), // add padding to adjust icon
-                  child: Icon(
-                    Icons.edit,
-                    size: 22,
-                  ),
-                ),
+          child: Icon(icon, size: 18, color: const Color(0xFF21CCD4)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.kanit(
+                    fontSize: 12, color: Colors.grey[500]),
               ),
-              validator: (value) {
-                print("valueOT $value");
-                if (value == null || value.isEmpty) {
-                  return 'กรุณาป้อนข้อมูล';
-                }
-                return null;
-              },
-            ),
-          )
-        ],
-      ),
+              Text(
+                value,
+                style: GoogleFonts.kanit(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

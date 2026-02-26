@@ -776,6 +776,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () {
               blocSetState(() {
                 _edit = false;
+                _imageFile = null;
                 _getData(); // Reset data
               });
             },

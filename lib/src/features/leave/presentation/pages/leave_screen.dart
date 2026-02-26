@@ -80,6 +80,8 @@ class _LeaveScreenState extends State<LeaveScreen> {
   List<ItemsMemberResultManage> _itemMember = [];
   List<File> _files = [];
   LeaveDateSelection _leaveDateSelection = LeaveDateSelection.initial();
+  // 'full' | 'morning' | 'afternoon'
+  String _periodMode = 'full';
 
   List<bool> _groupDay = [
     true,
@@ -238,9 +240,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
         builder: (_) {
           return ConfirmDialog(
             key: UniqueKey(),
-            onConfirmTap: (String value) {
-              // Add your confirm logic here, e.g. Navigator.pop(context, value);
-            },
+            onConfirmTap: (String value) {},
             select1: select1,
             select2: select2,
             select3: select3,
@@ -257,8 +257,44 @@ class _LeaveScreenState extends State<LeaveScreen> {
             cause: _inputCause.text,
             fullName: _itemMember[0].FULLNAME ?? '',
             filesAll: _files,
+            halfDayPeriod: _periodMode == 'full' ? '' : _periodMode,
           );
         });
+  }
+
+  void _applyPeriodMode(String mode) {
+    _periodMode = mode;
+    final isHalfDay = mode != 'full';
+    final period = mode == 'morning'
+        ? HalfDayPeriod.morning
+        : mode == 'afternoon'
+            ? HalfDayPeriod.afternoon
+            : null;
+
+    if (isHalfDay) {
+      // Force single-day for half-day leave
+      LastDate = FirstDate;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        endDate: FirstDate,
+        isHalfDay: true,
+        totalDays: 0.5,
+        halfDayPeriod: period,
+        clearStartTime: true,
+        clearEndTime: true,
+      );
+      _inputTotalDays.text = '0.5';
+      _selectFullTime = 1;
+      _inputTotalTimes.clear();
+    } else {
+      final days = LastDate.difference(FirstDate).inDays + 1;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        isHalfDay: false,
+        totalDays: days.toDouble(),
+        clearHalfDayPeriod: true,
+      );
+      _inputTotalDays.text = days.toString();
+    }
+    blocSetState(() {});
   }
 
   void _applyLeaveSelection(
@@ -656,10 +692,12 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                   child: LeaveDateRangePickerField(
                                     initialStart: FirstDate,
                                     initialEnd: LastDate,
-                                    enableHalfDay: true,
+                                    enableHalfDay: false,
                                     enableTimeRange: select3,
                                     onChanged: (selection) {
                                       _applyLeaveSelection(selection);
+                                      // Re-apply period logic after date change
+                                      _applyPeriodMode(_periodMode);
                                     },
                                   ),
                                 ),
@@ -713,21 +751,62 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                     ),
                                   ),
                                 ),
-                                if (_leaveDateSelection.isHalfDay)
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                          right: 20, top: 4),
-                                      child: Text(
-                                        'สำหรับการลาครึ่งวันจะนับเป็น 0.5 วัน',
-                                        style: GoogleFonts.kanit(
-                                          fontSize: 12,
-                                          color: Colors.orange[700],
+                                // Period selector (Full / Morning / Afternoon)
+                                if (!_leaveDateSelection.isTimeRange) ...[  
+                                  SizedBox(height: 12),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'ช่วงเวลาลา',
+                                          style: GoogleFonts.kanit(
+                                            fontSize: 14,
+                                            color: Colors.grey[700],
+                                          ),
                                         ),
-                                      ),
+                                        SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            _PeriodChip(
+                                              label: 'ทั้งวัน',
+                                              icon: Icons.sunny,
+                                              selected:
+                                                  _periodMode == 'full',
+                                              onTap: () =>
+                                                  _applyPeriodMode('full'),
+                                            ),
+                                            SizedBox(width: 8),
+                                            _PeriodChip(
+                                              label: 'ครึ่งวันเช้า',
+                                              icon:
+                                                  Icons.wb_sunny_outlined,
+                                              selected:
+                                                  _periodMode == 'morning',
+                                              onTap: () =>
+                                                  _applyPeriodMode(
+                                                      'morning'),
+                                            ),
+                                            SizedBox(width: 8),
+                                            _PeriodChip(
+                                              label: 'ครึ่งวันบ่าย',
+                                              icon:
+                                                  Icons.wb_twilight_outlined,
+                                              selected:
+                                                  _periodMode == 'afternoon',
+                                              onTap: () =>
+                                                  _applyPeriodMode(
+                                                      'afternoon'),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
+                                ],
                                 SizedBox(height: 20),
 
                                 // 8. Contact Info
@@ -1298,3 +1377,67 @@ class _LeaveScreenState extends State<LeaveScreen> {
     );
   }
 }
+
+// ── Period Chip Widget ────────────────────────────────────────────────────────
+class _PeriodChip extends StatelessWidget {
+  const _PeriodChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? const LinearGradient(
+                    colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: selected ? null : Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+            border: selected
+                ? null
+                : Border.all(color: Colors.grey[300]!, width: 1),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? Colors.white : Colors.grey[500],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.kanit(
+                  fontSize: 12,
+                  fontWeight:
+                      selected ? FontWeight.w600 : FontWeight.normal,
+                  color: selected ? Colors.white : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
