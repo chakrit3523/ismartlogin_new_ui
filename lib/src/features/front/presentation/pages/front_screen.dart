@@ -1230,6 +1230,7 @@ class _FrontScreenState extends State<FrontScreen>
       lat: _myLat,
       long: _myLng,
       timeId: _time_id,
+      onRefresh: onLoadAttend,
     );
   }
 
@@ -1281,7 +1282,7 @@ class _FrontScreenState extends State<FrontScreen>
         };
         print("map" + _map.toString());
 
-        showDialog(
+        await showDialog(
             context: context,
             builder: (_) {
               return InsiteDialog(
@@ -1298,6 +1299,7 @@ class _FrontScreenState extends State<FrontScreen>
                   ot_note: OT_note ?? '',
                   time_server: DateFormat('HH:mm').format(DateTime.now()));
             });
+        onLoadAttend();
       }
     } catch (e) {
       print('Error in face detection camera: $e');
@@ -1356,7 +1358,7 @@ class _FrontScreenState extends State<FrontScreen>
         }
         EasyLoading.dismiss();
 
-        showDialog(
+        await showDialog(
             context: context,
             builder: (_) {
               return OffsideDialog(
@@ -1373,6 +1375,7 @@ class _FrontScreenState extends State<FrontScreen>
                 time_server: DateFormat('HH:mm').format(DateTime.now()),
               );
             });
+        onLoadAttend();
       }
     } catch (e) {
       print('Error in face detection camera: $e');

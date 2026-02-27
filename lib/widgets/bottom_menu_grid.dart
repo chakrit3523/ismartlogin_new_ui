@@ -8,6 +8,7 @@ class BottomMenuGrid extends StatelessWidget {
   final double lat;
   final double long;
   final String timeId;
+  final VoidCallback? onRefresh;
 
   const BottomMenuGrid({
     Key? key,
@@ -15,6 +16,7 @@ class BottomMenuGrid extends StatelessWidget {
     required this.lat,
     required this.long,
     this.timeId = '',
+    this.onRefresh,
   }) : super(key: key);
 
   @override
@@ -27,8 +29,8 @@ class BottomMenuGrid extends StatelessWidget {
         children: [
           _buildMenuIcon(
               context, 'assets/images/other/workout.png', 'ทำงาน\nนอกสถานที่',
-              onTap: () {
-            Navigator.push(
+              onTap: () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => OutsideScreen(
@@ -38,11 +40,12 @@ class BottomMenuGrid extends StatelessWidget {
                 ),
               ),
             );
+            onRefresh?.call();
           }),
           _buildMenuIcon(
               context, 'assets/images/other/timeout.png', 'ทำงาน\nล่วงเวลา',
-              onTap: () {
-            Navigator.push(
+              onTap: () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => OutsideScreen(
@@ -54,6 +57,7 @@ class BottomMenuGrid extends StatelessWidget {
                 ),
               ),
             );
+            onRefresh?.call();
           }),
           _buildMenuIcon(
               context, 'assets/images/other/holiday.png', 'วันหยุด\nประจำปี',

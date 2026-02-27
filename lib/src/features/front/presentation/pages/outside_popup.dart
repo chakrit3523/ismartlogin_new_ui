@@ -9,7 +9,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ismart_login/src/features/front/presentation/pages/future/attend_future.dart';
 import 'package:ismart_login/services/longdo_map_service.dart';
 import 'package:ismart_login/src/features/front/presentation/pages/model/attendUpdateStart.dart';
-import 'package:ismart_login/src/app/pages/main_page.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
 import 'package:location/location.dart';
@@ -385,12 +384,6 @@ class _OutsideDialogState extends State<OutsideDialog> {
                                           }
 
                                           Navigator.pop(context);
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (context) =>
-                                                    MainPage()),
-                                          );
                                         }
                                       },
                                       child: Container(

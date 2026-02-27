@@ -10,7 +10,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:ismart_login/src/app/pages/main_page.dart';
 import 'package:ismart_login/src/features/front/presentation/pages/future/attend_future.dart';
 import 'package:ismart_login/utils/image_helper.dart';
 import 'package:ismart_login/utils/dialog_helper.dart';
@@ -158,10 +157,7 @@ class _OutsideScreenState extends State<OutsideScreen> {
 
       if (response.isNotEmpty && response[0].STATUS == 'success') {
         DialogHelper.showSuccess(context, 'บันทึกสำเร็จ');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainPage()),
-        );
+        Navigator.pop(context);
         return true;
       } else {
         throw Exception(
@@ -216,12 +212,7 @@ class _OutsideScreenState extends State<OutsideScreen> {
           // Dismiss after successful post/upload init
           // onUploadFiles handles its own loading? Checked source: yes it uses EasyLoading (now DialogHelper).
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainPage(),
-            ),
-          );
+          Navigator.pop(context);
         } else {
           DialogHelper.showError(context, 'เกิดข้อผิดพลาด', 'ล้มเหลว');
         }

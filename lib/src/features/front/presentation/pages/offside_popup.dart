@@ -7,7 +7,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ismart_login/src/features/front/presentation/pages/future/attend_future.dart';
 import 'package:ismart_login/services/longdo_map_service.dart';
-import 'package:ismart_login/src/app/pages/main_page.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/utils/image_helper.dart';
 import 'package:ismart_login/utils/dialog_helper.dart';
@@ -552,10 +551,6 @@ class _OffsideDialogState extends State<OffsideDialog> {
 
     if (success) {
       Navigator.pop(context);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MainPage()),
-      );
     }
   }
 }

@@ -16,6 +16,8 @@ class SimpleCameraScreen extends StatefulWidget {
 
 class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
   CameraController? _cameraController;
+  List<CameraDescription> _cameras = [];
+  int _selectedCameraIndex = 0;
   bool _isCameraInitialized = false;
   bool _isCapturing = false;
   FlashMode _flashMode = FlashMode.off; // Flash off by default
@@ -34,29 +36,42 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
 
   Future<void> _initializeCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
+      _cameras = await availableCameras();
+      if (_cameras.isEmpty) {
         print('No cameras available');
         return;
       }
 
-      // Use front camera
-      final frontCamera = cameras.firstWhere(
+      // Try to find front camera first
+      _selectedCameraIndex = _cameras.indexWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
-        orElse: () => cameras.first,
       );
 
-      _cameraController = CameraController(
-        frontCamera,
-        ResolutionPreset.high,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
+      if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
 
+      await _startCamera(_selectedCameraIndex);
+    } catch (e) {
+      print('Error initializing camera: $e');
+    }
+  }
+
+  Future<void> _startCamera(int index) async {
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+    }
+
+    _cameraController = CameraController(
+      _cameras[index],
+      ResolutionPreset.high,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.jpeg,
+    );
+
+    try {
       await _cameraController!.initialize();
-
       // Set flash mode to off by default
       await _cameraController!.setFlashMode(FlashMode.off);
+      _flashMode = FlashMode.off;
 
       if (mounted) {
         blocSetState(() {
@@ -64,8 +79,20 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
         });
       }
     } catch (e) {
-      print('Error initializing camera: $e');
+      print('Error starting camera: $e');
     }
+  }
+
+  Future<void> _switchCamera() async {
+    if (_cameras.length < 2) return;
+
+    _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras.length;
+
+    blocSetState(() {
+      _isCameraInitialized = false;
+    });
+
+    await _startCamera(_selectedCameraIndex);
   }
 
   Future<void> _toggleFlash() async {
@@ -76,7 +103,13 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
     try {
       FlashMode newFlashMode;
       if (_flashMode == FlashMode.off) {
-        newFlashMode = FlashMode.torch; // Use torch for continuous light
+        // Use 'always' for front camera (often uses screen flash), 'torch' for back camera
+        if (_cameras[_selectedCameraIndex].lensDirection ==
+            CameraLensDirection.front) {
+          newFlashMode = FlashMode.always;
+        } else {
+          newFlashMode = FlashMode.torch;
+        }
       } else {
         newFlashMode = FlashMode.off;
       }
@@ -142,49 +175,95 @@ class _SimpleCameraScreenState extends State<SimpleCameraScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               ),
 
-            // 2. Flash Toggle Button (Top Left)
+            // 2. Top Controls
             Positioned(
               top: 20,
               left: 20,
-              child: SafeArea(
-                child: GestureDetector(
-                  onTap: _toggleFlash,
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _flashMode == FlashMode.torch
-                          ? Colors.yellow.withValues(alpha: 0.9)
-                          : Colors.white.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _flashMode == FlashMode.torch
-                          ? Icons.flash_on
-                          : Icons.flash_off,
-                      color: Colors.black,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // 3. Close Button (Top Right)
-            Positioned(
-              top: 20,
               right: 20,
               child: SafeArea(
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white
-                          .withValues(alpha: 0.8), // Semi-transparent white
-                      shape: BoxShape.circle,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Flash & Switch Camera Group
+                        Row(
+                          children: [
+                            // Flash Toggle
+                            GestureDetector(
+                              onTap: _toggleFlash,
+                              child: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: _flashMode != FlashMode.off
+                                      ? Colors.yellow.withValues(alpha: 0.9)
+                                      : Colors.white.withValues(alpha: 0.8),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _flashMode != FlashMode.off
+                                      ? Icons.flash_on
+                                      : Icons.flash_off,
+                                  color: Colors.black,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 15),
+                            // Switch Camera
+                            if (_cameras.length > 1)
+                              GestureDetector(
+                                onTap: _switchCamera,
+                                child: Container(
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.flip_camera_ios,
+                                    color: Colors.black,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        // Close Button
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(
+                                  alpha: 0.8), // Semi-transparent white
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.close,
+                                color: Colors.black, size: 24),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Icon(Icons.close, color: Colors.black, size: 24),
-                  ),
+                    SizedBox(height: 10),
+                    Text(
+                      widget.title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Kanit',
+                        shadows: [
+                          Shadow(
+                            blurRadius: 10.0,
+                            color: Colors.black,
+                            offset: Offset(0, 0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

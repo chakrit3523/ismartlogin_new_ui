@@ -1,21 +1,24 @@
 <?php
-require_once "userConfig.php";
+$_SERVER['DOCUMENT_ROOT'] = __DIR__;
+include("config/db.php");
 $db = getDBO();
-$db->setQuery("
-SELECT 'ATTEND' as _type, id, create_date, start_status, end_status, start_time, end_time, total_time as extra_info 
-FROM attend_1_information 
-WHERE create_by = 13 
-AND DATE(create_date) IN ('2026-01-26', '2026-02-16', '2026-02-23')
-UNION ALL
-SELECT 'LEAVE' as _type, id, create_date, cid as start_status, status_leave as end_status, firstTime as start_time, lastTime as end_time, numDate as extra_info 
-FROM leave_1_information 
-WHERE create_by = 13 
-AND status_leave IN ('1', '2')
-AND (
-    '2026-01-26' BETWEEN DATE(FirstDate) AND DATE(LastDate) OR
-    '2026-02-16' BETWEEN DATE(FirstDate) AND DATE(LastDate) OR
-    '2026-02-23' BETWEEN DATE(FirstDate) AND DATE(LastDate)
-)
-");
-$res = $db->loadAssocList();
-print_r($res);
+
+// Find Sopon
+$db->setQuery("SELECT id FROM users WHERE nickname LIKE '%เอก%'");
+$users = $db->loadAssocList();
+$uid = $users[0]['id'];
+
+// Check dates
+$date_pre = '2026-01-26';
+$create_date = '2026-02-25';
+$db->setQuery("SELECT create_date FROM attend_1_summary WHERE create_date BETWEEN '{$date_pre}' AND '{$create_date}'");
+$sum_dates = $db->loadAssocList();
+
+$db->setQuery("SELECT * FROM attend_1_information WHERE create_by = '{$uid}' AND create_date LIKE '2026-01-26%'");
+$att_26 = $db->loadAssocList();
+
+echo json_encode([
+    'uid' => $uid,
+    'has_sum_26' => in_array('2026-01-26', array_column($sum_dates, 'create_date')),
+    'att_26_01' => $att_26,
+], JSON_PRETTY_PRINT);
