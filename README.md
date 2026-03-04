@@ -1,281 +1,307 @@
-# iConnect Flutter App
+# iSmart Login (Flutter)
 
-Package ID: `th.co.cityvariety.iconnect`
-
-README นี้เขียนแบบ "สอนไอปาร์ค" โดยเฉพาะ
-เป้าหมายคืออ่านจบแล้วรู้ทันทีว่า:
-- โปรเจ็กต์นี้จัดโครงสร้างยังไง
-- เวลาแก้โค้ดต้องเริ่มตรงไหน
-- อะไรทำได้ / อะไรห้ามทำ
-- ก่อนส่งงานต้องเช็กอะไรบ้าง
+เอกสารนี้เป็นคู่มือสำหรับทีมที่เข้ามาอ่าน/แก้โค้ดโปรเจกต์ `ismartlogin_new_ui` โดยเน้น:
+- ดูโครงสร้างโปรเจกต์ให้เข้าใจเร็ว
+- ไล่โค้ดได้ตั้งแต่ entry point ถึง feature
+- ใช้ `BLoC/Cubit` ให้ถูกทางในโปรเจกต์นี้
+- เทียบ `BLoC` กับ `setState` และวางแผน migration
 
 ---
 
-## เริ่มจากภาพใหญ่ (แบบง่ายที่สุด)
+## 1) ภาพรวมโปรเจกต์
 
-แอปนี้ใช้แนว **Hexagonal + BLoC/Cubit**
+- Framework: Flutter (Dart 3.x)
+- State management ปัจจุบัน: `flutter_bloc` + `blocSetState` (transitional)
+- DI: `get_it`
+- Network: `dio` และ `http` (ยังมีทั้ง 2 แบบในโค้ด)
+- โครงสร้างหลัก: `lib/src/features/<feature>/{data,domain,presentation}`
 
-ให้จำแบบสั้นๆ:
-- `presentation` = หน้าจอ + widget + state ของ UI
-- `domain` = กฎธุรกิจล้วนๆ
-- `application` = flow/use case ที่สั่งงานหลายชิ้น
-- `infrastructure` = ของที่คุยโลกจริง (API, DB, Firebase, WebSocket)
+สถานะสถาปัตยกรรม (อิงโค้ดจริง ณ **4 มีนาคม 2026**):
+- มี `Cubit` แยกตาม feature แล้ว: **14 ตัว**
+- ยังมี `blocSetState(...)` อยู่หลายจุด: **302 จุด**
+- ยังมี `setState(...)` ตรง ๆ: **6 จุด**
 
-ถ้ายังจำไม่ได้ ให้ใช้ประโยคนี้:
-- `presentation` "แสดงผล"
-- `domain` "ตัดสินถูกผิด"
-- `application` "ประสานงาน"
-- `infrastructure` "ลงมือคุยระบบภายนอก"
+สรุปสั้น ๆ: โปรเจกต์อยู่ช่วง transition จากหน้าแบบ legacy ไปสู่ feature-scoped Cubit เต็มรูปแบบ
 
 ---
 
-## ถ้าพึ่งเข้ามาวันแรก ให้ทำ 5 ขั้นตอนนี้
-
-1. อ่าน `lib/src/ARCHITECTURE.md` ก่อน 1 รอบ
-2. อ่าน `lib/src/core/di/app_composition_root.dart`
-3. อ่าน `lib/src/features/app/app_feature_module.dart`
-4. รันคำสั่งนี้ให้ผ่าน
+## 2) Quick Start
 
 ```bash
 flutter pub get
-flutter analyze lib
+flutter analyze
 flutter test
-flutter build ios --simulator
+flutter run
 ```
 
-5. เปิดดูโฟลเดอร์ `lib/src/features/app/presentation/frontpage/pages/news_feed/` เพื่อเข้าใจรูปแบบการแยกไฟล์ที่ทีมใช้
-
----
-
-## โครงสร้างที่ต้องรู้ (ของจริงในโปรเจ็กต์)
-
-```text
-lib/
-  main.dart
-  src/
-    ARCHITECTURE.md
-    core/
-      app/
-      di/
-        app_composition_root.dart
-        feature_module.dart
-      routing/
-        app_route_paths.dart
-        app_route_entry.dart
-        app_router.dart
-      presentation/state/
-        bloc_state.dart
-        ui_refresh_cubit.dart
-        ui_refresh_scope.dart
-
-    features/
-      app/
-        app_feature_module.dart
-        presentation/
-          frontpage/
-            pages/
-              news_feed/
-              rsvp/
-              survey/
-            news_card/
-            news_modal/
-            navigation/
-            gallery/
-            state/
-            widgets/
-            legacy/
-          post/
-          post_edit/
-          user/
-          banner/
-          approved/
-          gallery/
-          services/
-          ...
-```
-
-> หมายเหตุ: ตอนนี้โค้ดเดิมถูกย้ายมาอยู่ใต้ `lib/src/features/app/presentation/*` แล้ว
-
----
-
-## Route + DI ทำงานยังไง (จำให้ขึ้นใจ)
-
-### จุดรวมศูนย์มีจุดเดียว
-- `lib/src/core/di/app_composition_root.dart`
-
-ไฟล์นี้ทำหน้าที่:
-- รวมทุก `FeatureModule`
-- รวม `blocProviders`
-- รวม `routes`
-- ปล่อยเข้า `MaterialApp` ผ่าน `AppRouter`
-
-### feature module ของโปรเจ็กต์นี้
-- `lib/src/features/app/app_feature_module.dart`
-
-ตอนนี้ module นี้ลงทะเบียน provider หลัก เช่น:
-- `NewsStateManager`
-- `UserProvider`
-
-และ route หลัก เช่น:
-- splash
-- frontpage
-- maingroup
-- news detail
-- gallery detail
-
-### กฎเหล็ก
-- ห้ามลง route/provider กระจัดกระจายในไฟล์อื่นแบบ ad-hoc
-- ถ้าจะเพิ่ม route/provider ใหม่ ให้เพิ่มผ่าน `FeatureModule` แล้วค่อยให้ `AppCompositionRoot` รวม
-
----
-
-## State Management ที่ทีมใช้จริง
-
-### มาตรฐานปัจจุบัน
-- ใช้ `Bloc`/`Cubit` เป็นหลัก
-- ใช้ `context.read<T>()` สำหรับเรียก instance
-- ใช้ `BlocBuilder` / `BlocListener` / `BlocConsumer` สำหรับฟัง state
-
-### แล้ว `StatefulWidget` เดิมล่ะ?
-ยังใช้ได้ แต่ต้องใช้สะพานนี้:
-- base class: `BlocState<T>`
-- แทน `setState(...)` ด้วย `blocSetState(...)`
-
-`blocSetState(...)` ทำ 2 อย่าง:
-1. อัปเดต local state ในหน้าเดิม
-2. ส่งสัญญาณผ่าน `UiRefreshCubit` เพื่อให้ flow กลางสอดคล้อง
-
-ไฟล์อ้างอิง:
-- `lib/src/core/presentation/state/bloc_state.dart`
-- `lib/src/core/presentation/state/ui_refresh_cubit.dart`
-
----
-
-## โครงสร้างไฟล์ใน 1 หน้า ควรเป็นแบบไหน
-
-เวลาไฟล์เริ่มยาว ให้แตกแบบนี้:
-
-- `xxx.dart` หรือ `xxx_page.dart` = shell หลัก (State + lifecycle + wiring)
-- `xxx_actions.dart` = event / side-effect / call service
-- `xxx_widgets.dart` = widget tree
-- `xxx_view.dart` = ถ้าต้องการแยก UI ทั้งหน้า
-- `xxx_section_2.dart`, `xxx_section_3.dart` = แยกก้อนยาวแบบ incremental โดยไม่เปลี่ยน behavior
-
-ตัวอย่างในโปรเจ็กต์:
-- `news_card.dart` + `news_card_*_section_2/3/4.dart`
-- `news_modal_view.dart` + `news_modal_view_layout.dart`
-- `setting_forms.dart` + `setting_forms_section_2.dart` + `setting_forms_section_3.dart`
-- `otpforpass.dart` + `otpforpass_view.dart`
-
----
-
-## ถ้าจะเพิ่ม feature ใหม่ ทำตามนี้ทีละข้อ
-
-1. สร้างโครงสร้าง feature
-
-```text
-lib/src/features/<your_feature>/
-  domain/
-  application/
-  infrastructure/
-  presentation/
-```
-
-2. สร้าง `<your_feature>_feature_module.dart` แล้ว implement `FeatureModule`
-3. เพิ่ม `blocProviders` และ `routes` ใน module นั้น
-4. ไป register module ที่ `app_composition_root.dart`
-5. เพิ่ม test อย่างน้อย 3 กลุ่ม
-- route behavior
-- module registration
-- bloc/cubit state behavior
-
----
-
-## Checklist ก่อนส่งงาน
-
-- โค้ดใหม่อยู่ใต้ `lib/src` เท่านั้น
-- เพิ่ม route/provider ผ่าน module เท่านั้น
-- state ใหม่ใช้ BLoC/Cubit
-- ไฟล์ยาวเกินเหตุควรถูกแยก
-- รันครบ:
+ถ้าเน้น iOS simulator:
 
 ```bash
-flutter analyze lib
-flutter test
 flutter build ios --simulator
 ```
 
 ---
 
-## Troubleshooting ที่เจอบ่อย
+## 3) Source Tree (โครงสร้างที่ใช้จริง)
 
-### 1) iOS build เจอ `webview_flutter_wkwebview_privacy.bundle` หาย
+### 3.1 Root (ย่อ)
 
-อาการตัวอย่าง:
-- `lstat ... webview_flutter_wkwebview_privacy.bundle: No such file or directory`
+```text
+.
+|-- android/
+|-- ios/
+|-- assets/
+|-- lib/
+|   |-- main.dart
+|   |-- src/
+|   |   |-- ARCHITECTURE.md
+|   |   |-- app/
+|   |   |   |-- app.dart
+|   |   |   |-- bootstrap.dart
+|   |   |   `-- pages/main_page.dart
+|   |   |-- core/
+|   |   |   |-- di/service_locator.dart
+|   |   |   |-- network/network_client.dart
+|   |   |   |-- usecase/usecase.dart
+|   |   |   `-- presentation/bloc/
+|   |   |       |-- bloc_material.dart
+|   |   |       `-- global_ui_refresh_cubit.dart
+|   |   `-- features/
+|   |       |-- sign/
+|   |       |-- splashscreen/
+|   |       |-- front/
+|   |       |-- leave/
+|   |       |-- history/
+|   |       |-- profile/
+|   |       |-- menu/
+|   |       |-- map/
+|   |       |-- org/
+|   |       |-- managements/
+|   |       |-- outside/
+|   |       |-- protect/
+|   |       |-- faq/
+|   |       `-- contact_dev/
+|   |-- widgets/
+|   |-- system/
+|   `-- services/
+|-- test/
+`-- pubspec.yaml
+```
 
-ลองตามลำดับนี้:
+### 3.2 Feature template (รูปแบบมาตรฐานที่ควรยึด)
+
+```text
+lib/src/features/<feature>/
+|-- data/
+|   |-- datasources/
+|   |-- models/ (หรือ model/)
+|   `-- repositories/
+|-- domain/
+|   |-- entities/
+|   |-- repositories/
+|   `-- usecases/
+`-- presentation/
+    |-- bloc/
+    `-- pages/ (และ widgets/ ถ้าจำเป็น)
+```
+
+---
+
+## 4) สอนไล่โค้ด (Code Reading Path)
+
+ถ้าเป็นคนใหม่ แนะนำไล่ตามลำดับนี้:
+
+1. `lib/main.dart`
+- เริ่ม app, init Firebase, เรียก `bootstrapApp()`
+- ครอบ `MaterialApp` ด้วย `BlocProvider<GlobalUiRefreshCubit>`
+
+2. `lib/src/app/bootstrap.dart` และ `lib/src/core/di/service_locator.dart`
+- จุดตั้งต้น DI (`GetIt`)
+- ตอนนี้ลงทะเบียน `NetworkClient` ไว้ที่นี่
+
+3. `lib/src/features/splashscreen/presentation/pages/splashscreen_screen.dart`
+- กำหนด flow เข้าแอป:
+  - auto-login จาก cache
+  - protect switch
+  - ไป `SignInScreen` / `OrganizationScreen` / `MainPage`
+
+4. `lib/src/features/sign/presentation/pages/signin_screen.dart`
+- หน้าล็อกอินหลัก
+- ปัจจุบันยังเรียก API ผ่าน `SigninFuture` โดยตรง (legacy style)
+
+5. `lib/src/app/pages/main_page.dart`
+- โครง navigation หลักหลัง login
+- สลับแท็บไป `Leave`, `Front`, `History`, `Profile`, `Menu`
+
+6. ไล่ feature ที่ต้องแก้
+- เปิด `presentation/pages` ก่อน
+- ตามด้วย `data/future` หรือ `data/repositories`
+- ถ้าฟีเจอร์นั้นมี logic แยกแล้ว ให้เปิด `domain/usecases` และ test
+
+ตัวอย่างที่มี use case + test ค่อนข้างชัด:
+- `lib/src/features/leave/domain/usecases/leave_date_calculator.dart`
+- `test/features/leave/leave_date_calculator_test.dart`
+
+---
+
+## 5) สอนใช้ BLoC/Cubit ในโปรเจกต์นี้
+
+> โปรเจกต์นี้ใช้ `Cubit` เป็นหลัก (ยังไม่ใช้ `Bloc<Event, State>` แบบเต็ม)
+
+### 5.1 โครงไฟล์ขั้นต่ำที่ควรมี
+
+```text
+presentation/bloc/
+|-- xxx_state.dart
+`-- xxx_cubit.dart
+presentation/pages/
+`-- xxx_screen.dart
+```
+
+### 5.2 ตัวอย่าง State
+
+```dart
+import 'package:equatable/equatable.dart';
+
+class ExampleState extends Equatable {
+  const ExampleState({
+    this.isLoading = false,
+    this.errorMessage,
+  });
+
+  final bool isLoading;
+  final String? errorMessage;
+
+  ExampleState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+  }) {
+    return ExampleState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
+    );
+  }
+
+  @override
+  List<Object?> get props => <Object?>[isLoading, errorMessage];
+}
+```
+
+### 5.3 ตัวอย่าง Cubit
+
+```dart
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+class ExampleCubit extends Cubit<ExampleState> {
+  ExampleCubit() : super(const ExampleState());
+
+  Future<void> loadData() async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      // call repository/usecase here
+      emit(state.copyWith(isLoading: false));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
+    }
+  }
+}
+```
+
+### 5.4 ตัวอย่างผูกกับหน้า UI
+
+```dart
+BlocProvider(
+  create: (_) => ExampleCubit()..loadData(),
+  child: BlocConsumer<ExampleCubit, ExampleState>(
+    listener: (context, state) {
+      if (state.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.errorMessage!)),
+        );
+      }
+    },
+    builder: (context, state) {
+      if (state.isLoading) return const CircularProgressIndicator();
+      return const Text('Loaded');
+    },
+  ),
+)
+```
+
+---
+
+## 6) เทียบ BLoC/Cubit กับ setState
+
+| หัวข้อ | `setState` | `BLoC/Cubit` |
+|---|---|---|
+| ขอบเขต | ดีมากสำหรับ state เล็กใน widget เดียว | ดีสำหรับ flow ใหญ่/หลาย async |
+| การทดสอบ | ทดสอบ logic ยาก (ผูกกับ widget) | ทดสอบ state transition ได้ตรง |
+| การดูแลระยะยาว | ไฟล์ยาวง่าย | แยก state/logic/UI ชัด |
+| Side effects | มักกระจายในหน้าเดียว | แยก `builder`/`listener` ได้ชัด |
+| เหมาะกับโปรเจกต์นี้ | ใช้เฉพาะจุดเล็ก ๆ ที่ local จริง ๆ | แนวทางหลักที่ควรไปต่อ |
+
+สรุปสำหรับ repo นี้:
+- ของใหม่ให้ทำด้วย `Cubit` ก่อนเสมอ
+- `setState` ใช้ได้เฉพาะ UI local state เล็ก ๆ (เช่นเปิด/ปิด panel)
+- หลีกเลี่ยงการเรียก API ตรงใน `StatefulWidget` เมื่อเริ่มแตะ logic จริง
+
+---
+
+## 7) Migration: จาก setState/blocSetState ไป Cubit (ทีละขั้น)
+
+1. ระบุ state ที่หน้านั้นใช้จริง
+- loading, error, data list, selected item ฯลฯ
+
+2. สร้าง `State` และ `Cubit`
+- รวม state ให้ครบก่อน แล้วค่อยย้าย method async
+
+3. ย้าย logic async ออกจากหน้า
+- API call/repository call ให้ไปอยู่ใน cubit
+
+4. หน้า UI เปลี่ยนเป็น `BlocBuilder/BlocConsumer`
+- render จาก `state` เท่านั้น
+- popup/snackbar/navigation ใน `listener`
+
+5. ลบ `blocSetState` หรือ `setState` ที่ไม่จำเป็น
+- เหลือไว้เฉพาะ local UI state เล็ก ๆ ที่ไม่คุ้มย้าย
+
+6. เพิ่ม test
+- อย่างน้อย unit test ของ cubit/state transition
+
+---
+
+## 8) Current Gaps (สิ่งที่ควรรู้ก่อนลงมือแก้)
+
+- หลาย feature มีไฟล์ cubit/state แล้ว แต่หน้า UI ยังไม่ได้ consume cubit โดยตรง
+- บาง flow ยังเรียก `data/future/*` จาก page โดยตรง
+- ในบาง feature `domain`/`repository` ยังเป็นโครง (stub) มากกว่าธุรกิจจริง
+- มี helper `blocSetState(...)` สำหรับช่วง migration อยู่ที่:
+  - `lib/src/core/presentation/bloc/bloc_material.dart`
+
+หมายเหตุ:
+- `blocSetState` เป็นสะพานชั่วคราว ไม่ใช่ target architecture ระยะยาว
+
+---
+
+## 9) Checklist ก่อนเปิด PR
+
+1. โค้ดใหม่อยู่ใต้ `lib/src/features/<feature>` ตาม layer ที่ถูกต้อง
+2. Logic async อยู่ใน cubit/usecase ไม่ใช่ยัดในหน้า
+3. หน้าใช้ `BlocBuilder` หรือ `BlocConsumer` ตรง state ที่ออกแบบไว้
+4. ไม่เพิ่ม `setState` ใหม่สำหรับ business flow
+5. รันคำสั่งนี้ให้ผ่าน:
 
 ```bash
-flutter pub get
-flutter clean
-flutter build ios --simulator
+flutter analyze
+flutter test
 ```
 
-ถ้ายังไม่หาย:
-1. ลบ `ios/Pods`
-2. ลบ `ios/Podfile.lock`
-3. เข้าโฟลเดอร์ `ios` แล้ว `pod install`
-4. เปิด `ios/Runner.xcworkspace` แล้วลอง Build ใน Xcode
-
 ---
 
-## แบบเดิม vs แบบใหม่ (อธิบายให้เด็กฝึกงาน)
+## 10) เอกสารที่ควรเปิดคู่กัน
 
-### แบบเดิม (Provider/setState-centric)
-- หน้าเดียวมีทั้ง UI + API + logic รวมกัน
-- ไฟล์ยาวมาก แก้ยาก กลัวพัง
-- เทสต์ยาก เพราะ logic ผูกกับ widget lifecycle เยอะ
+- `lib/src/ARCHITECTURE.md`
+- `lib/src/core/presentation/bloc/bloc_material.dart`
+- `lib/src/features/*/feature_info.dart`
 
-### แบบใหม่ (Hexagonal + BLoC/Cubit)
-- แยกหน้าที่ชัด
-- อ่านง่าย แก้เฉพาะจุดง่าย
-- เขียนเทสต์ง่ายกว่า
-- route/DI ชัดเจน มีจุดรวมเดียว
-
-### เทียบ `setState` แบบตรงๆ
-- `setState` ดีสำหรับ state เล็กๆ ใน widget เดียว
-- แต่พอ flow ใหญ่ (หลาย API/หลาย step/หลายหน้า) จะซับซ้อนเร็ว
-- ในโปรเจ็กต์นี้จึงใช้ BLoC/Cubit เป็นหลัก และใช้ `blocSetState` เป็นสะพานตอน migration
-
-### เทียบกับ `Provider`
-- `Provider` ดีสำหรับ dependency/state เบาๆ
-- แต่ flow ใหญ่ต้องออกกติกาเองเยอะ
-- `BLoC/Cubit` ชัดกว่าในงานที่มี state transition เยอะ
-
----
-
-## สถานะปัจจุบันของโปรเจ็กต์ (อัปเดตล่าสุด)
-
-- โครงสร้างหลักย้ายเข้า `lib/src` แล้ว
-- มีการแตกไฟล์ presentation ต่อเนื่องทั้งโปรเจ็กต์
-- ปัจจุบัน **ไม่มีไฟล์ใน `presentation` ที่เกิน 600 บรรทัด**
-- คำสั่งตรวจหลักผ่าน:
-  - `flutter analyze lib`
-  - `flutter test`
-  - `flutter build ios --simulator`
-
-### งานที่ยังทำต่อได้ (ถ้าจะเก็บสุด)
-- ลดไฟล์ช่วง 550-599 บรรทัด ให้ลงต่ำกว่า 500 ทั้งหมด
-- ทยอยย้าย/ปิด `frontpage/legacy/ultrasmooth.dart` ให้หมด
-
----
-
-## สรุปสั้นที่สุดสำหรับคนรีบ
-
-ถ้าจำได้แค่ 4 ข้อนี้พอ:
-
-1. เพิ่มโค้ดใหม่ใต้ `lib/src` เท่านั้น
-2. route/provider ลงผ่าน `FeatureModule` เท่านั้น
-3. state ใหม่ใช้ BLoC/Cubit
-4. ก่อนส่งงานต้องผ่าน `analyze + test + ios simulator build`
+ถ้าจะเริ่ม refactor จริง แนะนำเริ่มจาก feature เล็กก่อน (เช่น `faq` หรือ `contact_dev`) แล้วค่อยย้าย flow ใหญ่ (`sign`, `front`, `managements`).
