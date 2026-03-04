@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:ismart_login/src/features/leave/presentation/pages/confirm_leave.dart';
 import 'package:ismart_login/src/features/leave/presentation/pages/leave_statistics.dart';
 import 'package:ismart_login/src/features/leave/domain/entities/leave_date_selection.dart';
+import 'package:ismart_login/src/features/leave/domain/usecases/leave_date_calculator.dart';
 import 'package:ismart_login/src/features/leave/presentation/helpers/thai_leave_date_formatter.dart';
 import 'package:ismart_login/src/features/leave/presentation/widgets/leave_date_range_picker_field.dart';
 
@@ -68,6 +69,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
   String selectItem = '1';
   String selectItemTime = '1';
   String? timeError;
+  bool _wasSubdayMode = false;
   int _selectFullTime = 1;
   String sick_leave = '0';
   String personal_leave = '0';
@@ -167,6 +169,361 @@ class _LeaveScreenState extends State<LeaveScreen> {
     super.initState();
   }
 
+  bool get _isSubdayLeaveSelected {
+    if (!select3) return false;
+    final subject = _selectedOtherLeaveSubject.trim().toLowerCase();
+    if (subject.isEmpty) return false;
+    return subject.contains('ย่อยระหว่างวัน') ||
+        subject.contains('รายชั่วโมง') ||
+        subject.contains('ระหว่างวัน');
+  }
+
+  String get _selectedOtherLeaveSubject {
+    for (final item in _itemTypes) {
+      if (item.ID == dropdownValueTime) {
+        return item.SUBJECT;
+      }
+    }
+    return '';
+  }
+
+  void _selectLeaveTab({
+    required bool sick,
+    required bool personal,
+    required bool other,
+  }) {
+    blocSetState(() {
+      select1 = sick;
+      select2 = personal;
+      select3 = other;
+      _syncSubdayMode(forceNotify: false);
+    });
+  }
+
+  void _syncSubdayMode({bool forceNotify = true}) {
+    final isSubday = _isSubdayLeaveSelected;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (isSubday) {
+      final startTime = _leaveDateSelection.startTime;
+      final endTime = _leaveDateSelection.endTime;
+
+      double totalHours = 0;
+      if (startTime != null && endTime != null) {
+        final valid = validateLeaveDateSelection(
+          startDate: today,
+          endDate: today,
+          isHalfDay: false,
+          isTimeRange: true,
+          startTime: startTime,
+          endTime: endTime,
+        );
+        if (valid == null) {
+          totalHours = calculateLeaveAmount(
+            startDate: today,
+            endDate: today,
+            isHalfDay: false,
+            isTimeRange: true,
+            startTime: startTime,
+            endTime: endTime,
+          );
+        }
+      }
+
+      _leaveDateSelection = LeaveDateSelection(
+        startDate: today,
+        endDate: today,
+        totalDays: totalHours,
+        startTime: startTime,
+        endTime: endTime,
+        isHalfDay: false,
+        isTimeRange: true,
+      );
+
+      FirstDate = today;
+      LastDate = today;
+      _selectFullTime = 2;
+      _inputTotalDays.text = '1';
+      _inputTotalTimes.text =
+          totalHours > 0 ? _formatLeaveAmount(totalHours) : '';
+
+      if (_inputTimeIn.isEmpty) {
+        _inputTimeIn = [TextEditingController()];
+      }
+      if (_inputTimeOut.isEmpty) {
+        _inputTimeOut = [TextEditingController()];
+      }
+      _inputTimeIn[0].text = startTime == null
+          ? ''
+          : ThaiLeaveDateFormatter.toTimeLabel(startTime);
+      _inputTimeOut[0].text =
+          endTime == null ? '' : ThaiLeaveDateFormatter.toTimeLabel(endTime);
+
+      timeError = null;
+    } else if (_wasSubdayMode) {
+      final dayDiff = LastDate.difference(FirstDate).inDays + 1;
+      final safeDays = dayDiff <= 0 ? 1 : dayDiff;
+      _leaveDateSelection = LeaveDateSelection(
+        startDate: DateTime(FirstDate.year, FirstDate.month, FirstDate.day),
+        endDate: DateTime(LastDate.year, LastDate.month, LastDate.day),
+        totalDays: safeDays.toDouble(),
+        isHalfDay: false,
+        isTimeRange: false,
+      );
+      _selectFullTime = 1;
+      _inputTotalDays.text = safeDays.toString();
+      _inputTotalTimes.clear();
+      if (_inputTimeIn.isNotEmpty) _inputTimeIn[0].clear();
+      if (_inputTimeOut.isNotEmpty) _inputTimeOut[0].clear();
+      timeError = null;
+    }
+
+    _wasSubdayMode = isSubday;
+    if (forceNotify && mounted) {
+      blocSetState(() {});
+    }
+  }
+
+  Future<void> _pickSubdayTime({required bool isStart}) async {
+    final picked = await _showStyledTimePicker(isStart: isStart);
+
+    if (picked == null) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final startTime = isStart ? picked : _leaveDateSelection.startTime;
+    final endTime = isStart ? _leaveDateSelection.endTime : picked;
+    double totalHours = 0;
+    String? nextError;
+
+    if (startTime != null && endTime != null) {
+      final validation = validateLeaveDateSelection(
+        startDate: today,
+        endDate: today,
+        isHalfDay: false,
+        isTimeRange: true,
+        startTime: startTime,
+        endTime: endTime,
+      );
+      if (validation == null) {
+        totalHours = calculateLeaveAmount(
+          startDate: today,
+          endDate: today,
+          isHalfDay: false,
+          isTimeRange: true,
+          startTime: startTime,
+          endTime: endTime,
+        );
+      } else {
+        nextError = mapLeaveDateValidationError(validation);
+      }
+    }
+
+    blocSetState(() {
+      _leaveDateSelection = LeaveDateSelection(
+        startDate: today,
+        endDate: today,
+        totalDays: totalHours,
+        startTime: startTime,
+        endTime: endTime,
+        isHalfDay: false,
+        isTimeRange: true,
+      );
+      FirstDate = today;
+      LastDate = today;
+      _selectFullTime = 2;
+      _inputTotalDays.text = '1';
+      _inputTotalTimes.text =
+          totalHours > 0 ? _formatLeaveAmount(totalHours) : '';
+
+      _inputTimeIn[0].text = startTime == null
+          ? ''
+          : ThaiLeaveDateFormatter.toTimeLabel(startTime);
+      _inputTimeOut[0].text =
+          endTime == null ? '' : ThaiLeaveDateFormatter.toTimeLabel(endTime);
+      timeError = nextError;
+    });
+  }
+
+  Future<TimeOfDay?> _showStyledTimePicker({required bool isStart}) async {
+    final now = DateTime.now();
+    final current =
+        isStart ? _leaveDateSelection.startTime : _leaveDateSelection.endTime;
+    final initial = current ?? TimeOfDay(hour: isStart ? 8 : 17, minute: 0);
+    final initialDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      initial.hour,
+      initial.minute,
+    );
+    DateTime selectedDateTime = initialDateTime;
+
+    final picked = await showModalBottomSheet<TimeOfDay>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final previewTime =
+                DateFormat('HH:mm').format(selectedDateTime).toString();
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 22,
+                    offset: Offset(0, -6),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                isStart
+                                    ? 'เลือกเวลาเริ่มต้น'
+                                    : 'เลือกเวลาสิ้นสุด',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                previewTime,
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      SizedBox(
+                        height: 210,
+                        child: CupertinoDatePicker(
+                          mode: CupertinoDatePickerMode.time,
+                          initialDateTime: initialDateTime,
+                          use24hFormat: true,
+                          minuteInterval: 5,
+                          onDateTimeChanged: (DateTime newDateTime) {
+                            setModalState(() {
+                              selectedDateTime = newDateTime;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(sheetContext),
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                side: BorderSide(color: Colors.grey[300]!),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'ยกเลิก',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.grey[700],
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () {
+                                Navigator.pop(
+                                  sheetContext,
+                                  TimeOfDay(
+                                    hour: selectedDateTime.hour,
+                                    minute: selectedDateTime.minute,
+                                  ),
+                                );
+                              },
+                              style: FilledButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: Color(0xFF0663F7),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'ตกลง',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    return picked;
+  }
+
   Future<void> onLoadLeaveSummary() async {
     final map = {
       "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
@@ -262,16 +619,30 @@ class _LeaveScreenState extends State<LeaveScreen> {
         });
   }
 
+  int _selectedSpanDays() {
+    final start = DateTime(FirstDate.year, FirstDate.month, FirstDate.day);
+    final end = DateTime(LastDate.year, LastDate.month, LastDate.day);
+    final diff = end.difference(start).inDays;
+    return diff >= 0 ? diff + 1 : 1;
+  }
+
   void _applyPeriodMode(String mode) {
+    final spanDays = _selectedSpanDays();
+    if ((mode == 'morning' || mode == 'afternoon') && spanDays > 1) {
+      mode = 'full';
+    }
+    if (mode == 'last_morning' && spanDays <= 1) {
+      mode = 'full';
+    }
+
     _periodMode = mode;
-    final isHalfDay = mode != 'full';
+    final isSingleHalfDay = mode == 'morning' || mode == 'afternoon';
+    final isLastMorningHalfDay = mode == 'last_morning';
     final period = mode == 'morning'
         ? HalfDayPeriod.morning
-        : mode == 'afternoon'
-            ? HalfDayPeriod.afternoon
-            : null;
+        : HalfDayPeriod.afternoon;
 
-    if (isHalfDay) {
+    if (isSingleHalfDay) {
       // Force single-day for half-day leave
       LastDate = FirstDate;
       _leaveDateSelection = _leaveDateSelection.copyWith(
@@ -283,6 +654,18 @@ class _LeaveScreenState extends State<LeaveScreen> {
         clearEndTime: true,
       );
       _inputTotalDays.text = '0.5';
+      _selectFullTime = 1;
+      _inputTotalTimes.clear();
+    } else if (isLastMorningHalfDay) {
+      final adjustedDays = spanDays > 1 ? spanDays - 0.5 : 0.5;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        isHalfDay: false,
+        totalDays: adjustedDays,
+        clearHalfDayPeriod: true,
+        clearStartTime: true,
+        clearEndTime: true,
+      );
+      _inputTotalDays.text = _formatLeaveAmount(adjustedDays);
       _selectFullTime = 1;
       _inputTotalTimes.clear();
     } else {
@@ -327,6 +710,15 @@ class _LeaveScreenState extends State<LeaveScreen> {
     _inputTimeOut[0].text = selection.endTime == null
         ? ''
         : ThaiLeaveDateFormatter.toTimeLabel(selection.endTime!);
+
+    final spanDays = _selectedSpanDays();
+    if (spanDays > 1 &&
+        (_periodMode == 'morning' || _periodMode == 'afternoon')) {
+      _periodMode = 'full';
+    }
+    if (spanDays <= 1 && _periodMode == 'last_morning') {
+      _periodMode = 'full';
+    }
 
     if (notify && mounted) {
       blocSetState(() {});
@@ -438,11 +830,10 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
-                                      blocSetState(() {
-                                        select1 = true;
-                                        select2 = false;
-                                        select3 = false;
-                                      });
+                                      _selectLeaveTab(
+                                          sick: true,
+                                          personal: false,
+                                          other: false);
                                     },
                                     child: Container(
                                       padding:
@@ -482,11 +873,10 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
-                                      blocSetState(() {
-                                        select1 = false;
-                                        select2 = true;
-                                        select3 = false;
-                                      });
+                                      _selectLeaveTab(
+                                          sick: false,
+                                          personal: true,
+                                          other: false);
                                     },
                                     child: Container(
                                       padding:
@@ -516,11 +906,10 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                 Expanded(
                                   child: GestureDetector(
                                     onTap: () {
-                                      blocSetState(() {
-                                        select1 = false;
-                                        select2 = false;
-                                        select3 = true;
-                                      });
+                                      _selectLeaveTab(
+                                          sick: false,
+                                          personal: false,
+                                          other: true);
                                     },
                                     child: Container(
                                       padding:
@@ -602,6 +991,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                   onChanged: (String? newValue) {
                                     blocSetState(() {
                                       dropdownValueTime = newValue!;
+                                      _syncSubdayMode(forceNotify: false);
                                     });
                                   },
                                 ),
@@ -671,88 +1061,280 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                 ),
                                 SizedBox(height: 20),
 
-                                // 4. Date Selection Header
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20.0),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'วันที่ลา',
-                                      style: GoogleFonts.kanit(
-                                        fontSize: 14,
-                                        color: Colors.grey[700],
+                                if (!_isSubdayLeaveSelected) ...[
+                                  // 4. Date Selection Header
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'วันที่ลา',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.grey[700],
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                SizedBox(height: 8),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 20),
-                                  child: LeaveDateRangePickerField(
-                                    initialStart: FirstDate,
-                                    initialEnd: LastDate,
-                                    enableHalfDay: false,
-                                    enableTimeRange: select3,
-                                    onChanged: (selection) {
-                                      _applyLeaveSelection(selection);
-                                      // Re-apply period logic after date change
-                                      _applyPeriodMode(_periodMode);
-                                    },
-                                  ),
-                                ),
-                                SizedBox(height: 12),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 20),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(12),
+                                  SizedBox(height: 8),
+                                  Container(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: LeaveDateRangePickerField(
+                                      initialStart: FirstDate,
+                                      initialEnd: LastDate,
+                                      enableHalfDay: false,
+                                      enableTimeRange: select3,
+                                      onChanged: (selection) {
+                                        _applyLeaveSelection(selection);
+                                        // Re-apply period logic after date change
+                                        _applyPeriodMode(_periodMode);
+                                      },
                                     ),
+                                  ),
+                                  SizedBox(height: 12),
+                                ],
+                                if (!_isSubdayLeaveSelected)
+                                  Container(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            _leaveDateSelection.isTimeRange
+                                                ? "รวมจำนวนชั่วโมง"
+                                                : "รวมจำนวนวัน",
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 14,
+                                              color: Color(0xFF0663F7),
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _formatLeaveAmount(
+                                                    _leaveDateSelection
+                                                        .totalDays),
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                              Text(
+                                                _leaveDateSelection.isTimeRange
+                                                    ? " ชม."
+                                                    : " วัน",
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 14,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                if (_isSubdayLeaveSelected) ...[
+                                  SizedBox(height: 14),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'ช่วงเวลาลา',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          _leaveDateSelection.isTimeRange
-                                              ? "รวมจำนวนชั่วโมง"
-                                              : "รวมจำนวนวัน",
-                                          style: GoogleFonts.kanit(
-                                            fontSize: 14,
-                                            color: Color(0xFF0663F7),
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _pickSubdayTime(isStart: true),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[50],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                      Icons.access_time_rounded,
+                                                      color: Colors.grey[600],
+                                                      size: 18),
+                                                  SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _inputTimeIn[0]
+                                                              .text
+                                                              .isEmpty
+                                                          ? 'ตั้งแต่เวลา'
+                                                          : _inputTimeIn[0]
+                                                              .text,
+                                                      style: GoogleFonts.kanit(
+                                                        fontSize: 15,
+                                                        color: _inputTimeIn[0]
+                                                                .text
+                                                                .isEmpty
+                                                            ? Colors.grey[500]
+                                                            : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              _formatLeaveAmount(
-                                                  _leaveDateSelection
-                                                      .totalDays),
-                                              style: GoogleFonts.kanit(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF0663F7),
+                                        SizedBox(width: 10),
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _pickSubdayTime(isStart: false),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[50],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                      Icons.access_time_rounded,
+                                                      color: Colors.grey[600],
+                                                      size: 18),
+                                                  SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _inputTimeOut[0]
+                                                              .text
+                                                              .isEmpty
+                                                          ? 'ถึงเวลา'
+                                                          : _inputTimeOut[0]
+                                                              .text,
+                                                      style: GoogleFonts.kanit(
+                                                        fontSize: 15,
+                                                        color: _inputTimeOut[0]
+                                                                .text
+                                                                .isEmpty
+                                                            ? Colors.grey[500]
+                                                            : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                            Text(
-                                              _leaveDateSelection.isTimeRange
-                                                  ? " ชม."
-                                                  : " วัน",
-                                              style: GoogleFonts.kanit(
-                                                fontSize: 14,
-                                                color: Color(0xFF0663F7),
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
+                                  if (timeError != null &&
+                                      timeError!.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 8, left: 20, right: 20),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          timeError!,
+                                          style: GoogleFonts.kanit(
+                                            fontSize: 13,
+                                            color: Colors.red[600],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  SizedBox(height: 12),
+                                  Container(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "รวมจำนวนชั่วโมง",
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 14,
+                                              color: Color(0xFF0663F7),
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _formatLeaveAmount(
+                                                    _leaveDateSelection
+                                                        .totalDays),
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                              Text(
+                                                " ชม.",
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 14,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                                 // Period selector (Full / Morning / Afternoon)
-                                if (!_leaveDateSelection.isTimeRange) ...[  
+                                if (!_leaveDateSelection.isTimeRange &&
+                                    !_isSubdayLeaveSelected) ...[
                                   SizedBox(height: 12),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -769,39 +1351,59 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                           ),
                                         ),
                                         SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            _PeriodChip(
-                                              label: 'ทั้งวัน',
-                                              icon: Icons.sunny,
-                                              selected:
-                                                  _periodMode == 'full',
-                                              onTap: () =>
-                                                  _applyPeriodMode('full'),
-                                            ),
-                                            SizedBox(width: 8),
-                                            _PeriodChip(
-                                              label: 'ครึ่งวันเช้า',
-                                              icon:
-                                                  Icons.wb_sunny_outlined,
-                                              selected:
-                                                  _periodMode == 'morning',
-                                              onTap: () =>
-                                                  _applyPeriodMode(
-                                                      'morning'),
-                                            ),
-                                            SizedBox(width: 8),
-                                            _PeriodChip(
-                                              label: 'ครึ่งวันบ่าย',
-                                              icon:
-                                                  Icons.wb_twilight_outlined,
-                                              selected:
-                                                  _periodMode == 'afternoon',
-                                              onTap: () =>
-                                                  _applyPeriodMode(
-                                                      'afternoon'),
-                                            ),
-                                          ],
+                                        Builder(
+                                          builder: (_) {
+                                            final isMultiDay =
+                                                _selectedSpanDays() > 1;
+                                            return Row(
+                                              children: [
+                                                _PeriodChip(
+                                                  label: 'ทั้งวัน',
+                                                  icon: Icons.sunny,
+                                                  selected:
+                                                      _periodMode == 'full',
+                                                  onTap: () =>
+                                                      _applyPeriodMode('full'),
+                                                ),
+                                                SizedBox(width: 8),
+                                                if (isMultiDay)
+                                                  _PeriodChip(
+                                                    label:
+                                                        'วันสุดท้าย\nครึ่งวันเช้า',
+                                                    icon:
+                                                        Icons.wb_sunny_outlined,
+                                                    selected: _periodMode ==
+                                                        'last_morning',
+                                                    onTap: () =>
+                                                        _applyPeriodMode(
+                                                            'last_morning'),
+                                                  )
+                                                else ...[
+                                                  _PeriodChip(
+                                                    label: 'ครึ่งวันเช้า',
+                                                    icon: Icons
+                                                        .wb_sunny_outlined,
+                                                    selected: _periodMode ==
+                                                        'morning',
+                                                    onTap: () =>
+                                                        _applyPeriodMode(
+                                                            'morning'),
+                                                  ),
+                                                  SizedBox(width: 8),
+                                                  _PeriodChip(
+                                                    label: 'ครึ่งวันบ่าย',
+                                                    icon: Icons
+                                                        .wb_twilight_outlined,
+                                                    selected: _periodMode ==
+                                                        'afternoon',
+                                                    onTap: () =>
+                                                        _applyPeriodMode(
+                                                            'afternoon'),
+                                                  ),
+                                                ],
+                                              ],
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),
@@ -945,6 +1547,27 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                       } else {
                                         blocSetState(
                                             () => inputTotalDays = false);
+                                      }
+
+                                      if (_isSubdayLeaveSelected) {
+                                        if (_inputTimeIn[0].text.isEmpty ||
+                                            _inputTimeOut[0].text.isEmpty) {
+                                          blocSetState(() {
+                                            timeError =
+                                                'กรุณาเลือกช่วงเวลาตั้งแต่-ถึง';
+                                          });
+                                          return;
+                                        }
+                                        if (_leaveDateSelection.totalDays <=
+                                            0) {
+                                          blocSetState(() {
+                                            timeError =
+                                                'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม';
+                                          });
+                                          return;
+                                        }
+                                      } else {
+                                        blocSetState(() => timeError = null);
                                       }
 
                                       // Popup Confirm
@@ -1395,49 +2018,53 @@ class _PeriodChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-          decoration: BoxDecoration(
-            gradient: selected
-                ? const LinearGradient(
-                    colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: selected ? null : Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: selected
-                ? null
-                : Border.all(color: Colors.grey[300]!, width: 1),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: selected ? Colors.white : Colors.grey[500],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.kanit(
-                  fontSize: 12,
-                  fontWeight:
-                      selected ? FontWeight.w600 : FontWeight.normal,
-                  color: selected ? Colors.white : Colors.grey[600],
+      child: SizedBox(
+        height: 88,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? const LinearGradient(
+                      colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: selected ? null : Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: selected
+                  ? null
+                  : Border.all(color: Colors.grey[300]!, width: 1),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: selected ? Colors.white : Colors.grey[500],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: GoogleFonts.kanit(
+                    fontSize: 12,
+                    height: 1.15,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    color: selected ? Colors.white : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-

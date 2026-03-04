@@ -86,6 +86,13 @@ class _SplashscreenScreenState extends State<SplashscreenScreen>
         _items = List.from(
             json.decode(item).map((m) => ItemsMemberList.fromJson(m)));
       }
+      if (_items.isEmpty) {
+        await prefs.remove('item');
+        blocSetState(() {
+          sent = false;
+        });
+        return;
+      }
       //----
       print("_controllerLoginAuto : ${_items[0].ORG_ID}");
       Map _map = {
@@ -96,7 +103,7 @@ class _SplashscreenScreenState extends State<SplashscreenScreen>
 
       print("_controllerLoginAuto RR : ${_map}");
       //-----
-      await new SigninFuture().apiSelectMember(_map).then((onValue) {
+      await new SigninFuture().apiSelectMember(_map).then((onValue) async {
         print(onValue[0]['msg']);
         if (onValue[0]['msg'] == 'success') {
           SharedCashe.saveItemsMemberList(item: onValue[0]['result']);
@@ -117,12 +124,14 @@ class _SplashscreenScreenState extends State<SplashscreenScreen>
           blocSetState(() {
             sent = false;
           });
-          alert_non_signin(context, 'ไม่พบ Username');
+          // Silent fallback to sign in when cached auto-login is invalid.
+          await prefs.remove('item');
         } else {
           blocSetState(() {
             sent = false;
           });
-          alert_non_signin(context, 'กรุณาป้อน Password ใหม่');
+          // Silent fallback to sign in when cached password is no longer valid.
+          await prefs.remove('item');
         }
       }, onError: (e) {
         print(e);

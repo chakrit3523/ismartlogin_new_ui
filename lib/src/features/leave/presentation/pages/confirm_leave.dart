@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:ismart_login/src/app/pages/main_page.dart';
 import 'package:http_parser/http_parser.dart';
@@ -55,6 +56,29 @@ class ConfirmDialog extends StatefulWidget {
 }
 
 class _ConfirmDialogState extends State<ConfirmDialog> {
+  static const List<String> _thaiWeekdayShort = <String>[
+    'จ.',
+    'อ.',
+    'พ.',
+    'พฤ.',
+    'ศ.',
+    'ส.',
+    'อา.',
+  ];
+  static const List<String> _thaiMonthShort = <String>[
+    'ม.ค.',
+    'ก.พ.',
+    'มี.ค.',
+    'เม.ย.',
+    'พ.ค.',
+    'มิ.ย.',
+    'ก.ค.',
+    'ส.ค.',
+    'ก.ย.',
+    'ต.ค.',
+    'พ.ย.',
+    'ธ.ค.',
+  ];
   late String typeLeave;
   late String cidLeave;
   bool _isLoading = false;
@@ -85,8 +109,7 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
     if (from == null || to == null) {
       return widget.numDate.isEmpty ? '1' : widget.numDate;
     }
-    final days =
-        DateTime(to.year, to.month, to.day)
+    final days = DateTime(to.year, to.month, to.day)
             .difference(DateTime(from.year, from.month, from.day))
             .inDays
             .abs() +
@@ -116,13 +139,79 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
   String get _halfDayLabel {
     if (widget.halfDayPeriod == 'morning') return 'ครึ่งวันเช้า';
     if (widget.halfDayPeriod == 'afternoon') return 'ครึ่งวันบ่าย';
+    if (widget.halfDayPeriod == 'last_morning') return 'วันสุดท้ายครึ่งวันเช้า';
     return '';
   }
 
   String get _periodIcon {
-    if (widget.halfDayPeriod == 'morning') return '🌅';
-    if (widget.halfDayPeriod == 'afternoon') return '🌇';
+    if (widget.halfDayPeriod == 'morning') return 'AM';
+    if (widget.halfDayPeriod == 'afternoon') return 'PM';
+    if (widget.halfDayPeriod == 'last_morning') return 'AM';
     return '';
+  }
+
+  String _formatThaiShortDate(
+    DateTime value, {
+    bool withWeekday = true,
+    bool withYear = true,
+  }) {
+    final weekday = _thaiWeekdayShort[value.weekday - 1];
+    final month = _thaiMonthShort[value.month - 1];
+    final buddhistYear = value.year + 543;
+    final shortYear = (buddhistYear % 100).toString().padLeft(2, '0');
+
+    final prefix = withWeekday ? '$weekday ' : '';
+    if (!withYear) {
+      return '$prefix${value.day} $month';
+    }
+    return '$prefix${value.day} $month $shortYear';
+  }
+
+  String _formatTimeText(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return '-';
+    final hm = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value);
+    if (hm == null) return value;
+    final hour = hm.group(1)!.padLeft(2, '0');
+    final minute = hm.group(2)!;
+    return '$hour:$minute';
+  }
+
+  String _buildThaiDateSummary({required bool isTimeRange}) {
+    final from = _parseFlexibleDate(widget.FirstDate);
+    final to = _parseFlexibleDate(widget.LastDate);
+
+    if (from == null || to == null) {
+      if (isTimeRange) {
+        return 'วันที่ ${widget.FirstDate}\nเวลา ${_formatTimeText(widget.firstTime)} - ${_formatTimeText(widget.lastTime)} น.';
+      }
+      final fallback = widget.FirstDate == widget.LastDate
+          ? 'วันที่ ${widget.FirstDate}'
+          : 'ตั้งแต่ ${widget.FirstDate}\nถึง ${widget.LastDate}';
+      if (widget.halfDayPeriod.isNotEmpty) {
+        return '$fallback\n($_halfDayLabel)';
+      }
+      return fallback;
+    }
+
+    if (isTimeRange) {
+      return 'วันที่ ${_formatThaiShortDate(from)}\nเวลา ${_formatTimeText(widget.firstTime)} - ${_formatTimeText(widget.lastTime)} น.';
+    }
+
+    if (from.year == to.year && from.month == to.month && from.day == to.day) {
+      final text = 'วันที่ ${_formatThaiShortDate(from)}';
+      if (widget.halfDayPeriod == 'morning' ||
+          widget.halfDayPeriod == 'afternoon') {
+        return '$text\n($_halfDayLabel)';
+      }
+      return text;
+    }
+
+    final rangeText = '${_formatThaiShortDate(from)} - ${_formatThaiShortDate(to)}';
+    if (widget.halfDayPeriod == 'last_morning') {
+      return '$rangeText\n($_halfDayLabel)';
+    }
+    return rangeText;
   }
 
   Future<void> _insertLeave() async {
@@ -273,41 +362,47 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
     final isTimeRange = widget.selectFulltime == '2';
     final numDisplay = _displayNumDate;
     final unit = isTimeRange ? 'ชม.' : 'วัน';
-
-    String dateString;
-    if (isTimeRange) {
-      dateString =
-          'วันที่ ${widget.FirstDate}\nเวลา ${widget.firstTime} - ${widget.lastTime}';
-    } else {
-      dateString = widget.FirstDate == widget.LastDate
-          ? 'วันที่ ${widget.FirstDate}'
-          : 'ตั้งแต่ ${widget.FirstDate}\nถึง ${widget.LastDate}';
-    }
+    final dateString = _buildThaiDateSummary(isTimeRange: isTimeRange);
+    final submitAt = DateFormat('HH:mm').format(DateTime.now());
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.14),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // ── Header ──────────────────────────────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-              decoration: const BoxDecoration(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
               ),
               child: Column(
                 children: [
                   Container(
-                    width: 60,
-                    height: 60,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.25),
                       shape: BoxShape.circle,
@@ -315,34 +410,56 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                     child: const Icon(
                       Icons.send_rounded,
                       color: Colors.white,
-                      size: 28,
+                      size: 22,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Text(
                     'ยืนยันการส่งใบลา',
                     style: GoogleFonts.kanit(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      typeLeave,
-                      style: GoogleFonts.kanit(
-                        fontSize: 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          typeLeave,
+                          style: GoogleFonts.kanit(
+                            fontSize: 13,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          isTimeRange ? 'รายชั่วโมง' : 'รายวัน',
+                          style: GoogleFonts.kanit(
+                            fontSize: 13,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -350,7 +467,7 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
             // ── Body ────────────────────────────────────────────────────────────
             Container(
               color: Colors.white,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Column(
                 children: [
                   _InfoRow(
@@ -358,72 +475,82 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                     label: 'ผู้ขอลา',
                     value: widget.fullName,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.notes_rounded,
                     label: 'เหตุผล',
                     value: widget.cause,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.calendar_today_rounded,
                     label: 'วันที่ลา',
                     value: dateString,
                   ),
-                  const SizedBox(height: 12),
-                  // Day / hour count row
-                  Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF21CCD4).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.today_rounded,
-                          size: 18,
-                          color: Color(0xFF21CCD4),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'จำนวน',
-                          style: GoogleFonts.kanit(
-                              fontSize: 14, color: Colors.grey[600]),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '$numDisplay $unit',
-                          style: GoogleFonts.kanit(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF7FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFD2E8FF)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
                             color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.today_rounded,
+                            size: 16,
+                            color: Color(0xFF0663F7),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'จำนวนที่ขอลา',
+                            style: GoogleFonts.kanit(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$numDisplay $unit',
+                            style: GoogleFonts.kanit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   // Half-day period badge
                   if (widget.halfDayPeriod.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF3E0),
                             borderRadius: BorderRadius.circular(20),
@@ -433,15 +560,21 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _periodIcon,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              const SizedBox(width: 4),
+                              if (_periodIcon.isNotEmpty) ...[
+                                Text(
+                                  _periodIcon,
+                                  style: GoogleFonts.kanit(
+                                    fontSize: 11,
+                                    color: const Color(0xFFE65100),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
                               Text(
                                 _halfDayLabel,
                                 style: GoogleFonts.kanit(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   color: const Color(0xFFE65100),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -452,13 +585,24 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _InfoRow(
                     icon: Icons.phone_outlined,
                     label: 'เบอร์ติดต่อ',
                     value: widget.phoneNum,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'เวลาที่กดส่ง $submitAt น.',
+                      style: GoogleFonts.kanit(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   // ── Action Buttons ───────────────────────────────────────────
                   Row(
                     children: [
@@ -467,15 +611,15 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                           onPressed:
                               _isLoading ? null : () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             side: const BorderSide(color: Color(0xFFCCCCCC)),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(
                             'ยกเลิก',
                             style: GoogleFonts.kanit(
-                              fontSize: 16,
+                              fontSize: 15,
                               color: Colors.grey[600],
                               fontWeight: FontWeight.w500,
                             ),
@@ -487,10 +631,10 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                         child: FilledButton(
                           onPressed: _isLoading ? null : _insertLeave,
                           style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             backgroundColor: const Color(0xFF21CCD4),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                           child: _isLoading
                               ? const SizedBox(
@@ -502,7 +646,7 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
                               : Text(
                                   'ยืนยัน',
                                   style: GoogleFonts.kanit(
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -535,39 +679,51 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: const Color(0xFF21CCD4).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE9EEF5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFF21CCD4).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: const Color(0xFF21CCD4)),
           ),
-          child: Icon(icon, size: 18, color: const Color(0xFF21CCD4)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.kanit(
-                    fontSize: 12, color: Colors.grey[500]),
-              ),
-              Text(
-                value,
-                style: GoogleFonts.kanit(
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style:
+                      GoogleFonts.kanit(fontSize: 12, color: Colors.grey[500]),
+                ),
+                const SizedBox(height: 0),
+                Text(
+                  value,
+                  style: GoogleFonts.kanit(
                     fontSize: 14,
                     color: Colors.black87,
-                    fontWeight: FontWeight.w500),
-              ),
-            ],
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

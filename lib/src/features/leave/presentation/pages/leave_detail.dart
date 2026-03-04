@@ -53,6 +53,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   String phone = '';
   String leaveStatusText = '';
   String createBy = '';
+  String halfDayPeriod = '';
   String userclass = '';
   String leave_member = '0';
   String sick_leave = '0';
@@ -117,6 +118,21 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     'ธ.ค': 12,
   };
 
+  static const List<String> _thaiMonthAbbr = <String>[
+    'ม.ค.',
+    'ก.พ.',
+    'มี.ค.',
+    'เม.ย.',
+    'พ.ค.',
+    'มิ.ย.',
+    'ก.ค.',
+    'ส.ค.',
+    'ก.ย.',
+    'ต.ค.',
+    'พ.ย.',
+    'ธ.ค.',
+  ];
+
   DateTime? _parseLeaveDate(String raw) {
     final value = raw.trim();
     if (value.isEmpty) {
@@ -178,28 +194,140 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     required String dateFrom,
     required String dateTo,
   }) {
-    if (!apiLeaveNum.contains('วัน')) {
-      return apiLeaveNum;
+    final directValue = _sanitizeDateValue(apiLeaveNum);
+    final parsedDirect = _extractFirstNumber(directValue);
+    if (!directValue.contains('วัน')) {
+      if (parsedDirect != null && !directValue.contains('ชม')) {
+        return '${_formatLeaveAmount(parsedDirect)} วัน';
+      }
+      return directValue;
+    }
+
+    if (parsedDirect == null) {
+      return directValue;
+    }
+    if (parsedDirect % 1 != 0) {
+      return '${_formatLeaveAmount(parsedDirect)} วัน';
     }
 
     final from = _parseLeaveDate(dateFrom);
     final to = _parseLeaveDate(dateTo);
     if (from == null || to == null) {
-      return apiLeaveNum;
+      return '${_formatLeaveAmount(parsedDirect)} วัน';
     }
 
     final start = DateTime(from.year, from.month, from.day);
     final end = DateTime(to.year, to.month, to.day);
     final days = end.difference(start).inDays.abs() + 1;
 
-    final parsed = RegExp(r'(\d+)').firstMatch(apiLeaveNum);
-    final apiDays = parsed == null ? null : int.tryParse(parsed.group(1)!);
+    final apiDays = parsedDirect.toInt();
 
-    if (apiDays == null || apiDays != days) {
+    if (apiDays != days) {
       return '$days วัน';
     }
 
-    return apiLeaveNum;
+    return '${_formatLeaveAmount(parsedDirect)} วัน';
+  }
+
+  double? _extractFirstNumber(String raw) {
+    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(raw);
+    if (match == null) {
+      return null;
+    }
+    return double.tryParse(match.group(1)!);
+  }
+
+  String _formatLeaveAmount(double value) {
+    if (value % 1 == 0) {
+      return value.toStringAsFixed(0);
+    }
+    return value.toStringAsFixed(1);
+  }
+
+  String _sanitizeDateValue(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || value.toLowerCase() == 'null') {
+      return '';
+    }
+    return value;
+  }
+
+  String _stringOrEmpty(dynamic value) {
+    if (value == null) {
+      return '';
+    }
+    final text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') {
+      return '';
+    }
+    return text;
+  }
+
+  String _pickFirstNonEmpty(Iterable<dynamic> candidates) {
+    for (final candidate in candidates) {
+      final value = _stringOrEmpty(candidate);
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  String _formatThaiShortDate(DateTime value) {
+    final buddhistYearShort =
+        ((value.year + 543) % 100).toString().padLeft(2, '0');
+    return '${value.day} ${_thaiMonthAbbr[value.month - 1]} $buddhistYearShort';
+  }
+
+  String _deriveLeaveEndFromLeaveNum(String startDateText) {
+    final normalizedLeaveNum = _sanitizeDateValue(leaveNum);
+    if (normalizedLeaveNum.isEmpty || !normalizedLeaveNum.contains('วัน')) {
+      return '';
+    }
+
+    final amount = _extractFirstNumber(normalizedLeaveNum);
+    final days = amount == null ? null : amount.ceil();
+    if (days == null || days <= 1) {
+      return '';
+    }
+
+    final start = _parseLeaveDate(startDateText);
+    if (start == null) {
+      return '';
+    }
+
+    final end = DateTime(start.year, start.month, start.day)
+        .add(Duration(days: days - 1));
+    return _formatThaiShortDate(end);
+  }
+
+  String _buildLeaveDateRangeText() {
+    final start = _sanitizeDateValue(leaveDate);
+    final end = _sanitizeDateValue(leaveEnd);
+
+    if (start.isEmpty && end.isEmpty) {
+      return '-';
+    }
+    if (start.isEmpty) {
+      return end;
+    }
+    final effectiveEnd =
+        end.isNotEmpty ? end : _deriveLeaveEndFromLeaveNum(start);
+    if (effectiveEnd.isEmpty || effectiveEnd == start) {
+      if (halfDayPeriod == 'morning') {
+        return '$start (ครึ่งวันเช้า)';
+      }
+      if (halfDayPeriod == 'afternoon') {
+        return '$start (ครึ่งวันบ่าย)';
+      }
+      return start;
+    }
+
+    final rangeText = '$start - $effectiveEnd';
+    if (halfDayPeriod == 'last_morning') {
+      return '$rangeText (วันสุดท้ายครึ่งวันเช้า)';
+    }
+    return rangeText;
   }
 
   void initState() {
@@ -529,13 +657,15 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     // print(data);
     if (data[0]['status'] == true) {
       cateName = data[0]['cateName'].toString();
-      final halfDayPeriod = data[0]['half_day_period']?.toString();
+      halfDayPeriod = data[0]['half_day_period']?.toString() ?? '';
       if (halfDayPeriod == 'morning') {
         cateName += ' (ครึ่งวันเช้า)';
       } else if (halfDayPeriod == 'afternoon') {
         cateName += ' (ครึ่งวันบ่าย)';
+      } else if (halfDayPeriod == 'last_morning') {
+        cateName += ' (วันสุดท้ายครึ่งวันเช้า)';
       }
-      
+
       totalLeave = data[0]['totalLeave'].toString();
       cate_name = data[0]['cate_name'].toString();
       cid = data[0]['cid'].toString();
@@ -544,10 +674,22 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
       fullname = data[0]['fullname'].toString();
       subject = data[0]['subject'].toString();
       position = data[0]['position'].toString();
-      leaveDate = data[0]['leaveDate'].toString();
-      leaveEnd = data[0]['leaveEnd'].toString();
+      leaveDate = _pickFirstNonEmpty([
+        data[0]['leaveDate'],
+        data[0]['dateLeave'],
+        data[0]['FirstDate'],
+        data[0]['first_date'],
+      ]);
+      leaveEnd = _pickFirstNonEmpty([
+        data[0]['leaveEnd'],
+        data[0]['LastDate'],
+        data[0]['last_date'],
+        data[0]['dateEnd'],
+        data[0]['date_to'],
+      ]);
       leaveNum = _normalizeLeaveNum(
-        apiLeaveNum: data[0]['leaveNum'].toString(),
+        apiLeaveNum:
+            _pickFirstNonEmpty([data[0]['leaveNum'], data[0]['numDate']]),
         dateFrom: leaveDate,
         dateTo: leaveEnd,
       );
@@ -922,7 +1064,8 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                               children: [
                                 _buildDetailRow("ชื่อ – สกุล", fullname),
                                 _buildDetailRow("ตำแหน่ง", position),
-                                _buildDetailRow("ลาวันที่", leaveDate),
+                                _buildDetailRow(
+                                    "ลาวันที่", _buildLeaveDateRangeText()),
                                 _buildDetailRow("เนื่องจาก", subject),
                                 _buildDetailRow("รวม", leaveNum),
                                 _buildDetailRow("ส่งใบลา", createDate),

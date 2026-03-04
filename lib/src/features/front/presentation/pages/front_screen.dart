@@ -222,6 +222,7 @@ class _FrontScreenState extends State<FrontScreen>
         print('ยังไม่ login');
         _resultAttand = onValue;
         blocSetState(() {
+          // No check-in record for today yet.
           _login = true;
           _logout = false;
           if (_resultAttand.isNotEmpty && _resultAttand[0].END_TIME != '') {
@@ -234,13 +235,11 @@ class _FrontScreenState extends State<FrontScreen>
         blocSetState(() {
           _resultAttand = onValue;
           print(_resultAttand[0].END_TIME);
-          if (_resultAttand.isNotEmpty &&
-              _resultAttand[0].END_TIME == '' &&
-              !_login) {
-            _logout = true;
-          } else {
-            _logout = false;
-          }
+          final hasCheckedOut =
+              _resultAttand.isNotEmpty && _resultAttand[0].END_TIME != '';
+          // Determine state strictly from latest server response.
+          _login = false;
+          _logout = !hasCheckedOut;
           end_time = _resultAttand.isNotEmpty ? _resultAttand[0].END_TIME : '';
         });
         print("_logout : $_logout");
