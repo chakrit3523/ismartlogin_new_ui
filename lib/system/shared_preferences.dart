@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 // ignore: unused_import
-import 'package:ismart_login/page/sign/model/memberlist.dart';
+import 'package:ismart_login/src/features/sign/presentation/pages/model/memberlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedCashe {

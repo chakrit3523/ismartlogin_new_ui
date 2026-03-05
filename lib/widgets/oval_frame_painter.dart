@@ -1,5 +1,4 @@
-import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 /// Professional rectangular frame overlay for face detection with face bounding box
@@ -36,7 +35,7 @@ class OvalFramePainter extends CustomPainter {
 
     canvas.drawPath(
       path,
-      Paint()..color = Colors.black.withOpacity(0.75),
+      Paint()..color = Colors.black.withValues(alpha: 0.75),
     );
 
     // Clean, professional color scheme
@@ -60,7 +59,7 @@ class OvalFramePainter extends CustomPainter {
         Radius.circular(23),
       ),
       Paint()
-        ..color = glowColor.withOpacity(0.3)
+        ..color = glowColor.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6.0
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
@@ -82,7 +81,7 @@ class OvalFramePainter extends CustomPainter {
         Radius.circular(16),
       ),
       Paint()
-        ..color = frameColor.withOpacity(0.4)
+        ..color = frameColor.withValues(alpha: 0.4)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0,
     );
@@ -97,7 +96,7 @@ class OvalFramePainter extends CustomPainter {
   void _drawCornerBrackets(
       Canvas canvas, Size size, Rect frameRect, Color color) {
     final paint = Paint()
-      ..color = color.withOpacity(0.8)
+      ..color = color.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
@@ -164,7 +163,7 @@ class OvalFramePainter extends CustomPainter {
         dotPositions[i],
         dotRadius,
         Paint()
-          ..color = isActive ? activeColor : Colors.grey.withOpacity(0.4)
+          ..color = isActive ? activeColor : Colors.grey.withValues(alpha: 0.4)
           ..style = PaintingStyle.fill,
       );
 
@@ -174,8 +173,8 @@ class OvalFramePainter extends CustomPainter {
         dotRadius,
         Paint()
           ..color = isActive
-              ? activeColor.withOpacity(0.8)
-              : Colors.grey.withOpacity(0.3)
+              ? activeColor.withValues(alpha: 0.8)
+              : Colors.grey.withValues(alpha: 0.3)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.0,
       );

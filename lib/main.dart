@@ -5,12 +5,15 @@ import 'dart:async';
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/global_ui_refresh_cubit.dart';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/foundation.dart';
-import 'package:ismart_login/page/splashscreen/splashscreen_screen.dart';
+import 'package:ismart_login/src/features/splashscreen/presentation/pages/splashscreen_screen.dart';
 import 'package:ismart_login/server/server.dart';
+import 'package:ismart_login/src/app/bootstrap.dart';
 import 'package:ismart_login/system/FirebaseNotification.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 // import 'package:package_info/package_info.dart';
@@ -61,6 +64,7 @@ AndroidNotificationChannel? channel;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await bootstrapApp();
 
   // ✅ ตั้งค่า background handler ของ FCM
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -84,29 +88,29 @@ Future<void> main() async {
   await FirebaseNotification().setupInteractedMessage();
 
   // ✅ runApp หลังเตรียมระบบเสร็จแล้ว
-  runApp(MaterialApp(
-    navigatorKey: navigatorKey,
-    home: const MyApp(key: Key('MainApp')),
-    debugShowCheckedModeBanner: false,
-  ));
+  runApp(
+    BlocProvider<GlobalUiRefreshCubit>(
+      create: (_) => GlobalUiRefreshCubit(),
+      child: BlocBuilder<GlobalUiRefreshCubit, int>(
+        builder: (_, __) => MaterialApp(
+          navigatorKey: navigatorKey,
+          home: const MyApp(key: Key('MainApp')),
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('th', 'TH'),
+            Locale('en', 'US'),
+          ],
+        ),
+      ),
+    ),
+  );
 
-  configLoading();
-}
-
-void configLoading() {
-  EasyLoading.instance
-    ..displayDuration = const Duration(milliseconds: 2000)
-    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
-    ..loadingStyle = EasyLoadingStyle.dark
-    ..indicatorSize = 45.0
-    ..radius = 10.0
-    ..progressColor = Colors.yellow
-    ..backgroundColor = Colors.green
-    ..indicatorColor = Colors.yellow
-    ..textColor = Colors.yellow
-    ..maskColor = Colors.blue.withOpacity(0.5)
-    ..userInteractions = true
-    ..dismissOnTap = false;
+  // configLoading removed
 }
 
 class MyApp extends StatefulWidget {
@@ -162,6 +166,8 @@ class _MyAppState extends State<MyApp> {
     packageName: 'Unknown',
     version: 'Unknown',
     buildNumber: 'Unknown',
+
+    // buildSignature: '', // Removed or irrelevant based on previous code
   );
 
   Future<void> initPackageInfo() async {
@@ -234,12 +240,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _launchInBrowser(String url) async {
-    if (await canLaunch(url)) {
-      await launch(
-        url,
-        forceSafariVC: false,
-        forceWebView: false,
-        headers: <String, String>{'my_header_key': 'my_header_value'},
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
       );
       exit(0);
     } else {
@@ -255,8 +260,16 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
       home: SplashscreenScreen(),
-      builder: (context, child) =>
-          FlutterEasyLoading(child: child ?? Container()),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('th', 'TH'),
+        Locale('en', 'US'),
+      ],
+      // EasyLoading builder removed
     );
   }
 }

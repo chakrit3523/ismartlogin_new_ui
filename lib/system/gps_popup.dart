@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:ismart_login/page/sign/signin_screen.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
+import 'package:ismart_login/src/features/sign/presentation/pages/signin_screen.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/system/shared_preferences.dart';
 import 'package:ismart_login/system/widht_device.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 
 class StylePage {
   BoxDecoration boxWhite = BoxDecoration(
@@ -11,7 +11,7 @@ class StylePage {
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.grey.withOpacity(0.5),
+        color: Colors.grey.withValues(alpha: 0.5),
         spreadRadius: 5,
         blurRadius: 7,
         offset: Offset(3, 0), // changes position of shadow
@@ -23,13 +23,12 @@ class StylePage {
 
   BoxDecoration background = BoxDecoration(
     gradient: LinearGradient(
-        colors: [
-          Color(0xFF00B1FF),
-          Color(0xFF79CFAC),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: [0.0, 1.0],
-        tileMode: TileMode.clamp),
+      colors: [
+        Color(0xFF21CCD4), // Light Blue
+        Color(0xFF0663F7), // Deep Blue
+      ],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
   );
 }

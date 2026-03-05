@@ -1,0 +1,2678 @@
+// ignore_for_file: unnecessary_null_comparison
+
+import 'dart:convert';
+
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+
+import 'package:flutter/cupertino.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:ismart_login/src/features/leave/presentation/pages/confirm_leave.dart';
+import 'package:ismart_login/src/features/leave/presentation/pages/leave_statistics.dart';
+import 'package:ismart_login/src/features/leave/domain/entities/leave_date_selection.dart';
+import 'package:ismart_login/src/features/leave/domain/usecases/leave_date_calculator.dart';
+import 'package:ismart_login/src/features/leave/presentation/helpers/thai_leave_date_formatter.dart';
+import 'package:ismart_login/src/features/leave/presentation/widgets/leave_date_range_picker_field.dart';
+
+import 'package:ismart_login/src/features/managements/presentation/pages/future/member_manage_future.dart';
+import 'package:ismart_login/src/features/managements/presentation/pages/future/time_manage_future.dart';
+import 'package:ismart_login/src/features/managements/presentation/pages/model/itemMemberResultManage.dart';
+import 'package:ismart_login/src/features/managements/presentation/pages/model/itemTimeResultMange.dart';
+
+import 'package:ismart_login/server/server.dart';
+import 'package:ismart_login/style/font_style.dart';
+
+import 'package:ismart_login/system/shared_preferences.dart';
+import 'package:ismart_login/system/widht_device.dart';
+import 'package:http/http.dart' as http;
+
+class LeaveScreen extends StatefulWidget {
+  @override
+  _LeaveScreenState createState() => _LeaveScreenState();
+}
+
+class _LeaveScreenState extends State<LeaveScreen> {
+  List<int> _daySelect = [];
+  DateTime FirstDate = DateTime.now();
+  DateTime LastDate = DateTime.now();
+  final _formKey = GlobalKey<FormState>();
+  bool select1 = true;
+  bool select2 = false;
+  bool select3 = false;
+  bool inputCause = false;
+  bool inputTotalDays = false;
+  bool inputTotalTimes = false;
+  bool _inputPhone = false;
+  var start;
+  var end;
+  List<String> items = <String>['0'];
+  List<String> itemsTime = <String>[
+    '0.5',
+    '1',
+    '1.5',
+    '2',
+    '2.5',
+    '3',
+    '3.5',
+    '4',
+    '4.5',
+    '5',
+    '5.5',
+    '6',
+    '6.5',
+    '7',
+    '7.5',
+    '8'
+  ];
+  String selectItem = '1';
+  String selectItemTime = '1';
+  String? timeError;
+  bool _wasSubdayMode = false;
+  int _selectFullTime = 1;
+  String sick_leave = '0';
+  String personal_leave = '0';
+  String other_leave = '0';
+
+  TextEditingController _inputCause = TextEditingController();
+  TextEditingController inputPhone = TextEditingController();
+  TextEditingController _inputTotalDays = TextEditingController();
+  TextEditingController _inputTotalTimes = TextEditingController();
+  List<ItemsMemberResultManage> _itemMember = [];
+  List<File> _files = [];
+  LeaveDateSelection _leaveDateSelection = LeaveDateSelection.initial();
+  // 'full' | 'morning' | 'afternoon'
+  String _periodMode = 'full';
+  // Per-day half-day states: key = 'yyyy-MM-dd', value = 'full' | 'morning' | 'afternoon'
+  Map<String, String> _dayStates = {};
+  // Booked leave dates for calendar display
+  Set<DateTime> _bookedLeaveDates = {};
+  // Booked dates map for overlap checking: key = 'yyyy-MM-dd', value = 'full' | 'morning' | 'afternoon'
+  Map<String, String> _bookedDatesMap = {};
+
+  /// Build JSON array for half_day_details API field
+  String _buildHalfDayDetailsJson() {
+    final entries = _dayStates.entries
+        .where((e) => e.value != 'full')
+        .map((e) => '{"date":"${e.key}","period":"${e.value}"}')
+        .toList();
+    if (entries.isEmpty) return '';
+    return '[${entries.join(',')}]';
+  }
+
+  /// Recalculate numDate and _periodMode from _dayStates
+  void _recalcFromDayStates() {
+    final start = DateTime(FirstDate.year, FirstDate.month, FirstDate.day);
+    final end = DateTime(LastDate.year, LastDate.month, LastDate.day);
+    final dates = <DateTime>[];
+    var cur = start;
+    while (!cur.isAfter(end)) {
+      if (cur.weekday != DateTime.saturday && cur.weekday != DateTime.sunday) {
+        dates.add(cur);
+      }
+      cur = cur.add(const Duration(days: 1));
+    }
+    if (dates.isEmpty) dates.add(start);
+
+    double total = 0;
+    for (final d in dates) {
+      final key =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final state = _dayStates[key] ?? 'full';
+      total += state == 'full' ? 1.0 : 0.5;
+    }
+
+    final halfCount = _dayStates.values.where((v) => v != 'full').length;
+    // Determine legacy _periodMode for backward compat
+    if (halfCount == 0) {
+      _periodMode = 'full';
+    } else if (dates.length == 1) {
+      final state = _dayStates.values.first;
+      _periodMode = state; // 'morning' or 'afternoon'
+    } else {
+      _periodMode = 'custom';
+    }
+
+    _inputTotalDays.text = _formatLeaveAmount(total);
+    _leaveDateSelection = _leaveDateSelection.copyWith(
+      isHalfDay: dates.length == 1 && halfCount > 0,
+      totalDays: total,
+      clearHalfDayPeriod: halfCount == 0,
+    );
+    if (dates.length == 1 && halfCount > 0) {
+      _inputTotalDays.text = '0.5';
+    }
+  }
+
+  List<bool> _groupDay = [
+    true,
+  ];
+
+  TimeOfDay _timeOfDay = TimeOfDay.now();
+
+  List<TextEditingController> _inputTimeIn = [
+    TextEditingController(),
+  ];
+
+  List<TextEditingController> _inputTimeOut = [
+    TextEditingController(),
+  ];
+
+  // final difference = LastDate.difference(FirstDate).inDays;
+  TextStyle styleDetail = TextStyle(
+      fontFamily: FontStyles().FontFamily,
+      fontSize: 18,
+      color: Colors.black,
+      height: 1);
+
+  TextStyle styleButton = TextStyle(
+      fontFamily: FontStyles().FontFamily,
+      fontSize: 20,
+      color: Colors.blue,
+      height: 1);
+
+  TextStyle styleHeader = TextStyle(
+      fontFamily: FontStyles().FontFamily,
+      fontSize: 25,
+      color: Colors.white,
+      height: 2);
+  TextStyle styleSubHeader = TextStyle(
+      fontFamily: FontStyles().FontFamily,
+      fontSize: 23,
+      color: Color(0xFF8F8C8C),
+      height: 1);
+
+  Future<bool> insertInfoLeave() async {
+    String inputCause = _inputCause.text;
+
+    print(inputCause);
+    Map map = {
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+      'cause': inputCause,
+    };
+    var body = json.encode(map);
+    print(body);
+
+    final http.Response response = await http.post(
+      Uri.parse(Server().insertInfoLeave),
+      headers: <String, String>{
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers":
+            "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+        "Access-Control-Allow-Methods": "*"
+      },
+      body: body,
+    );
+    if (response.statusCode != 200) {
+      return false;
+    }
+    if (response.statusCode == 200) {
+      print('yehhhhh');
+    }
+    print(response);
+    final data = json.decode(response.body);
+    print(data);
+    return data['status'] == 'success';
+  }
+
+  void initState() {
+    // _inputTotalDays.text = " ";
+    onLoadGetAllTypes();
+    onLoadMemberManage();
+    onLoadLeaveSummary();
+    _calculateTotalDays();
+    _applyLeaveSelection(_leaveDateSelection, notify: false);
+    super.initState();
+  }
+
+  bool get _isSubdayLeaveSelected {
+    if (!select3) return false;
+    final subject = _selectedOtherLeaveSubject.trim().toLowerCase();
+    if (subject.isEmpty) return false;
+    return subject.contains('ย่อยระหว่างวัน') ||
+        subject.contains('รายชั่วโมง') ||
+        subject.contains('ระหว่างวัน');
+  }
+
+  String get _selectedOtherLeaveSubject {
+    for (final item in _itemTypes) {
+      if (item.ID == dropdownValueTime) {
+        return item.SUBJECT;
+      }
+    }
+    return '';
+  }
+
+  void _selectLeaveTab({
+    required bool sick,
+    required bool personal,
+    required bool other,
+  }) {
+    blocSetState(() {
+      select1 = sick;
+      select2 = personal;
+      select3 = other;
+      _syncSubdayMode(forceNotify: false);
+    });
+  }
+
+  void _syncSubdayMode({bool forceNotify = true}) {
+    final isSubday = _isSubdayLeaveSelected;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (isSubday) {
+      final startTime = _leaveDateSelection.startTime;
+      final endTime = _leaveDateSelection.endTime;
+
+      double totalHours = 0;
+      if (startTime != null && endTime != null) {
+        final valid = validateLeaveDateSelection(
+          startDate: today,
+          endDate: today,
+          isHalfDay: false,
+          isTimeRange: true,
+          startTime: startTime,
+          endTime: endTime,
+        );
+        if (valid == null) {
+          totalHours = calculateLeaveAmount(
+            startDate: today,
+            endDate: today,
+            isHalfDay: false,
+            isTimeRange: true,
+            startTime: startTime,
+            endTime: endTime,
+          );
+        }
+      }
+
+      _leaveDateSelection = LeaveDateSelection(
+        startDate: today,
+        endDate: today,
+        totalDays: totalHours,
+        startTime: startTime,
+        endTime: endTime,
+        isHalfDay: false,
+        isTimeRange: true,
+      );
+
+      FirstDate = today;
+      LastDate = today;
+      _selectFullTime = 2;
+      _inputTotalDays.text = '1';
+      _inputTotalTimes.text =
+          totalHours > 0 ? _formatLeaveAmount(totalHours) : '';
+
+      if (_inputTimeIn.isEmpty) {
+        _inputTimeIn = [TextEditingController()];
+      }
+      if (_inputTimeOut.isEmpty) {
+        _inputTimeOut = [TextEditingController()];
+      }
+      _inputTimeIn[0].text = startTime == null
+          ? ''
+          : ThaiLeaveDateFormatter.toTimeLabel(startTime);
+      _inputTimeOut[0].text =
+          endTime == null ? '' : ThaiLeaveDateFormatter.toTimeLabel(endTime);
+
+      timeError = null;
+    } else if (_wasSubdayMode) {
+      final dayDiff = LastDate.difference(FirstDate).inDays + 1;
+      final safeDays = dayDiff <= 0 ? 1 : dayDiff;
+      _leaveDateSelection = LeaveDateSelection(
+        startDate: DateTime(FirstDate.year, FirstDate.month, FirstDate.day),
+        endDate: DateTime(LastDate.year, LastDate.month, LastDate.day),
+        totalDays: safeDays.toDouble(),
+        isHalfDay: false,
+        isTimeRange: false,
+      );
+      _selectFullTime = 1;
+      _inputTotalDays.text = safeDays.toString();
+      _inputTotalTimes.clear();
+      if (_inputTimeIn.isNotEmpty) _inputTimeIn[0].clear();
+      if (_inputTimeOut.isNotEmpty) _inputTimeOut[0].clear();
+      timeError = null;
+    }
+
+    _wasSubdayMode = isSubday;
+    if (forceNotify && mounted) {
+      blocSetState(() {});
+    }
+  }
+
+  Future<void> _pickSubdayTime({required bool isStart}) async {
+    final picked = await _showStyledTimePicker(isStart: isStart);
+
+    if (picked == null) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final startTime = isStart ? picked : _leaveDateSelection.startTime;
+    final endTime = isStart ? _leaveDateSelection.endTime : picked;
+    double totalHours = 0;
+    String? nextError;
+
+    if (startTime != null && endTime != null) {
+      final validation = validateLeaveDateSelection(
+        startDate: today,
+        endDate: today,
+        isHalfDay: false,
+        isTimeRange: true,
+        startTime: startTime,
+        endTime: endTime,
+      );
+      if (validation == null) {
+        totalHours = calculateLeaveAmount(
+          startDate: today,
+          endDate: today,
+          isHalfDay: false,
+          isTimeRange: true,
+          startTime: startTime,
+          endTime: endTime,
+        );
+      } else {
+        nextError = mapLeaveDateValidationError(validation);
+      }
+    }
+
+    blocSetState(() {
+      _leaveDateSelection = LeaveDateSelection(
+        startDate: today,
+        endDate: today,
+        totalDays: totalHours,
+        startTime: startTime,
+        endTime: endTime,
+        isHalfDay: false,
+        isTimeRange: true,
+      );
+      FirstDate = today;
+      LastDate = today;
+      _selectFullTime = 2;
+      _inputTotalDays.text = '1';
+      _inputTotalTimes.text =
+          totalHours > 0 ? _formatLeaveAmount(totalHours) : '';
+
+      _inputTimeIn[0].text = startTime == null
+          ? ''
+          : ThaiLeaveDateFormatter.toTimeLabel(startTime);
+      _inputTimeOut[0].text =
+          endTime == null ? '' : ThaiLeaveDateFormatter.toTimeLabel(endTime);
+      timeError = nextError;
+    });
+  }
+
+  Future<TimeOfDay?> _showStyledTimePicker({required bool isStart}) async {
+    final now = DateTime.now();
+    final current =
+        isStart ? _leaveDateSelection.startTime : _leaveDateSelection.endTime;
+    final initial = current ?? TimeOfDay(hour: isStart ? 8 : 17, minute: 0);
+    final initialDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      initial.hour,
+      initial.minute,
+    );
+    DateTime selectedDateTime = initialDateTime;
+
+    final picked = await showModalBottomSheet<TimeOfDay>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final previewTime =
+                DateFormat('HH:mm').format(selectedDateTime).toString();
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 22,
+                    offset: Offset(0, -6),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                isStart
+                                    ? 'เลือกเวลาเริ่มต้น'
+                                    : 'เลือกเวลาสิ้นสุด',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                previewTime,
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      SizedBox(
+                        height: 210,
+                        child: CupertinoDatePicker(
+                          mode: CupertinoDatePickerMode.time,
+                          initialDateTime: initialDateTime,
+                          use24hFormat: true,
+                          minuteInterval: 5,
+                          onDateTimeChanged: (DateTime newDateTime) {
+                            setModalState(() {
+                              selectedDateTime = newDateTime;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(sheetContext),
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                side: BorderSide(color: Colors.grey[300]!),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'ยกเลิก',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.grey[700],
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () {
+                                Navigator.pop(
+                                  sheetContext,
+                                  TimeOfDay(
+                                    hour: selectedDateTime.hour,
+                                    minute: selectedDateTime.minute,
+                                  ),
+                                );
+                              },
+                              style: FilledButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: Color(0xFF0663F7),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'ตกลง',
+                                style: GoogleFonts.kanit(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    return picked;
+  }
+
+  Future<void> onLoadLeaveSummary() async {
+    final map = {
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "status_leave": "",
+      "cid": "",
+      "month_start": "",
+      "year_start": "",
+      "month_end": "",
+      "year_end": "",
+    };
+    final body = json.encode(map);
+    final response = await http.Client().post(
+      Uri.parse(Server().getListLeave),
+      headers: {"Content-Type": "application/json"},
+      body: body,
+    );
+    final leaveData = json.decode(response.body);
+
+    if (leaveData is List && leaveData.isNotEmpty) {
+      sick_leave = leaveData[0]['sick']?.toString() ?? '0';
+      personal_leave = leaveData[0]['leave']?.toString() ?? '0';
+      other_leave = leaveData[0]['other']?.toString() ?? '0';
+
+      // Build booked leave dates for calendar dots & overlap check
+      final bookedDates = <DateTime>{};
+      final bookedMap = <String, String>{};
+      final results = leaveData[0]['result'];
+      if (results is List) {
+        for (final item in results) {
+          final statusLeave = item['status_leave']?.toString() ?? '';
+          if (statusLeave != '1' && statusLeave != '2')
+            continue; // only pending/approved
+          final firstDateStr = item['FirstDate']?.toString() ?? '';
+          final lastDateStr = item['LastDate']?.toString() ?? '';
+          if (firstDateStr.isEmpty || lastDateStr.isEmpty) continue;
+          final hdp = item['half_day_period']?.toString() ?? '';
+          final hdd = item['half_day_details']?.toString() ?? '';
+          Map<String, String> detailsMap = {};
+          if (hdd.isNotEmpty) {
+            try {
+              final decoded = json.decode(hdd);
+              if (decoded is List) {
+                for (final d in decoded) {
+                  detailsMap[d['date']?.toString() ?? ''] =
+                      d['period']?.toString() ?? 'full';
+                }
+              }
+            } catch (_) {}
+          }
+          DateTime cursor = DateTime.parse(firstDateStr);
+          final endDt = DateTime.parse(lastDateStr);
+          while (!cursor.isAfter(endDt)) {
+            if (cursor.weekday < 6) {
+              // skip weekends
+              final dk = DateFormat('yyyy-MM-dd').format(cursor);
+              bookedDates.add(DateTime(cursor.year, cursor.month, cursor.day));
+              String period = 'full';
+              if (detailsMap.containsKey(dk)) {
+                period = detailsMap[dk]!;
+              } else if (hdp == 'morning' && firstDateStr == lastDateStr) {
+                period = 'morning';
+              } else if (hdp == 'afternoon' && firstDateStr == lastDateStr) {
+                period = 'afternoon';
+              }
+              if (bookedMap.containsKey(dk)) {
+                if (bookedMap[dk] != 'full' &&
+                    period != 'full' &&
+                    bookedMap[dk] != period) {
+                  bookedMap[dk] = 'full';
+                }
+              } else {
+                bookedMap[dk] = period;
+              }
+            }
+            cursor = cursor.add(const Duration(days: 1));
+          }
+        }
+      }
+      _bookedLeaveDates = bookedDates;
+      _bookedDatesMap = bookedMap;
+
+      if (mounted) {
+        blocSetState(() {});
+      }
+    }
+  }
+
+  Future<bool> onLoadMemberManage() async {
+    Map map = {
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+    };
+    print("--- Load Member Manage ---");
+    print("map : ${map}");
+    await MemberManageFuture().apiGetMemberManageList(map).then((onValue) {
+      print("check tab ${onValue[0].STATUS}");
+      print("check tab ${onValue[0].SICK_LEAVE}");
+      blocSetState(() {
+        if (onValue[0].STATUS) {
+          _itemMember = onValue[0].RESULT;
+        }
+      });
+    });
+    blocSetState(() {});
+    return true;
+  }
+
+  String dropdownValueTime = '0';
+  List<ItemsTimeResultManage> _itemTypes = [];
+  Future<bool> onLoadGetAllTypes() async {
+    Map map = {
+      "org_id": await SharedCashe.getItemsWay(name: 'org_id'),
+    };
+    await TimeManageFuture().apiGetTypesManageList(map).then((onValue) {
+      if (onValue[0].STATUS == true) {
+        blocSetState(() {
+          _itemTypes = onValue[0].RESULT;
+          dropdownValueTime = _itemTypes[0].ID;
+        });
+      }
+    });
+    return true;
+  }
+
+  popup_comfirm(BuildContext context) {
+    var newFormat = DateFormat("yyyy-MM-dd");
+    showDialog(
+        context: context,
+        builder: (_) {
+          return ConfirmDialog(
+            key: UniqueKey(),
+            onConfirmTap: (String value) {},
+            select1: select1,
+            select2: select2,
+            select3: select3,
+            cidSub: select3 ? dropdownValueTime : '',
+            FirstDate: newFormat.format(FirstDate),
+            LastDate: newFormat.format(LastDate),
+            numDate: _selectFullTime == 2
+                ? _inputTotalTimes.text
+                : _inputTotalDays.text,
+            phoneNum: inputPhone.text,
+            selectFulltime: _selectFullTime.toString(),
+            firstTime: _inputTimeIn[0].text,
+            lastTime: _inputTimeOut[0].text,
+            cause: _inputCause.text,
+            fullName: _itemMember[0].FULLNAME ?? '',
+            filesAll: _files,
+            halfDayPeriod: _periodMode == 'full' ? '' : _periodMode,
+            halfDayDetails: _buildHalfDayDetailsJson(),
+          );
+        });
+  }
+
+  /// Check for overlapping leave dates before confirming
+  void _checkOverlapAndConfirm(BuildContext context) {
+    final newFormat = DateFormat('yyyy-MM-dd');
+    final thaiMonths = [
+      '',
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.'
+    ];
+    final conflicts = <String>[];
+
+    DateTime cursor = FirstDate;
+    while (!cursor.isAfter(LastDate)) {
+      if (cursor.weekday < 6) {
+        final dk = newFormat.format(cursor);
+        if (_bookedDatesMap.containsKey(dk)) {
+          final existPeriod = _bookedDatesMap[dk]!;
+          // Determine new request period for this day
+          String reqPeriod = 'full';
+          if (_dayStates.containsKey(dk)) {
+            reqPeriod = _dayStates[dk]!;
+          } else if (_periodMode == 'morning' && FirstDate == LastDate) {
+            reqPeriod = 'morning';
+          } else if (_periodMode == 'afternoon' && FirstDate == LastDate) {
+            reqPeriod = 'afternoon';
+          }
+          bool isConflict = false;
+          if (existPeriod == 'full' || reqPeriod == 'full') {
+            isConflict = true;
+          } else if (existPeriod == reqPeriod) {
+            isConflict = true;
+          }
+          if (isConflict) {
+            conflicts.add('${cursor.day} ${thaiMonths[cursor.month]}');
+          }
+        }
+      }
+      cursor = cursor.add(const Duration(days: 1));
+    }
+
+    if (conflicts.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red[50],
+                ),
+                child: const Icon(
+                  Icons.event_busy_rounded,
+                  color: Colors.redAccent,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'ไม่สามารถลาซ้ำได้',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.kanit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'วันที่ ${conflicts.join(", ")} มีใบลาอยู่แล้ว',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.kanit(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('ตกลง', style: GoogleFonts.kanit(fontSize: 16)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    popup_comfirm(context);
+  }
+
+  Future<bool> _checkPersonalLeaveLimit() async {
+    String orgId = await SharedCashe.getItemsWay(name: 'org_id');
+    if (orgId != '1') return true;
+
+    final now = DateTime.now();
+    int year = now.year;
+
+    String monthStart = year == 2026 ? "3" : "1";
+    String monthEnd = "12";
+    String yearStart = (year + 543).toString();
+    String yearEnd = (year + 543).toString();
+
+    final map = {
+      "org_id": orgId,
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "status_leave": "1,2",
+      "cid": "3",
+      "month_start": monthStart,
+      "year_start": yearStart,
+      "month_end": monthEnd,
+      "year_end": yearEnd,
+    };
+    final body = json.encode(map);
+    try {
+      final response = await http.Client().post(
+        Uri.parse(Server().getListLeave),
+        headers: {"Content-Type": "application/json"},
+        body: body,
+      );
+      final data = json.decode(response.body);
+      if (data is List && data.isNotEmpty && data[0]['result'] != null) {
+        List results = data[0]['result'];
+        if (results.length == 3) {
+          return false;
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
+    return true;
+  }
+
+  void _showWarningDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.orange[100],
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "เกินสิทธิ์ จะมีการหักเงินเดือน",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.kanit(fontSize: 16, color: Colors.black87),
+            ),
+          ],
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'ยกเลิก',
+                    style: GoogleFonts.kanit(
+                        fontSize: 16, color: Colors.grey[700]),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF21CCD4),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _checkOverlapAndConfirm(context);
+                  },
+                  child: Text(
+                    'ตกลง',
+                    style: GoogleFonts.kanit(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _selectedSpanDays() {
+    final start = DateTime(FirstDate.year, FirstDate.month, FirstDate.day);
+    final end = DateTime(LastDate.year, LastDate.month, LastDate.day);
+    if (end.isBefore(start)) return 0;
+
+    int days = 0;
+    DateTime current = start;
+    while (!current.isAfter(end)) {
+      if (current.weekday != DateTime.saturday &&
+          current.weekday != DateTime.sunday) {
+        days++;
+      }
+      current = current.add(const Duration(days: 1));
+    }
+    return days;
+  }
+
+  void _applyPeriodMode(String mode) {
+    final spanDays = _selectedSpanDays();
+    if ((mode == 'morning' || mode == 'afternoon') && spanDays > 1) {
+      mode = 'full';
+    }
+    if ((mode == 'last_morning' ||
+            mode == 'first_afternoon' ||
+            mode == 'first_afternoon_last_morning') &&
+        spanDays <= 1) {
+      mode = 'full';
+    }
+
+    _periodMode = mode;
+    final isSingleHalfDay = mode == 'morning' || mode == 'afternoon';
+    final isLastMorningHalfDay = mode == 'last_morning';
+    final isFirstAfternoon = mode == 'first_afternoon';
+    final isFirstLastHalf = mode == 'first_afternoon_last_morning';
+    final period = mode == 'morning'
+        ? HalfDayPeriod.morning
+        : (mode == 'first_afternoon'
+            ? HalfDayPeriod.afternoon
+            : HalfDayPeriod.afternoon);
+
+    if (isSingleHalfDay) {
+      // Force single-day for half-day leave
+      LastDate = FirstDate;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        endDate: FirstDate,
+        isHalfDay: true,
+        totalDays: 0.5,
+        halfDayPeriod: period,
+        clearStartTime: true,
+        clearEndTime: true,
+      );
+      _inputTotalDays.text = '0.5';
+      _selectFullTime = 1;
+      _inputTotalTimes.clear();
+    } else if (isLastMorningHalfDay || isFirstAfternoon) {
+      final adjustedDays = spanDays > 1 ? spanDays - 0.5 : 0.5;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        isHalfDay: false,
+        totalDays: adjustedDays,
+        clearHalfDayPeriod: true,
+        clearStartTime: true,
+        clearEndTime: true,
+      );
+      _inputTotalDays.text = _formatLeaveAmount(adjustedDays);
+      _selectFullTime = 1;
+      _inputTotalTimes.clear();
+    } else if (isFirstLastHalf) {
+      final adjustedDays = spanDays > 1 ? spanDays - 1.0 : 0.0;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        isHalfDay: false,
+        totalDays: adjustedDays,
+        clearHalfDayPeriod: true,
+        clearStartTime: true,
+        clearEndTime: true,
+      );
+      _inputTotalDays.text = _formatLeaveAmount(adjustedDays);
+      _selectFullTime = 1;
+      _inputTotalTimes.clear();
+    } else {
+      final days = _selectedSpanDays();
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        isHalfDay: false,
+        totalDays: days.toDouble(),
+        clearHalfDayPeriod: true,
+      );
+      _inputTotalDays.text = days.toString();
+    }
+    blocSetState(() {});
+  }
+
+  void _applyLeaveSelection(
+    LeaveDateSelection selection, {
+    bool notify = true,
+  }) {
+    _leaveDateSelection = selection;
+    FirstDate = selection.startDate;
+    LastDate = selection.endDate;
+
+    if (selection.isTimeRange) {
+      _selectFullTime = 2;
+      _inputTotalTimes.text = _formatLeaveAmount(selection.totalDays);
+      _inputTotalDays.text = '1';
+    } else {
+      _selectFullTime = 1;
+      _inputTotalDays.text = _formatLeaveAmount(selection.totalDays);
+      _inputTotalTimes.clear();
+    }
+
+    if (_inputTimeIn.isEmpty) {
+      _inputTimeIn = [TextEditingController()];
+    }
+    if (_inputTimeOut.isEmpty) {
+      _inputTimeOut = [TextEditingController()];
+    }
+    _inputTimeIn[0].text = selection.startTime == null
+        ? ''
+        : ThaiLeaveDateFormatter.toTimeLabel(selection.startTime!);
+    _inputTimeOut[0].text = selection.endTime == null
+        ? ''
+        : ThaiLeaveDateFormatter.toTimeLabel(selection.endTime!);
+
+    final spanDays = _selectedSpanDays();
+    if (spanDays > 1 &&
+        (_periodMode == 'morning' || _periodMode == 'afternoon')) {
+      _periodMode = 'full';
+    }
+    if (spanDays <= 1 && _periodMode == 'last_morning') {
+      _periodMode = 'full';
+    }
+
+    if (notify && mounted) {
+      blocSetState(() {});
+    }
+  }
+
+  String _formatLeaveAmount(double value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int daysBetween(DateTime from, DateTime to) {
+      from = DateTime(from.year, from.month, from.day);
+      to = DateTime(to.year, to.month, to.day);
+      return (to.difference(from).inHours / 24).round() + 1;
+    }
+
+    final difference = daysBetween(FirstDate, LastDate);
+    //log('difference: $difference');
+
+    for (var i = 0; i <= difference; i++) {
+      if (items.every((item) => item != '${i}')) {
+        items.add('${i - 0.5}');
+        items.add('${i}');
+      }
+    }
+    //log('data: $items');
+    return Scaffold(
+        body: Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF21CCD4), // Cyan
+            Color(0xFF0663F7), // Deep Blue
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: SafeArea(
+        child: GestureDetector(
+          onTap: () {
+            FocusScopeNode currentFocus = FocusScope.of(context);
+            if (!currentFocus.hasPrimaryFocus) {
+              currentFocus.unfocus();
+            }
+          },
+          child: SingleChildScrollView(
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  AppBar(
+                    automaticallyImplyLeading: false,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    title: Text(
+                      'ลา',
+                      style: GoogleFonts.kanit(
+                        fontSize: 24,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Form(
+                    key: _formKey,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 20,
+                            offset: Offset(0, -5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // 1. Leave Type Tabs
+                          Container(
+                            margin: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[200]!),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                // Sick Leave Tab
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _selectLeaveTab(
+                                          sick: true,
+                                          personal: false,
+                                          other: false);
+                                    },
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: select1
+                                            ? Color(0xFF21CCD4)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(11),
+                                          bottomLeft: Radius.circular(11),
+                                          topRight: select2
+                                              ? Radius.zero
+                                              : Radius.circular(0),
+                                          bottomRight: select2
+                                              ? Radius.zero
+                                              : Radius.circular(0),
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "ลาป่วย",
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 16,
+                                          fontWeight: select1
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: select1
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Personal Leave Tab
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _selectLeaveTab(
+                                          sick: false,
+                                          personal: true,
+                                          other: false);
+                                    },
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: select2
+                                            ? Color(0xFF21CCD4)
+                                            : Colors.transparent,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "ลากิจ",
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 16,
+                                          fontWeight: select2
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: select2
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Other Leave Tab
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _selectLeaveTab(
+                                          sick: false,
+                                          personal: false,
+                                          other: true);
+                                    },
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: select3
+                                            ? Color(0xFF21CCD4)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.only(
+                                          topRight: Radius.circular(11),
+                                          bottomRight: Radius.circular(11),
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "อื่นๆ",
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 16,
+                                          fontWeight: select3
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: select3
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Dropdown for Other Types
+                          if (select3) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'ประเภทการลา',
+                                    style: GoogleFonts.kanit(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  Container(),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Container(
+                              margin: EdgeInsets.symmetric(horizontal: 20),
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50], // Light blue bg
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[200]!),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: dropdownValueTime,
+                                  isExpanded: true,
+                                  icon: Icon(Icons.keyboard_arrow_down,
+                                      color: Color(0xFF21CCD4)),
+                                  items: _itemTypes
+                                      .map((ItemsTimeResultManage item) {
+                                    return DropdownMenuItem<String>(
+                                      value: item.ID,
+                                      child: Text(
+                                        item.SUBJECT!,
+                                        style: GoogleFonts.kanit(fontSize: 14),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    blocSetState(() {
+                                      dropdownValueTime = newValue!;
+                                      _syncSubdayMode(forceNotify: false);
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                          ],
+
+                          // 2. Reason Input Header
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'เนื่องจาก',
+                                style: GoogleFonts.kanit(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Container(
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                            ),
+                            child: Column(
+                              children: [
+                                // 3. Reason Input Field
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 0),
+                                  child: TextFormField(
+                                    controller: _inputCause,
+                                    maxLines: 3,
+                                    decoration: InputDecoration(
+                                      hintText: 'ระบุเหตุผลการลา...',
+                                      hintStyle: GoogleFonts.kanit(
+                                          color: Colors.grey[400]),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      contentPadding: EdgeInsets.all(16),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                            color: Color(0xFF21CCD4),
+                                            width: 1.5),
+                                      ),
+                                      errorText:
+                                          inputCause ? "กรุณาระบุเหตุผล" : null,
+                                    ),
+                                    style: GoogleFonts.kanit(fontSize: 14),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+
+                                if (!_isSubdayLeaveSelected) ...[
+                                  // 4. Date Selection Header
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'วันที่ลา',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Container(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: LeaveDateRangePickerField(
+                                      initialStart: FirstDate,
+                                      initialEnd: LastDate,
+                                      enableHalfDay: false,
+                                      enableTimeRange: select3,
+                                      bookedLeaveDates: _bookedLeaveDates,
+                                      onChanged: (selection) {
+                                        _applyLeaveSelection(selection);
+                                        // Clear per-day states when dates change
+                                        _dayStates.clear();
+                                        _periodMode = 'full';
+                                        _applyPeriodMode(_periodMode);
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(height: 12),
+                                ],
+                                if (!_isSubdayLeaveSelected)
+                                  Container(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            _leaveDateSelection.isTimeRange
+                                                ? "รวมจำนวนชั่วโมง"
+                                                : "รวมจำนวนวัน",
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 14,
+                                              color: Color(0xFF0663F7),
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _formatLeaveAmount(
+                                                    _leaveDateSelection
+                                                        .totalDays),
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                              Text(
+                                                _leaveDateSelection.isTimeRange
+                                                    ? " ชม."
+                                                    : " วัน",
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 14,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                if (_isSubdayLeaveSelected) ...[
+                                  SizedBox(height: 14),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'ช่วงเวลาลา',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 14,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _pickSubdayTime(isStart: true),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[50],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                      Icons.access_time_rounded,
+                                                      color: Colors.grey[600],
+                                                      size: 18),
+                                                  SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _inputTimeIn[0]
+                                                              .text
+                                                              .isEmpty
+                                                          ? 'ตั้งแต่เวลา'
+                                                          : _inputTimeIn[0]
+                                                              .text,
+                                                      style: GoogleFonts.kanit(
+                                                        fontSize: 15,
+                                                        color: _inputTimeIn[0]
+                                                                .text
+                                                                .isEmpty
+                                                            ? Colors.grey[500]
+                                                            : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 10),
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _pickSubdayTime(isStart: false),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[50],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                      Icons.access_time_rounded,
+                                                      color: Colors.grey[600],
+                                                      size: 18),
+                                                  SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _inputTimeOut[0]
+                                                              .text
+                                                              .isEmpty
+                                                          ? 'ถึงเวลา'
+                                                          : _inputTimeOut[0]
+                                                              .text,
+                                                      style: GoogleFonts.kanit(
+                                                        fontSize: 15,
+                                                        color: _inputTimeOut[0]
+                                                                .text
+                                                                .isEmpty
+                                                            ? Colors.grey[500]
+                                                            : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (timeError != null &&
+                                      timeError!.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 8, left: 20, right: 20),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          timeError!,
+                                          style: GoogleFonts.kanit(
+                                            fontSize: 13,
+                                            color: Colors.red[600],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  SizedBox(height: 12),
+                                  Container(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "รวมจำนวนชั่วโมง",
+                                            style: GoogleFonts.kanit(
+                                              fontSize: 14,
+                                              color: Color(0xFF0663F7),
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _formatLeaveAmount(
+                                                    _leaveDateSelection
+                                                        .totalDays),
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                              Text(
+                                                " ชม.",
+                                                style: GoogleFonts.kanit(
+                                                  fontSize: 14,
+                                                  color: Color(0xFF0663F7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                // Period selector – Circle-based per-day toggle
+                                if (!_leaveDateSelection.isTimeRange &&
+                                    !_isSubdayLeaveSelected) ...[
+                                  SizedBox(height: 12),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'รูปแบบการลา (เต็มวัน/ครึ่งวัน)',
+                                          style: GoogleFonts.kanit(
+                                            fontSize: 14,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                        SizedBox(height: 12),
+                                        Builder(
+                                          builder: (_) {
+                                            final start = DateTime(
+                                                FirstDate.year,
+                                                FirstDate.month,
+                                                FirstDate.day);
+                                            final end = DateTime(LastDate.year,
+                                                LastDate.month, LastDate.day);
+
+                                            // Build list of weekday dates
+                                            final dates = <DateTime>[];
+                                            var cur = start;
+                                            while (!cur.isAfter(end)) {
+                                              if (cur.weekday !=
+                                                      DateTime.saturday &&
+                                                  cur.weekday !=
+                                                      DateTime.sunday) {
+                                                dates.add(cur);
+                                              }
+                                              cur = cur
+                                                  .add(const Duration(days: 1));
+                                            }
+                                            if (dates.isEmpty) {
+                                              dates.add(start);
+                                            }
+
+                                            final thaiMonths = [
+                                              'ม.ค.',
+                                              'ก.พ.',
+                                              'มี.ค.',
+                                              'เม.ย.',
+                                              'พ.ค.',
+                                              'มิ.ย.',
+                                              'ก.ค.',
+                                              'ส.ค.',
+                                              'ก.ย.',
+                                              'ต.ค.',
+                                              'พ.ย.',
+                                              'ธ.ค.'
+                                            ];
+
+                                            return Column(
+                                              children: [
+                                                // Scrollable row of date circles
+                                                SingleChildScrollView(
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: List.generate(
+                                                        dates.length, (i) {
+                                                      final d = dates[i];
+                                                      final dateKey =
+                                                          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+                                                      // Every circle is tappable
+                                                      String circleState =
+                                                          _dayStates[dateKey] ??
+                                                              'full';
+
+                                                      return Padding(
+                                                        padding: EdgeInsets
+                                                            .symmetric(
+                                                                horizontal: 10),
+                                                        child: GestureDetector(
+                                                          onTap: () {
+                                                            setState(() {
+                                                              // Cycle: full → morning → afternoon → full
+                                                              if (circleState ==
+                                                                  'full') {
+                                                                _dayStates[
+                                                                        dateKey] =
+                                                                    'morning';
+                                                              } else if (circleState ==
+                                                                  'morning') {
+                                                                _dayStates[
+                                                                        dateKey] =
+                                                                    'afternoon';
+                                                              } else {
+                                                                _dayStates
+                                                                    .remove(
+                                                                        dateKey);
+                                                              }
+                                                              _recalcFromDayStates();
+                                                            });
+                                                          },
+                                                          child: Column(
+                                                            children: [
+                                                              // Date label
+                                                              Text(
+                                                                '${d.day} ${thaiMonths[d.month - 1]}',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .kanit(
+                                                                  fontSize: 13,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      700],
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 6),
+                                                              // ─── Circle ───
+                                                              Container(
+                                                                width: 80,
+                                                                height: 80,
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                  boxShadow: [
+                                                                    BoxShadow(
+                                                                      color: Color(
+                                                                              0xFF0663F7)
+                                                                          .withOpacity(
+                                                                              0.25),
+                                                                      blurRadius:
+                                                                          12,
+                                                                      offset:
+                                                                          Offset(
+                                                                              0,
+                                                                              4),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                child: ClipOval(
+                                                                  child: Column(
+                                                                    children: [
+                                                                      // Top half (เช้า)
+                                                                      Expanded(
+                                                                        child:
+                                                                            Container(
+                                                                          width:
+                                                                              double.infinity,
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            gradient: (circleState == 'full' || circleState == 'morning')
+                                                                                ? LinearGradient(
+                                                                                    colors: [
+                                                                                      Color(0xFF56CCF2),
+                                                                                      Color(0xFF2F80ED)
+                                                                                    ],
+                                                                                    begin: Alignment.topLeft,
+                                                                                    end: Alignment.bottomRight,
+                                                                                  )
+                                                                                : null,
+                                                                            color: (circleState == 'afternoon')
+                                                                                ? Color(0xFFE8F0FE)
+                                                                                : null,
+                                                                          ),
+                                                                          alignment:
+                                                                              Alignment.center,
+                                                                          child:
+                                                                              Text(
+                                                                            'เช้า',
+                                                                            style:
+                                                                                GoogleFonts.kanit(
+                                                                              fontSize: 14,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: (circleState == 'full' || circleState == 'morning') ? Colors.white : Color(0xFFAEC6F6),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      // Divider
+                                                                      Container(
+                                                                        height:
+                                                                            1.5,
+                                                                        color: Colors
+                                                                            .white
+                                                                            .withOpacity(0.5),
+                                                                      ),
+                                                                      // Bottom half (บ่าย)
+                                                                      Expanded(
+                                                                        child:
+                                                                            Container(
+                                                                          width:
+                                                                              double.infinity,
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            gradient: (circleState == 'full' || circleState == 'afternoon')
+                                                                                ? LinearGradient(
+                                                                                    colors: [
+                                                                                      Color(0xFF2F80ED),
+                                                                                      Color(0xFF0663F7)
+                                                                                    ],
+                                                                                    begin: Alignment.topLeft,
+                                                                                    end: Alignment.bottomRight,
+                                                                                  )
+                                                                                : null,
+                                                                            color: (circleState == 'morning')
+                                                                                ? Color(0xFFE8F0FE)
+                                                                                : null,
+                                                                          ),
+                                                                          alignment:
+                                                                              Alignment.center,
+                                                                          child:
+                                                                              Text(
+                                                                            'บ่าย',
+                                                                            style:
+                                                                                GoogleFonts.kanit(
+                                                                              fontSize: 14,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: (circleState == 'full' || circleState == 'afternoon') ? Colors.white : Color(0xFFAEC6F6),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 6),
+                                                              // Status label
+                                                              Text(
+                                                                circleState ==
+                                                                        'full'
+                                                                    ? 'เต็มวัน'
+                                                                    : circleState ==
+                                                                            'morning'
+                                                                        ? 'ครึ่งวันเช้า'
+                                                                        : 'ครึ่งวันบ่าย',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .kanit(
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  color: Color(
+                                                                      0xFF2F80ED),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }),
+                                                  ),
+                                                ),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 12),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(
+                                                          Icons
+                                                              .info_outline_rounded,
+                                                          size: 14,
+                                                          color:
+                                                              Colors.grey[400]),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        'แตะที่วงกลมเพื่อปรับเป็นครึ่งวัน/เต็มวัน',
+                                                        style:
+                                                            GoogleFonts.kanit(
+                                                          fontSize: 12,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                SizedBox(height: 20),
+
+                                // 8. Contact Info
+                                SizedBox(height: 20),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0),
+                                  child: Text(
+                                    'เบอร์โทรศัพท์ติดต่อ',
+                                    style: GoogleFonts.kanit(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 20),
+                                  child: TextFormField(
+                                    controller: inputPhone,
+                                    keyboardType: TextInputType.phone,
+                                    maxLength: 10,
+                                    decoration: InputDecoration(
+                                      hintText: 'เบอร์ที่ติดต่อได้...',
+                                      hintStyle: GoogleFonts.kanit(
+                                          color: Colors.grey[400]),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                      contentPadding: EdgeInsets.all(16),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                            color: Color(0xFF21CCD4),
+                                            width: 1.5),
+                                      ),
+                                      prefixIcon: Icon(Icons.phone_outlined,
+                                          color: Colors.grey[500]),
+                                      counterText: "",
+                                      errorText: _inputPhone
+                                          ? "กรุณาระบุเบอร์โทร"
+                                          : null,
+                                    ),
+                                    style: GoogleFonts.kanit(fontSize: 14),
+                                  ),
+                                ),
+
+                                // 9. Attachment
+                                SizedBox(height: 20),
+                                Container(
+                                  margin: EdgeInsets.symmetric(horizontal: 20),
+                                  child: InkWell(
+                                    onTap: () {
+                                      _filesExplorer();
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Color(0xFF21CCD4),
+                                            style: BorderStyle.solid),
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: Color(0xFF21CCD4)
+                                            .withValues(alpha: 0.05),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.attach_file,
+                                              color: Color(0xFF21CCD4)),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            "แนบเอกสาร (ถ้ามี)",
+                                            style: GoogleFonts.kanit(
+                                              color: Color(0xFF21CCD4),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // File List
+                                if (_files != null && _files.length > 0)
+                                  Container(
+                                    height: 100.0,
+                                    margin: EdgeInsets.only(
+                                        top: 12, left: 20, right: 20),
+                                    child: _fileView(),
+                                  ),
+
+                                SizedBox(height: 30),
+
+                                // 10. Submit Button
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 20),
+                                  width: double.infinity,
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      // Validation Logic
+                                      if (!(_formKey.currentState?.validate() ??
+                                          false)) return;
+
+                                      if (_inputCause.text.isEmpty) {
+                                        blocSetState(() => inputCause = true);
+                                        return;
+                                      } else {
+                                        blocSetState(() => inputCause = false);
+                                      }
+
+                                      if (inputPhone.text.isEmpty) {
+                                        blocSetState(() => _inputPhone = true);
+                                        return;
+                                      } else {
+                                        blocSetState(() => _inputPhone = false);
+                                      }
+
+                                      if (_inputTotalDays.text.isEmpty) {
+                                        blocSetState(
+                                            () => inputTotalDays = true);
+                                        return;
+                                      } else {
+                                        blocSetState(
+                                            () => inputTotalDays = false);
+                                      }
+
+                                      if (_isSubdayLeaveSelected) {
+                                        if (_inputTimeIn[0].text.isEmpty ||
+                                            _inputTimeOut[0].text.isEmpty) {
+                                          blocSetState(() {
+                                            timeError =
+                                                'กรุณาเลือกช่วงเวลาตั้งแต่-ถึง';
+                                          });
+                                          return;
+                                        }
+                                        if (_leaveDateSelection.totalDays <=
+                                            0) {
+                                          blocSetState(() {
+                                            timeError =
+                                                'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม';
+                                          });
+                                          return;
+                                        }
+                                      } else {
+                                        blocSetState(() => timeError = null);
+                                      }
+
+                                      if (select2) {
+                                        bool canProceed =
+                                            await _checkPersonalLeaveLimit();
+                                        if (!canProceed) {
+                                          _showWarningDialog(context);
+                                          return;
+                                        }
+                                      }
+
+                                      // Popup Confirm
+                                      _checkOverlapAndConfirm(context);
+                                    },
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 16),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Color(0xFF21CCD4),
+                                            Color(0xFF0663F7)
+                                          ],
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Color(0xFF0663F7)
+                                                .withValues(alpha: 0.4),
+                                            blurRadius: 10,
+                                            offset: Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        'ส่งใบลา',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(height: 40),
+                                Divider(thickness: 1, color: Colors.grey[200]),
+                                SizedBox(height: 20),
+
+                                // 11. Relocated Leave Statistics
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'ข้อมูลการลาของคุณ',
+                                        style: GoogleFonts.kanit(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    LeaveStatisticsScreen()),
+                                          );
+                                        },
+                                        child: Text(
+                                          'ดูทั้งหมด >',
+                                          style: GoogleFonts.kanit(
+                                            fontSize: 14,
+                                            color: Color(0xFF0663F7),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 12),
+                                Container(
+                                  height: 110,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    children: [
+                                      _buildStatCard("ลาป่วย", sick_leave,
+                                          Color(0xFFFF9800), Color(0xFFFFF3E0)),
+                                      SizedBox(width: 12),
+                                      _buildStatCard("ลากิจ", personal_leave,
+                                          Color(0xFF7E57C2), Color(0xFFF3E5F5)),
+                                      SizedBox(width: 12),
+                                      _buildStatCard("อื่นๆ", other_leave,
+                                          Color(0xFF4CAF50), Color(0xFFE8F5E9)),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 50),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
+
+  Widget _fileView() {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: _files.length,
+      padding: const EdgeInsets.all(2.0),
+      itemBuilder: (context, index) {
+        var fileName = _files[index].path.split('/').last;
+        var extensions = fileName.split('.').last.toString();
+        return Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Stack(
+            children: <Widget>[
+              Container(
+                width: 104.0,
+                child: Column(
+                  children: <Widget>[
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Color(0xFFCCCCCC),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Center(
+                          child: Image(
+                            image: AssetImage(
+                                "assets/images/extension/$extensions.png"),
+                            width: 80.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      fileName,
+                      maxLines: 1,
+                      textScaler: TextScaler.linear(1.0),
+                      style: TextStyle(fontSize: 11.0),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: -10,
+                right: -10,
+                child: IconButton(
+                  onPressed: () {
+                    blocSetState(() {
+                      _files.removeWhere((element) => element == _files[index]);
+                    });
+                  },
+                  icon: Icon(
+                    Icons.cancel,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _filesExplorer() async {
+    print("_filesExplorer");
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx'],
+    );
+    if (result != null) {
+      List<File> files =
+          result.paths.whereType<String>().map((path) => File(path)).toList();
+      //print("wit files : ${files}");
+      if (!mounted) return;
+      if (files.length > 0) {
+        blocSetState(() {
+          if (_files != null && _files.length > 0) {
+            _files.addAll(files);
+          } else {
+            _files = files.toList();
+          }
+        });
+      }
+    } else {
+      // User canceled the picker
+    }
+  }
+
+  alert_time(BuildContext context, int _status, int _day) async {
+    String _time = '00:00';
+    return showDialog(
+      barrierDismissible: true,
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(20.0))),
+          contentPadding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
+          content: Container(
+            width: WidhtDevice().widht(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  height: MediaQuery.of(context).size.height / 3,
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime:
+                        DateTime(_timeOfDay.hour, _timeOfDay.minute),
+                    onDateTimeChanged: (DateTime newDateTime) {
+                      var newTod = TimeOfDay.fromDateTime(newDateTime);
+
+                      final now = new DateTime.now();
+                      // print(DateFormat.Hm().format(DateTime(now.year, now.month,
+                      //     now.day, newTod.hour, newTod.minute)));
+                      _time = DateFormat.Hm()
+                          .format(DateTime(now.year, now.month, now.day,
+                              newTod.hour, newTod.minute))
+                          .toString();
+                    },
+                    use24hFormat: true,
+                    minuteInterval: 30,
+                  ),
+                ),
+                Container(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(20.0),
+                              ),
+                            ),
+                            height: 50,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'ปิด',
+                              style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pop(context, _time);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.green[100],
+                              borderRadius: BorderRadius.only(
+                                bottomRight: Radius.circular(20.0),
+                              ),
+                            ),
+                            height: 50,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'ตกลง',
+                              style: TextStyle(
+                                  fontFamily: FontStyles().FontFamily,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).then((value) {
+      if (value != null) {
+        var format = DateFormat("HH:mm");
+        blocSetState(() {
+          if (_status == 1) {
+            _inputTimeIn[_day].text = value.toString().substring(0, 5);
+            start = format.parse(value);
+          } else {
+            _inputTimeOut[_day].text = value.toString().substring(0, 5);
+            end = format.parse(value);
+          }
+          print(start);
+          print(end);
+          if (start != null && end != null) {
+            Duration duration = end.difference(start).abs();
+            print(duration);
+            final hours = duration.inHours;
+            var times = duration.inMinutes - (60 * hours);
+            print(times);
+            if (times == 30) {
+              times = 50;
+            }
+            _inputTotalTimes.text = "${hours.toString()}.${times.toString()}";
+          }
+        });
+      }
+    });
+  }
+
+  _calculateTotalDays() {
+    print("FirstDate: $FirstDate");
+    print("LastDate: $LastDate");
+
+    // Normalize dates to ignore time components
+    final start = DateTime(FirstDate.year, FirstDate.month, FirstDate.day);
+    final end = DateTime(LastDate.year, LastDate.month, LastDate.day);
+
+    // Calculate difference in days (inclusive)
+    final diff = end.difference(start).inDays + 1;
+    final days = diff > 0 ? diff : 1; // Minimum 1 day
+
+    print("Diff Days: $days");
+
+    blocSetState(() {
+      _inputTotalDays.text = days.toString();
+
+      // Re-initialize lists for partial time selection based on number of days
+      _groupDay = List.generate(days, (index) => true);
+
+      // Preserve existing controllers if possible, or create new ones
+      // Here we just create new ones for simplicity to avoid index errors
+      _inputTimeIn = List.generate(days, (index) => TextEditingController());
+      _inputTimeOut = List.generate(days, (index) => TextEditingController());
+
+      _daySelect.clear();
+    });
+  }
+
+  _selectDay(int _numday, bool _status) {
+    blocSetState(() {
+      if (_status) {
+        _daySelect.add(_numday);
+        _inputTimeIn[_numday].text = _inputTimeIn[_daySelect[0]].text;
+        _inputTimeOut[_numday].text = _inputTimeOut[_daySelect[0]].text;
+      } else {
+        _daySelect.remove(_numday);
+      }
+    });
+    print(_daySelect);
+  }
+
+  void expect(int daysBetween, int i) {}
+
+  Widget _buildStatCard(
+      String title, String days, Color textColor, Color bgColor) {
+    return Container(
+      width: 100,
+      margin: EdgeInsets.only(right: 12),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.transparent),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.kanit(
+              fontSize: 14,
+              color: Colors.grey[800],
+            ),
+          ),
+          SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                days,
+                style: GoogleFonts.kanit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  "วัน",
+                  style: GoogleFonts.kanit(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Period Chip Widget ────────────────────────────────────────────────────────
+class _PeriodChip extends StatelessWidget {
+  const _PeriodChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: SizedBox(
+        height: 88,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? const LinearGradient(
+                      colors: [Color(0xFF21CCD4), Color(0xFF0663F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: selected ? null : Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: selected
+                  ? null
+                  : Border.all(color: Colors.grey[300]!, width: 1),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: selected ? Colors.white : Colors.grey[500],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: GoogleFonts.kanit(
+                    fontSize: 12,
+                    height: 1.15,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    color: selected ? Colors.white : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

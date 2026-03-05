@@ -1,14 +1,12 @@
 // ignore_for_file: unused_element
 
-import 'package:flutter/material.dart';
+import 'package:ismart_login/src/core/presentation/bloc/bloc_material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:ismart_login/page/sign/signin_screen.dart';
 import 'package:ismart_login/style/font_style.dart';
 import 'package:ismart_login/style/page_style.dart';
 import 'package:ismart_login/system/widht_device.dart';
 // import 'package:r_scan/r_scan.dart';
 
-import '../main.dart';
 
 class RScanCameraDialog extends StatefulWidget {
   @override
@@ -42,7 +40,7 @@ class _RScanCameraDialogState extends State<RScanCameraDialog> {
     //       if (!mounted) {
     //         return;
     //       }
-    //       setState(() {});
+    //       blocSetState(() {});
     //     });
     // }
   }
@@ -96,7 +94,7 @@ class _RScanCameraDialogState extends State<RScanCameraDialog> {
                             Navigator.pop(context);
                           },
                           child: FaIcon(
-                            FontAwesomeIcons.times,
+                            FontAwesomeIcons.xmark,
                             color: Colors.white,
                             size: 26,
                           ),
@@ -172,7 +170,7 @@ class _RScanCameraDialogState extends State<RScanCameraDialog> {
                     // _controller.setFlashMode(true);
                   }
 
-                  setState(() {});
+                  blocSetState(() {});
                 }),
           )
         : Container();

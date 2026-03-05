@@ -42,18 +42,24 @@ android {
             val keystorePropertiesFile = rootProject.file("key.properties")
             if (keystorePropertiesFile.exists()) {
                 keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                keyAlias = keystoreProperties["keyAlias"] as? String ?: ""
+                keyPassword = keystoreProperties["keyPassword"] as? String ?: ""
+                storeFile = file("key.jks")
+                storePassword = keystoreProperties["storePassword"] as? String ?: ""
             }
-
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file("key.jks")
-            storePassword = keystoreProperties["storePassword"] as String
         }
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    // 16KB Page Size Support for Android 15+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 }

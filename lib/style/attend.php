@@ -5,7 +5,7 @@ class attend extends CI_Controller
 
     /**
      *
-     * @var Array All Available tables 
+     * @var Array All Available tables
      */
     public $_TABLE              = array(
         'info'              => 'attend_test_information',
@@ -115,7 +115,7 @@ class attend extends CI_Controller
 				AND			status = '1'
                 {$search_date}
                 {$search}
-                ORDER BY id DESC    
+                ORDER BY id DESC
                 LIMIT 1
 				";
         // exit($sql);
@@ -293,7 +293,7 @@ class attend extends CI_Controller
                 // pre($data_yesterday);
 
                 if ($rs) {
-                    //เช็ค ไม่ logout ก่อนหน้า 
+                    //เช็ค ไม่ logout ก่อนหน้า
                     $day = date('N');
                     $day_attend = $day - 2;
                     // pre($day_attend);
@@ -316,7 +316,7 @@ class attend extends CI_Controller
                             $end_timestamp = strtotime($time_end);
                             // pre($time_end);
                             if ($start_timestamp > $end_timestamp) {
-                                //ข้ามวัน 
+                                //ข้ามวัน
                                 $next_day = "1";
                             } else {
                                 //ไม่ข้ามวัน
@@ -383,7 +383,7 @@ class attend extends CI_Controller
 				AND			status = '1'
 				AND			DATE(create_date) = CURDATE()
                 {$search}
-                ORDER BY id DESC    
+                ORDER BY id DESC
                 LIMIT 1
 				";
         // exit($sql);
@@ -555,7 +555,7 @@ class attend extends CI_Controller
                 // pre($data_yesterday);
 
                 if ($rs) {
-                    //เช็ค ไม่ logout ก่อนหน้า 
+                    //เช็ค ไม่ logout ก่อนหน้า
                     $day = date('N');
                     $day_attend = $day - 2;
                     // pre($day_attend);
@@ -578,7 +578,7 @@ class attend extends CI_Controller
                             $end_timestamp = strtotime($time_end);
                             // pre($time_end);
                             if ($start_timestamp > $end_timestamp) {
-                                //ข้ามวัน 
+                                //ข้ามวัน
                                 $next_day = "1";
                             } else {
                                 //ไม่ข้ามวัน
@@ -885,7 +885,7 @@ class attend extends CI_Controller
         $longitude = $var['longitude'] ? $var['longitude'] : request('longitude');
         $time = $var['time'] ? $var['time'] : request('time');
         $end_note = $var['end_note'] ? $var['end_note'] : request('end_note');
-        $end_status = $var['end_status'];
+        $end_status = isset($var['end_status']) ? $var['end_status'] : '0';
         $log = $var['log'] ? $var['log'] : request('log');
         $uploadKey = $var['uploadKey'] ? $var['uploadKey'] : request('uploadKey');
         //แก้เบิ้ลมา หาวิธีทางแอพไม่ได้ เครื่องบางคนเบิ้ล//ตูน
@@ -1091,7 +1091,7 @@ class attend extends CI_Controller
         $etime_status = '0';
         if ($len) {
             for ($j = 0; $j < $len; $j++) {
-              
+
                 $sql1 = "
                     SELECT		*
                     FROM		attend_" . $user['org_id'] . "_attachments
@@ -1347,7 +1347,7 @@ class attend extends CI_Controller
         $longitude = $var['longitude'] ? $var['longitude'] : request('longitude');
         $time = $var['time'] ? $var['time'] : request('time');
         $end_note = $var['end_note'] ? $var['end_note'] : request('end_note');
-        $end_status = $var['end_status'];
+        $end_status = isset($var['end_status']) ? $var['end_status'] : '0';
 
         //แก้เบิ้ลมา หาวิธีทางแอพไม่ได้ เครื่องบางคนเบิ้ล//ตูน
 
@@ -1426,7 +1426,7 @@ class attend extends CI_Controller
 
     /**
      * V2: Upload Image First
-     * 
+     *
      * Receives image file, saves it, returns uploadKey
      * Does NOT create attendance record yet
      * For checkout (i_end), uses existing uploadKey_end from today's record
@@ -1434,12 +1434,12 @@ class attend extends CI_Controller
     public function uploadImageV2()
     {
         $result = array();
-        
+
         try {
             // Get parameters
             $uid = isset($_POST['uid']) ? $_POST['uid'] : '';
             $attact_type = isset($_POST['attact_type']) ? $_POST['attact_type'] : 'i_start';
-            
+
             // Validate UID
             if (empty($uid)) {
                 $result[0] = array(
@@ -1451,7 +1451,7 @@ class attend extends CI_Controller
                 echo json_encode($result, JSON_UNESCAPED_UNICODE);
                 return;
             }
-            
+
             // Check if file was uploaded
             if (!isset($_FILES['file']) || !isset($_FILES['file']['name']) || empty($_FILES['file']['name'])) {
                 $result[0] = array(
@@ -1463,7 +1463,7 @@ class attend extends CI_Controller
                 echo json_encode($result, JSON_UNESCAPED_UNICODE);
                 return;
             }
-            
+
             // Get user's org_id
             $user = getMyOrgId($uid);
             if (!$user || !isset($user['org_id'])) {
@@ -1476,22 +1476,22 @@ class attend extends CI_Controller
                 echo json_encode($result, JSON_UNESCAPED_UNICODE);
                 return;
             }
-            
+
             // Determine uploadKey based on attact_type
             $uploadKey = '';
             $db = getDBO();
-            
+
             if ($attact_type == 'i_end') {
                 // For checkout: get existing uploadKey from today's check-in record
-                $sql = "SELECT id, uploadKey FROM attend_" . $user['org_id'] . "_information 
-                        WHERE create_by = '{$uid}' 
-                        AND status = '1' 
-                        AND DATE(create_date) = CURDATE() 
-                        ORDER BY id DESC 
+                $sql = "SELECT id, uploadKey FROM attend_" . $user['org_id'] . "_information
+                        WHERE create_by = '{$uid}'
+                        AND status = '1'
+                        AND DATE(create_date) = CURDATE()
+                        ORDER BY id DESC
                         LIMIT 1";
                 $db->setQuery($sql);
                 $rs = $db->loadAssocList();
-                
+
                 if ($rs && count($rs) > 0 && !empty($rs[0]['uploadKey'])) {
                     // Use the same uploadKey as check-in
                     $uploadKey = $rs[0]['uploadKey'];
@@ -1510,14 +1510,14 @@ class attend extends CI_Controller
                 // For check-in: generate new uploadKey
                 $uploadKey = md5(time() . rand(0, 10000) . $uid . uniqid());
             }
-            
+
             // Define file path
             $file_path = "files/com_attend_" . $user['org_id'] . "/";
             $table = "attend_" . $user['org_id'] . "_attachments";
-            
+
             // Upload the file
             $path = insert_file($file_path, $table, $uploadKey, $_FILES['file'], $attact_type, $uid);
-            
+
             if ($path) {
                 $result[0] = array(
                     'success' => true,
@@ -1533,7 +1533,7 @@ class attend extends CI_Controller
                     'error' => 'Failed to save file'
                 );
             }
-            
+
         } catch (Exception $e) {
             $result[0] = array(
                 'success' => false,
@@ -1542,20 +1542,20 @@ class attend extends CI_Controller
                 'error' => $e->getMessage()
             );
         }
-        
+
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * V2: Attend Start (Check-In) with pre-uploaded image
-     * 
+     *
      * Receives uploadKey from previous upload, creates attendance record
      */
     public function attendStartV2()
     {
         $var = json_decode(file_get_contents('php://input'));
         $var = (array) $var;
-        
+
         // Get parameters
         $uid = isset($var['uid']) ? $var['uid'] : '';
         $uploadKey = isset($var['uploadKey']) ? $var['uploadKey'] : '';
@@ -1568,7 +1568,7 @@ class attend extends CI_Controller
         $log = isset($var['log']) ? $var['log'] : '';
         $start_status = isset($var['start_status']) ? $var['start_status'] : '1';
         $start_location_status = isset($var['start_location_status']) ? $var['start_location_status'] : '';
-        
+
         // Validate required fields
         if (empty($uid)) {
             $result[0] = array(
@@ -1580,7 +1580,7 @@ class attend extends CI_Controller
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
-        
+
         if (empty($uploadKey)) {
             $result[0] = array(
                 'status' => 'fail',
@@ -1591,18 +1591,18 @@ class attend extends CI_Controller
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
-        
+
         // Get user info
         $user = getMyOrgId($uid);
         $org_sub_id = getMyOrgSubId($uid, $user['org_id']);
-        
+
         // Check for OT status
         if ($start_status == "4") {
             $start_status = $this->checkAddOtTime($user['org_id'], $uid);
         }
-        
+
         $start_time = date('H:i:s');
-        
+
         // Create attendance record
         $obj = new stdClass();
         $obj->cid = $cid;
@@ -1614,49 +1614,49 @@ class attend extends CI_Controller
         $obj->start_time = $start_time;
         $obj->start_status = $start_status;
         $obj->start_note = $start_note;
-        
+
         if ($log) {
             $obj->log = $log;
         }
-        
+
         $obj->start_location_status = $start_location_status;
         $obj->attend_status = '0';
         $obj->status = '1';
-        
+
         if ($org_sub_id) {
             $obj->org_id = $org_sub_id;
         }
-        
+
         if ($uid != "") {
             $obj->create_by = $uid;
         }
-        
+
         $obj->create_ip = getIPAddress();
         $obj->create_date = date('Y-m-d') . ' ' . $time;
-        
+
         $db = getDBO();
         $insert = $db->insertObject('attend_' . $user['org_id'] . '_information', $obj);
-        
+
         $result[0] = array(
             'uid' => $uid,
             'uploadKey' => $uploadKey,
             'status' => $insert ? 'success' : 'fail',
             'msg' => $insert ? 'บันทึกเข้างานสำเร็จ' : 'บันทึกไม่สำเร็จ'
         );
-        
+
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * V2: Attend End (Check-Out) with pre-uploaded image
-     * 
+     *
      * Receives uploadKey from previous upload, updates attendance record
      */
     public function attendEndV2()
     {
         $var = json_decode(file_get_contents('php://input'));
         $var = (array) $var;
-        
+
         // Get parameters
         $uid = isset($var['uid']) ? $var['uid'] : '';
         $uploadKey = isset($var['uploadKey']) ? $var['uploadKey'] : '';
@@ -1664,9 +1664,10 @@ class attend extends CI_Controller
         $longitude = isset($var['longitude']) ? $var['longitude'] : '';
         $time = isset($var['time']) ? $var['time'] : date('H:i:s');
         $end_note = isset($var['end_note']) ? $var['end_note'] : '';
-        $end_status = isset($var['end_status']) ? $var['end_status'] : '1';
+        // Default must be normal checkout (0). "1" means early checkout.
+        $end_status = isset($var['end_status']) ? $var['end_status'] : '0';
         $end_location_status = isset($var['end_location_status']) ? $var['end_location_status'] : '';
-        
+
         // Validate required fields
         if (empty($uid)) {
             $result[0] = array(
@@ -1678,7 +1679,7 @@ class attend extends CI_Controller
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
-        
+
         if (empty($uploadKey)) {
             $result[0] = array(
                 'status' => 'fail',
@@ -1689,12 +1690,12 @@ class attend extends CI_Controller
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
-        
+
         // Get user info
         $user = getMyOrgId($uid);
-        
+
         $end_time = date('H:i:s');
-        
+
         // Find today's check-in record
         $db = getDBO();
         $sql = "
@@ -1706,10 +1707,10 @@ class attend extends CI_Controller
             ORDER BY id DESC
             LIMIT 1
         ";
-        
+
         $db->setQuery($sql);
         $rs = $db->loadAssoc();
-        
+
         if (!$rs) {
             $result[0] = array(
                 'status' => 'fail',
@@ -1720,11 +1721,11 @@ class attend extends CI_Controller
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
-        
+
         // Update the record with check-out info
         $updateSql = "
             UPDATE attend_" . $user['org_id'] . "_information
-            SET 
+            SET
                 end_time = '{$end_time}',
                 end_latitude = '{$latitude}',
                 end_longitude = '{$longitude}',
@@ -1735,17 +1736,17 @@ class attend extends CI_Controller
                 uploadKey_end = '{$uploadKey}'
             WHERE id = '{$rs['id']}'
         ";
-        
+
         $db->setQuery($updateSql);
         $update = $db->query();
-        
+
         $result[0] = array(
             'uid' => $uid,
             'uploadKey' => $uploadKey,
             'status' => $update ? 'success' : 'fail',
             'msg' => $update ? 'บันทึกออกงานสำเร็จ' : 'บันทึกไม่สำเร็จ'
         );
-        
+
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
     }
 }

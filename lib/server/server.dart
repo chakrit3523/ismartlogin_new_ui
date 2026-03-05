@@ -16,6 +16,7 @@ class Server {
   String getCheckMember = _baseUrl + 'member/getCheckMember';
   String updateMemberPassword = _baseUrl + 'member/updateMemberPassword';
   String getMemberByUsername = _baseUrl + 'member/getMemberByUsername';
+  String checkMemberByEmail = _baseUrl + 'member/checkMemberByEmail';
   // ---องค์กร
   String getOrg = _baseUrl + 'organization/getOrg';
 
@@ -98,6 +99,10 @@ class Server {
   String insertCateLeave = _baseUrl + 'manage/insertCateLeave';
   String updateCateLeave = _baseUrl + 'manage/updateCateLeave';
   String getListNotiLeave = _baseUrl + 'manage/getListNotiLeave';
+  String uploadLeaveMedicalCertificate =
+      _baseUrl + 'manage/uploadLeaveMedicalCertificate';
+  // Backward-compatible alias used by some flows/docs.
+  String uploadSickCert = _baseUrl + 'manage/uploadLeaveMedicalCertificate';
 
   // -- * ตั้งค่า -------
   String checkAppVersion = _baseUrl + 'manage/checkAppVersion';
