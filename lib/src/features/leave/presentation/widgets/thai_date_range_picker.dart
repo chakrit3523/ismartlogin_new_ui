@@ -10,6 +10,7 @@ class ThaiDateRangePickerDialog extends StatefulWidget {
   final DateTime initialEnd;
   final DateTime firstDate;
   final DateTime lastDate;
+  final Set<DateTime> bookedLeaveDates;
 
   const ThaiDateRangePickerDialog({
     super.key,
@@ -17,6 +18,7 @@ class ThaiDateRangePickerDialog extends StatefulWidget {
     required this.initialEnd,
     required this.firstDate,
     required this.lastDate,
+    this.bookedLeaveDates = const {},
   });
 
   @override
@@ -398,6 +400,7 @@ class _ThaiDateRangePickerDialogState extends State<ThaiDateRangePickerDialog> {
     final isToday = _isSameDay(day, DateTime.now());
     final isSelected = isStart || isEnd;
     final isRangeMiddle = isInRange && !isSelected;
+    final isBooked = widget.bookedLeaveDates.any((bd) => _isSameDay(bd, day));
 
     return Expanded(
       child: GestureDetector(
@@ -430,21 +433,33 @@ class _ThaiDateRangePickerDialogState extends State<ThaiDateRangePickerDialog> {
                 color: isSelected ? primaryColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Center(
-                child: Text(
-                  '${day.day}',
-                  style: GoogleFonts.kanit(
-                    fontSize: 15,
-                    fontWeight: isSelected || isToday
-                        ? FontWeight.w600
-                        : FontWeight.w400,
-                    color: isSelected
-                        ? Colors.white
-                        : isToday
-                            ? primaryColor
-                            : Colors.black87,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${day.day}',
+                    style: GoogleFonts.kanit(
+                      fontSize: 15,
+                      fontWeight: isSelected || isToday
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isSelected
+                          ? Colors.white
+                          : isToday
+                              ? primaryColor
+                              : Colors.black87,
+                    ),
                   ),
-                ),
+                  if (isBooked)
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.white : Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -461,6 +476,7 @@ Future<DateTimeRange?> showThaiDateRangePicker({
   required DateTime initialEnd,
   DateTime? firstDate,
   DateTime? lastDate,
+  Set<DateTime> bookedLeaveDates = const {},
 }) {
   return Navigator.of(context).push<DateTimeRange>(
     MaterialPageRoute(
@@ -470,6 +486,7 @@ Future<DateTimeRange?> showThaiDateRangePicker({
         initialEnd: initialEnd,
         firstDate: firstDate ?? DateTime(2000),
         lastDate: lastDate ?? DateTime(2100),
+        bookedLeaveDates: bookedLeaveDates,
       ),
     ),
   );

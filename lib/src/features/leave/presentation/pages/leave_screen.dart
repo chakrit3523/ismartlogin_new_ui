@@ -84,6 +84,66 @@ class _LeaveScreenState extends State<LeaveScreen> {
   LeaveDateSelection _leaveDateSelection = LeaveDateSelection.initial();
   // 'full' | 'morning' | 'afternoon'
   String _periodMode = 'full';
+  // Per-day half-day states: key = 'yyyy-MM-dd', value = 'full' | 'morning' | 'afternoon'
+  Map<String, String> _dayStates = {};
+  // Booked leave dates for calendar display
+  Set<DateTime> _bookedLeaveDates = {};
+  // Booked dates map for overlap checking: key = 'yyyy-MM-dd', value = 'full' | 'morning' | 'afternoon'
+  Map<String, String> _bookedDatesMap = {};
+
+  /// Build JSON array for half_day_details API field
+  String _buildHalfDayDetailsJson() {
+    final entries = _dayStates.entries
+        .where((e) => e.value != 'full')
+        .map((e) => '{"date":"${e.key}","period":"${e.value}"}')
+        .toList();
+    if (entries.isEmpty) return '';
+    return '[${entries.join(',')}]';
+  }
+
+  /// Recalculate numDate and _periodMode from _dayStates
+  void _recalcFromDayStates() {
+    final start = DateTime(FirstDate.year, FirstDate.month, FirstDate.day);
+    final end = DateTime(LastDate.year, LastDate.month, LastDate.day);
+    final dates = <DateTime>[];
+    var cur = start;
+    while (!cur.isAfter(end)) {
+      if (cur.weekday != DateTime.saturday && cur.weekday != DateTime.sunday) {
+        dates.add(cur);
+      }
+      cur = cur.add(const Duration(days: 1));
+    }
+    if (dates.isEmpty) dates.add(start);
+
+    double total = 0;
+    for (final d in dates) {
+      final key =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final state = _dayStates[key] ?? 'full';
+      total += state == 'full' ? 1.0 : 0.5;
+    }
+
+    final halfCount = _dayStates.values.where((v) => v != 'full').length;
+    // Determine legacy _periodMode for backward compat
+    if (halfCount == 0) {
+      _periodMode = 'full';
+    } else if (dates.length == 1) {
+      final state = _dayStates.values.first;
+      _periodMode = state; // 'morning' or 'afternoon'
+    } else {
+      _periodMode = 'custom';
+    }
+
+    _inputTotalDays.text = _formatLeaveAmount(total);
+    _leaveDateSelection = _leaveDateSelection.copyWith(
+      isHalfDay: dates.length == 1 && halfCount > 0,
+      totalDays: total,
+      clearHalfDayPeriod: halfCount == 0,
+    );
+    if (dates.length == 1 && halfCount > 0) {
+      _inputTotalDays.text = '0.5';
+    }
+  }
 
   List<bool> _groupDay = [
     true,
@@ -547,6 +607,65 @@ class _LeaveScreenState extends State<LeaveScreen> {
       sick_leave = leaveData[0]['sick']?.toString() ?? '0';
       personal_leave = leaveData[0]['leave']?.toString() ?? '0';
       other_leave = leaveData[0]['other']?.toString() ?? '0';
+
+      // Build booked leave dates for calendar dots & overlap check
+      final bookedDates = <DateTime>{};
+      final bookedMap = <String, String>{};
+      final results = leaveData[0]['result'];
+      if (results is List) {
+        for (final item in results) {
+          final statusLeave = item['status_leave']?.toString() ?? '';
+          if (statusLeave != '1' && statusLeave != '2')
+            continue; // only pending/approved
+          final firstDateStr = item['FirstDate']?.toString() ?? '';
+          final lastDateStr = item['LastDate']?.toString() ?? '';
+          if (firstDateStr.isEmpty || lastDateStr.isEmpty) continue;
+          final hdp = item['half_day_period']?.toString() ?? '';
+          final hdd = item['half_day_details']?.toString() ?? '';
+          Map<String, String> detailsMap = {};
+          if (hdd.isNotEmpty) {
+            try {
+              final decoded = json.decode(hdd);
+              if (decoded is List) {
+                for (final d in decoded) {
+                  detailsMap[d['date']?.toString() ?? ''] =
+                      d['period']?.toString() ?? 'full';
+                }
+              }
+            } catch (_) {}
+          }
+          DateTime cursor = DateTime.parse(firstDateStr);
+          final endDt = DateTime.parse(lastDateStr);
+          while (!cursor.isAfter(endDt)) {
+            if (cursor.weekday < 6) {
+              // skip weekends
+              final dk = DateFormat('yyyy-MM-dd').format(cursor);
+              bookedDates.add(DateTime(cursor.year, cursor.month, cursor.day));
+              String period = 'full';
+              if (detailsMap.containsKey(dk)) {
+                period = detailsMap[dk]!;
+              } else if (hdp == 'morning' && firstDateStr == lastDateStr) {
+                period = 'morning';
+              } else if (hdp == 'afternoon' && firstDateStr == lastDateStr) {
+                period = 'afternoon';
+              }
+              if (bookedMap.containsKey(dk)) {
+                if (bookedMap[dk] != 'full' &&
+                    period != 'full' &&
+                    bookedMap[dk] != period) {
+                  bookedMap[dk] = 'full';
+                }
+              } else {
+                bookedMap[dk] = period;
+              }
+            }
+            cursor = cursor.add(const Duration(days: 1));
+          }
+        }
+      }
+      _bookedLeaveDates = bookedDates;
+      _bookedDatesMap = bookedMap;
+
       if (mounted) {
         blocSetState(() {});
       }
@@ -615,15 +734,248 @@ class _LeaveScreenState extends State<LeaveScreen> {
             fullName: _itemMember[0].FULLNAME ?? '',
             filesAll: _files,
             halfDayPeriod: _periodMode == 'full' ? '' : _periodMode,
+            halfDayDetails: _buildHalfDayDetailsJson(),
           );
         });
+  }
+
+  /// Check for overlapping leave dates before confirming
+  void _checkOverlapAndConfirm(BuildContext context) {
+    final newFormat = DateFormat('yyyy-MM-dd');
+    final thaiMonths = [
+      '',
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.'
+    ];
+    final conflicts = <String>[];
+
+    DateTime cursor = FirstDate;
+    while (!cursor.isAfter(LastDate)) {
+      if (cursor.weekday < 6) {
+        final dk = newFormat.format(cursor);
+        if (_bookedDatesMap.containsKey(dk)) {
+          final existPeriod = _bookedDatesMap[dk]!;
+          // Determine new request period for this day
+          String reqPeriod = 'full';
+          if (_dayStates.containsKey(dk)) {
+            reqPeriod = _dayStates[dk]!;
+          } else if (_periodMode == 'morning' && FirstDate == LastDate) {
+            reqPeriod = 'morning';
+          } else if (_periodMode == 'afternoon' && FirstDate == LastDate) {
+            reqPeriod = 'afternoon';
+          }
+          bool isConflict = false;
+          if (existPeriod == 'full' || reqPeriod == 'full') {
+            isConflict = true;
+          } else if (existPeriod == reqPeriod) {
+            isConflict = true;
+          }
+          if (isConflict) {
+            conflicts.add('${cursor.day} ${thaiMonths[cursor.month]}');
+          }
+        }
+      }
+      cursor = cursor.add(const Duration(days: 1));
+    }
+
+    if (conflicts.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red[50],
+                ),
+                child: const Icon(
+                  Icons.event_busy_rounded,
+                  color: Colors.redAccent,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'ไม่สามารถลาซ้ำได้',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.kanit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'วันที่ ${conflicts.join(", ")} มีใบลาอยู่แล้ว',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.kanit(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('ตกลง', style: GoogleFonts.kanit(fontSize: 16)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    popup_comfirm(context);
+  }
+
+  Future<bool> _checkPersonalLeaveLimit() async {
+    String orgId = await SharedCashe.getItemsWay(name: 'org_id');
+    if (orgId != '1') return true;
+
+    final now = DateTime.now();
+    int year = now.year;
+
+    String monthStart = year == 2026 ? "3" : "1";
+    String monthEnd = "12";
+    String yearStart = (year + 543).toString();
+    String yearEnd = (year + 543).toString();
+
+    final map = {
+      "org_id": orgId,
+      "uid": await SharedCashe.getItemsWay(name: 'id'),
+      "status_leave": "1,2",
+      "cid": "3",
+      "month_start": monthStart,
+      "year_start": yearStart,
+      "month_end": monthEnd,
+      "year_end": yearEnd,
+    };
+    final body = json.encode(map);
+    try {
+      final response = await http.Client().post(
+        Uri.parse(Server().getListLeave),
+        headers: {"Content-Type": "application/json"},
+        body: body,
+      );
+      final data = json.decode(response.body);
+      if (data is List && data.isNotEmpty && data[0]['result'] != null) {
+        List results = data[0]['result'];
+        if (results.length == 3) {
+          return false;
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
+    return true;
+  }
+
+  void _showWarningDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.orange[100],
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "เกินสิทธิ์ จะมีการหักเงินเดือน",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.kanit(fontSize: 16, color: Colors.black87),
+            ),
+          ],
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'ยกเลิก',
+                    style: GoogleFonts.kanit(
+                        fontSize: 16, color: Colors.grey[700]),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF21CCD4),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _checkOverlapAndConfirm(context);
+                  },
+                  child: Text(
+                    'ตกลง',
+                    style: GoogleFonts.kanit(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   int _selectedSpanDays() {
     final start = DateTime(FirstDate.year, FirstDate.month, FirstDate.day);
     final end = DateTime(LastDate.year, LastDate.month, LastDate.day);
-    final diff = end.difference(start).inDays;
-    return diff >= 0 ? diff + 1 : 1;
+    if (end.isBefore(start)) return 0;
+
+    int days = 0;
+    DateTime current = start;
+    while (!current.isAfter(end)) {
+      if (current.weekday != DateTime.saturday &&
+          current.weekday != DateTime.sunday) {
+        days++;
+      }
+      current = current.add(const Duration(days: 1));
+    }
+    return days;
   }
 
   void _applyPeriodMode(String mode) {
@@ -631,16 +983,23 @@ class _LeaveScreenState extends State<LeaveScreen> {
     if ((mode == 'morning' || mode == 'afternoon') && spanDays > 1) {
       mode = 'full';
     }
-    if (mode == 'last_morning' && spanDays <= 1) {
+    if ((mode == 'last_morning' ||
+            mode == 'first_afternoon' ||
+            mode == 'first_afternoon_last_morning') &&
+        spanDays <= 1) {
       mode = 'full';
     }
 
     _periodMode = mode;
     final isSingleHalfDay = mode == 'morning' || mode == 'afternoon';
     final isLastMorningHalfDay = mode == 'last_morning';
+    final isFirstAfternoon = mode == 'first_afternoon';
+    final isFirstLastHalf = mode == 'first_afternoon_last_morning';
     final period = mode == 'morning'
         ? HalfDayPeriod.morning
-        : HalfDayPeriod.afternoon;
+        : (mode == 'first_afternoon'
+            ? HalfDayPeriod.afternoon
+            : HalfDayPeriod.afternoon);
 
     if (isSingleHalfDay) {
       // Force single-day for half-day leave
@@ -656,7 +1015,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
       _inputTotalDays.text = '0.5';
       _selectFullTime = 1;
       _inputTotalTimes.clear();
-    } else if (isLastMorningHalfDay) {
+    } else if (isLastMorningHalfDay || isFirstAfternoon) {
       final adjustedDays = spanDays > 1 ? spanDays - 0.5 : 0.5;
       _leaveDateSelection = _leaveDateSelection.copyWith(
         isHalfDay: false,
@@ -668,8 +1027,20 @@ class _LeaveScreenState extends State<LeaveScreen> {
       _inputTotalDays.text = _formatLeaveAmount(adjustedDays);
       _selectFullTime = 1;
       _inputTotalTimes.clear();
+    } else if (isFirstLastHalf) {
+      final adjustedDays = spanDays > 1 ? spanDays - 1.0 : 0.0;
+      _leaveDateSelection = _leaveDateSelection.copyWith(
+        isHalfDay: false,
+        totalDays: adjustedDays,
+        clearHalfDayPeriod: true,
+        clearStartTime: true,
+        clearEndTime: true,
+      );
+      _inputTotalDays.text = _formatLeaveAmount(adjustedDays);
+      _selectFullTime = 1;
+      _inputTotalTimes.clear();
     } else {
-      final days = LastDate.difference(FirstDate).inDays + 1;
+      final days = _selectedSpanDays();
       _leaveDateSelection = _leaveDateSelection.copyWith(
         isHalfDay: false,
         totalDays: days.toDouble(),
@@ -1086,9 +1457,12 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                       initialEnd: LastDate,
                                       enableHalfDay: false,
                                       enableTimeRange: select3,
+                                      bookedLeaveDates: _bookedLeaveDates,
                                       onChanged: (selection) {
                                         _applyLeaveSelection(selection);
-                                        // Re-apply period logic after date change
+                                        // Clear per-day states when dates change
+                                        _dayStates.clear();
+                                        _periodMode = 'full';
                                         _applyPeriodMode(_periodMode);
                                       },
                                     ),
@@ -1332,7 +1706,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                     ),
                                   ),
                                 ],
-                                // Period selector (Full / Morning / Afternoon)
+                                // Period selector – Circle-based per-day toggle
                                 if (!_leaveDateSelection.isTimeRange &&
                                     !_isSubdayLeaveSelected) ...[
                                   SizedBox(height: 12),
@@ -1344,63 +1718,287 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'ช่วงเวลาลา',
+                                          'รูปแบบการลา (เต็มวัน/ครึ่งวัน)',
                                           style: GoogleFonts.kanit(
                                             fontSize: 14,
                                             color: Colors.grey[700],
                                           ),
                                         ),
-                                        SizedBox(height: 8),
+                                        SizedBox(height: 12),
                                         Builder(
                                           builder: (_) {
-                                            final isMultiDay =
-                                                _selectedSpanDays() > 1;
-                                            return Row(
+                                            final start = DateTime(
+                                                FirstDate.year,
+                                                FirstDate.month,
+                                                FirstDate.day);
+                                            final end = DateTime(LastDate.year,
+                                                LastDate.month, LastDate.day);
+
+                                            // Build list of weekday dates
+                                            final dates = <DateTime>[];
+                                            var cur = start;
+                                            while (!cur.isAfter(end)) {
+                                              if (cur.weekday !=
+                                                      DateTime.saturday &&
+                                                  cur.weekday !=
+                                                      DateTime.sunday) {
+                                                dates.add(cur);
+                                              }
+                                              cur = cur
+                                                  .add(const Duration(days: 1));
+                                            }
+                                            if (dates.isEmpty) {
+                                              dates.add(start);
+                                            }
+
+                                            final thaiMonths = [
+                                              'ม.ค.',
+                                              'ก.พ.',
+                                              'มี.ค.',
+                                              'เม.ย.',
+                                              'พ.ค.',
+                                              'มิ.ย.',
+                                              'ก.ค.',
+                                              'ส.ค.',
+                                              'ก.ย.',
+                                              'ต.ค.',
+                                              'พ.ย.',
+                                              'ธ.ค.'
+                                            ];
+
+                                            return Column(
                                               children: [
-                                                _PeriodChip(
-                                                  label: 'ทั้งวัน',
-                                                  icon: Icons.sunny,
-                                                  selected:
-                                                      _periodMode == 'full',
-                                                  onTap: () =>
-                                                      _applyPeriodMode('full'),
+                                                // Scrollable row of date circles
+                                                SingleChildScrollView(
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: List.generate(
+                                                        dates.length, (i) {
+                                                      final d = dates[i];
+                                                      final dateKey =
+                                                          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+                                                      // Every circle is tappable
+                                                      String circleState =
+                                                          _dayStates[dateKey] ??
+                                                              'full';
+
+                                                      return Padding(
+                                                        padding: EdgeInsets
+                                                            .symmetric(
+                                                                horizontal: 10),
+                                                        child: GestureDetector(
+                                                          onTap: () {
+                                                            setState(() {
+                                                              // Cycle: full → morning → afternoon → full
+                                                              if (circleState ==
+                                                                  'full') {
+                                                                _dayStates[
+                                                                        dateKey] =
+                                                                    'morning';
+                                                              } else if (circleState ==
+                                                                  'morning') {
+                                                                _dayStates[
+                                                                        dateKey] =
+                                                                    'afternoon';
+                                                              } else {
+                                                                _dayStates
+                                                                    .remove(
+                                                                        dateKey);
+                                                              }
+                                                              _recalcFromDayStates();
+                                                            });
+                                                          },
+                                                          child: Column(
+                                                            children: [
+                                                              // Date label
+                                                              Text(
+                                                                '${d.day} ${thaiMonths[d.month - 1]}',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .kanit(
+                                                                  fontSize: 13,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      700],
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 6),
+                                                              // ─── Circle ───
+                                                              Container(
+                                                                width: 80,
+                                                                height: 80,
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                  boxShadow: [
+                                                                    BoxShadow(
+                                                                      color: Color(
+                                                                              0xFF0663F7)
+                                                                          .withOpacity(
+                                                                              0.25),
+                                                                      blurRadius:
+                                                                          12,
+                                                                      offset:
+                                                                          Offset(
+                                                                              0,
+                                                                              4),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                child: ClipOval(
+                                                                  child: Column(
+                                                                    children: [
+                                                                      // Top half (เช้า)
+                                                                      Expanded(
+                                                                        child:
+                                                                            Container(
+                                                                          width:
+                                                                              double.infinity,
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            gradient: (circleState == 'full' || circleState == 'morning')
+                                                                                ? LinearGradient(
+                                                                                    colors: [
+                                                                                      Color(0xFF56CCF2),
+                                                                                      Color(0xFF2F80ED)
+                                                                                    ],
+                                                                                    begin: Alignment.topLeft,
+                                                                                    end: Alignment.bottomRight,
+                                                                                  )
+                                                                                : null,
+                                                                            color: (circleState == 'afternoon')
+                                                                                ? Color(0xFFE8F0FE)
+                                                                                : null,
+                                                                          ),
+                                                                          alignment:
+                                                                              Alignment.center,
+                                                                          child:
+                                                                              Text(
+                                                                            'เช้า',
+                                                                            style:
+                                                                                GoogleFonts.kanit(
+                                                                              fontSize: 14,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: (circleState == 'full' || circleState == 'morning') ? Colors.white : Color(0xFFAEC6F6),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      // Divider
+                                                                      Container(
+                                                                        height:
+                                                                            1.5,
+                                                                        color: Colors
+                                                                            .white
+                                                                            .withOpacity(0.5),
+                                                                      ),
+                                                                      // Bottom half (บ่าย)
+                                                                      Expanded(
+                                                                        child:
+                                                                            Container(
+                                                                          width:
+                                                                              double.infinity,
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            gradient: (circleState == 'full' || circleState == 'afternoon')
+                                                                                ? LinearGradient(
+                                                                                    colors: [
+                                                                                      Color(0xFF2F80ED),
+                                                                                      Color(0xFF0663F7)
+                                                                                    ],
+                                                                                    begin: Alignment.topLeft,
+                                                                                    end: Alignment.bottomRight,
+                                                                                  )
+                                                                                : null,
+                                                                            color: (circleState == 'morning')
+                                                                                ? Color(0xFFE8F0FE)
+                                                                                : null,
+                                                                          ),
+                                                                          alignment:
+                                                                              Alignment.center,
+                                                                          child:
+                                                                              Text(
+                                                                            'บ่าย',
+                                                                            style:
+                                                                                GoogleFonts.kanit(
+                                                                              fontSize: 14,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: (circleState == 'full' || circleState == 'afternoon') ? Colors.white : Color(0xFFAEC6F6),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 6),
+                                                              // Status label
+                                                              Text(
+                                                                circleState ==
+                                                                        'full'
+                                                                    ? 'เต็มวัน'
+                                                                    : circleState ==
+                                                                            'morning'
+                                                                        ? 'ครึ่งวันเช้า'
+                                                                        : 'ครึ่งวันบ่าย',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .kanit(
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  color: Color(
+                                                                      0xFF2F80ED),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }),
+                                                  ),
                                                 ),
-                                                SizedBox(width: 8),
-                                                if (isMultiDay)
-                                                  _PeriodChip(
-                                                    label:
-                                                        'วันสุดท้าย\nครึ่งวันเช้า',
-                                                    icon:
-                                                        Icons.wb_sunny_outlined,
-                                                    selected: _periodMode ==
-                                                        'last_morning',
-                                                    onTap: () =>
-                                                        _applyPeriodMode(
-                                                            'last_morning'),
-                                                  )
-                                                else ...[
-                                                  _PeriodChip(
-                                                    label: 'ครึ่งวันเช้า',
-                                                    icon: Icons
-                                                        .wb_sunny_outlined,
-                                                    selected: _periodMode ==
-                                                        'morning',
-                                                    onTap: () =>
-                                                        _applyPeriodMode(
-                                                            'morning'),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 12),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(
+                                                          Icons
+                                                              .info_outline_rounded,
+                                                          size: 14,
+                                                          color:
+                                                              Colors.grey[400]),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        'แตะที่วงกลมเพื่อปรับเป็นครึ่งวัน/เต็มวัน',
+                                                        style:
+                                                            GoogleFonts.kanit(
+                                                          fontSize: 12,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                  SizedBox(width: 8),
-                                                  _PeriodChip(
-                                                    label: 'ครึ่งวันบ่าย',
-                                                    icon: Icons
-                                                        .wb_twilight_outlined,
-                                                    selected: _periodMode ==
-                                                        'afternoon',
-                                                    onTap: () =>
-                                                        _applyPeriodMode(
-                                                            'afternoon'),
-                                                  ),
-                                                ],
+                                                ),
                                               ],
                                             );
                                           },
@@ -1521,7 +2119,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                   padding: EdgeInsets.symmetric(horizontal: 20),
                                   width: double.infinity,
                                   child: GestureDetector(
-                                    onTap: () {
+                                    onTap: () async {
                                       // Validation Logic
                                       if (!(_formKey.currentState?.validate() ??
                                           false)) return;
@@ -1570,8 +2168,17 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                         blocSetState(() => timeError = null);
                                       }
 
+                                      if (select2) {
+                                        bool canProceed =
+                                            await _checkPersonalLeaveLimit();
+                                        if (!canProceed) {
+                                          _showWarningDialog(context);
+                                          return;
+                                        }
+                                      }
+
                                       // Popup Confirm
-                                      popup_comfirm(context);
+                                      _checkOverlapAndConfirm(context);
                                     },
                                     child: Container(
                                       padding:
@@ -1656,14 +2263,14 @@ class _LeaveScreenState extends State<LeaveScreen> {
                                     padding:
                                         EdgeInsets.symmetric(horizontal: 20),
                                     children: [
-                                      _buildStatCard(
-                                          "ลาป่วย", sick_leave, Colors.blue),
+                                      _buildStatCard("ลาป่วย", sick_leave,
+                                          Color(0xFFFF9800), Color(0xFFFFF3E0)),
                                       SizedBox(width: 12),
                                       _buildStatCard("ลากิจ", personal_leave,
-                                          Colors.green),
+                                          Color(0xFF7E57C2), Color(0xFFF3E5F5)),
                                       SizedBox(width: 12),
-                                      _buildStatCard(
-                                          "อื่นๆ", other_leave, Colors.orange),
+                                      _buildStatCard("อื่นๆ", other_leave,
+                                          Color(0xFF4CAF50), Color(0xFFE8F5E9)),
                                     ],
                                   ),
                                 ),
@@ -1942,15 +2549,16 @@ class _LeaveScreenState extends State<LeaveScreen> {
 
   void expect(int daysBetween, int i) {}
 
-  Widget _buildStatCard(String title, String days, Color color) {
+  Widget _buildStatCard(
+      String title, String days, Color textColor, Color bgColor) {
     return Container(
       width: 100,
       margin: EdgeInsets.only(right: 12),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Colors.transparent),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1966,8 +2574,8 @@ class _LeaveScreenState extends State<LeaveScreen> {
           Text(
             title,
             style: GoogleFonts.kanit(
-              fontSize: 12,
-              color: Colors.grey[600],
+              fontSize: 14,
+              color: Colors.grey[800],
             ),
           ),
           SizedBox(height: 4),
@@ -1977,9 +2585,9 @@ class _LeaveScreenState extends State<LeaveScreen> {
               Text(
                 days,
                 style: GoogleFonts.kanit(
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color: textColor,
                 ),
               ),
               SizedBox(width: 4),
@@ -1988,8 +2596,8 @@ class _LeaveScreenState extends State<LeaveScreen> {
                 child: Text(
                   "วัน",
                   style: GoogleFonts.kanit(
-                    fontSize: 10,
-                    color: Colors.grey[400],
+                    fontSize: 12,
+                    color: Colors.grey[700],
                   ),
                 ),
               ),

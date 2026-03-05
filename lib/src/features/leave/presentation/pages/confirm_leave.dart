@@ -29,6 +29,7 @@ class ConfirmDialog extends StatefulWidget {
   final bool select3;
   final List<File> filesAll;
   final String halfDayPeriod;
+  final String halfDayDetails;
   final Function(String) onConfirmTap;
 
   const ConfirmDialog({
@@ -49,6 +50,7 @@ class ConfirmDialog extends StatefulWidget {
     required this.cidSub,
     required this.filesAll,
     this.halfDayPeriod = '',
+    this.halfDayDetails = '',
   }) : super(key: key);
 
   @override
@@ -139,14 +141,22 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
   String get _halfDayLabel {
     if (widget.halfDayPeriod == 'morning') return 'ครึ่งวันเช้า';
     if (widget.halfDayPeriod == 'afternoon') return 'ครึ่งวันบ่าย';
+    if (widget.halfDayPeriod == 'first_afternoon') return 'วันแรกครึ่งวันบ่าย';
     if (widget.halfDayPeriod == 'last_morning') return 'วันสุดท้ายครึ่งวันเช้า';
-    return '';
+    if (widget.halfDayPeriod == 'first_afternoon_last_morning')
+      return 'วันแรกครึ่งบ่ายและสุดท้ายครึ่งเช้า';
+    if (widget.halfDayPeriod == 'custom' && widget.halfDayDetails.isNotEmpty) {
+      return 'กำหนดเอง';
+    }
+    return 'เต็มวัน';
   }
 
   String get _periodIcon {
     if (widget.halfDayPeriod == 'morning') return 'AM';
     if (widget.halfDayPeriod == 'afternoon') return 'PM';
+    if (widget.halfDayPeriod == 'first_afternoon') return 'PM';
     if (widget.halfDayPeriod == 'last_morning') return 'AM';
+    if (widget.halfDayPeriod == 'first_afternoon_last_morning') return 'PM/AM';
     return '';
   }
 
@@ -207,8 +217,11 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
       return text;
     }
 
-    final rangeText = '${_formatThaiShortDate(from)} - ${_formatThaiShortDate(to)}';
-    if (widget.halfDayPeriod == 'last_morning') {
+    final rangeText =
+        '${_formatThaiShortDate(from)} - ${_formatThaiShortDate(to)}';
+    if (widget.halfDayPeriod == 'last_morning' ||
+        widget.halfDayPeriod == 'first_afternoon' ||
+        widget.halfDayPeriod == 'first_afternoon_last_morning') {
       return '$rangeText\n($_halfDayLabel)';
     }
     return rangeText;
@@ -241,6 +254,9 @@ class _ConfirmDialogState extends State<ConfirmDialog> {
       request.fields['cid'] = cid;
       if (widget.halfDayPeriod.isNotEmpty) {
         request.fields['half_day_period'] = widget.halfDayPeriod;
+      }
+      if (widget.halfDayDetails.isNotEmpty) {
+        request.fields['half_day_details'] = widget.halfDayDetails;
       }
 
       for (int i = 0; i < widget.filesAll.length; i++) {

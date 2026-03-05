@@ -12,6 +12,7 @@ class LeaveDateRangePickerField extends StatefulWidget {
     this.initialEnd,
     this.enableHalfDay = false,
     this.enableTimeRange = false,
+    this.bookedLeaveDates = const {},
     required this.onChanged,
   });
 
@@ -19,6 +20,7 @@ class LeaveDateRangePickerField extends StatefulWidget {
   final DateTime? initialEnd;
   final bool enableHalfDay;
   final bool enableTimeRange;
+  final Set<DateTime> bookedLeaveDates;
   final ValueChanged<LeaveDateSelection> onChanged;
 
   @override
@@ -63,6 +65,7 @@ class _LeaveDateRangePickerFieldState extends State<LeaveDateRangePickerField> {
       initialEnd: _controller.endDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      bookedLeaveDates: widget.bookedLeaveDates,
     );
 
     if (pickedRange == null) {

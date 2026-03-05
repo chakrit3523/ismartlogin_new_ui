@@ -54,6 +54,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
   String leaveStatusText = '';
   String createBy = '';
   String halfDayPeriod = '';
+  String halfDayDetails = '';
   String userclass = '';
   String leave_member = '0';
   String sick_leave = '0';
@@ -324,8 +325,17 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     }
 
     final rangeText = '$start - $effectiveEnd';
+    if (halfDayPeriod == 'custom' && halfDayDetails.isNotEmpty) {
+      return '$rangeText (กำหนดเอง)';
+    }
     if (halfDayPeriod == 'last_morning') {
       return '$rangeText (วันสุดท้ายครึ่งวันเช้า)';
+    }
+    if (halfDayPeriod == 'first_afternoon') {
+      return '$rangeText (วันแรกครึ่งวันบ่าย)';
+    }
+    if (halfDayPeriod == 'first_afternoon_last_morning') {
+      return '$rangeText (วันแรกครึ่งบ่ายและสุดท้ายครึ่งเช้า)';
     }
     return rangeText;
   }
@@ -658,12 +668,19 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     if (data[0]['status'] == true) {
       cateName = data[0]['cateName'].toString();
       halfDayPeriod = data[0]['half_day_period']?.toString() ?? '';
+      halfDayDetails = data[0]['half_day_details']?.toString() ?? '';
       if (halfDayPeriod == 'morning') {
         cateName += ' (ครึ่งวันเช้า)';
       } else if (halfDayPeriod == 'afternoon') {
         cateName += ' (ครึ่งวันบ่าย)';
       } else if (halfDayPeriod == 'last_morning') {
         cateName += ' (วันสุดท้ายครึ่งวันเช้า)';
+      } else if (halfDayPeriod == 'first_afternoon') {
+        cateName += ' (วันแรกครึ่งวันบ่าย)';
+      } else if (halfDayPeriod == 'first_afternoon_last_morning') {
+        cateName += ' (วันแรกครึ่งบ่ายและสุดท้ายครึ่งเช้า)';
+      } else if (halfDayPeriod == 'custom' && halfDayDetails.isNotEmpty) {
+        cateName += ' (กำหนดเอง)';
       }
 
       totalLeave = data[0]['totalLeave'].toString();
